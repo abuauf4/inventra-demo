@@ -13,16 +13,35 @@ export type AppPage =
   | 'activity-logs'
   | 'reports'
   | 'user-management'
+  | 'inbox'
+
+export type UserRole = 'owner' | 'admin' | 'staff' | 'warehouse'
+
+interface CurrentUser {
+  id: string
+  name: string
+  username: string
+  email?: string
+  role: UserRole
+}
+
+interface Notification {
+  id: string
+  message: string
+  type: string
+  read: boolean
+  createdAt: string
+}
 
 interface AppState {
   activePage: AppPage
   setActivePage: (page: AppPage) => void
   sidebarOpen: boolean
   setSidebarOpen: (open: boolean) => void
-  currentUser: { id: string; name: string; username: string; email?: string; role: string } | null
-  setCurrentUser: (user: { id: string; name: string; username: string; email?: string; role: string } | null) => void
-  notifications: { id: string; message: string; type: string; read: boolean; createdAt: string }[]
-  addNotification: (notification: { id: string; message: string; type: string; read: boolean; createdAt: string }) => void
+  currentUser: CurrentUser | null
+  setCurrentUser: (user: CurrentUser | null) => void
+  notifications: Notification[]
+  addNotification: (notification: Notification) => void
   markNotificationRead: (id: string) => void
   searchQuery: string
   setSearchQuery: (query: string) => void

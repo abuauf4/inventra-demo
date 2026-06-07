@@ -18,7 +18,7 @@ model User {
   name         String
   email        String?
   password     String
-  role         String        @default("staff") // owner, admin, staff
+  role         String        @default("staff") // owner, admin, staff, warehouse
   isActive     Boolean       @default(true)
   activityLogs ActivityLog[]
   attachments  Attachment[]
@@ -228,6 +228,22 @@ model ActivityLog {
   newData      String?   // JSON string of new values (for UPDATE/STATUS_CHANGE)
   user         User      @relation(fields: [userId], references: [id])
   createdAt    DateTime  @default(now())
+}
+
+// ===================== INBOX =====================
+
+model Inbox {
+  id         String   @id @default(cuid())
+  userId     String?  // null = broadcast to all users
+  type       String   // stock_low, purchase_status, sale_status, customer_created, purchase_received, stock_mutation, general
+  title      String
+  message    String
+  entity     String?  // Entity type: Product, Purchase, Sale, Customer, etc.
+  entityId   String?  // Entity ID reference
+  entityCode String?  // Human-readable code
+  isRead     Boolean  @default(false)
+  priority   String   @default("info") // urgent, warning, info
+  createdAt  DateTime @default(now())
 }
 
 // ===================== ATTACHMENT =====================

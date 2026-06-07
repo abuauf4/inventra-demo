@@ -6,43 +6,58 @@ export async function GET() {
   try {
     const results = {
       owner: null as string | null,
+      staff: null as string | null,
+      warehouse: null as string | null,
       categories: [] as string[],
       warehouses: [] as string[],
       suppliers: [] as string[],
       customers: [] as string[],
       products: [] as string[],
+      inbox: [] as string[],
     }
 
     // Seed owner user
-    const existingOwner = await db.user.findUnique({
-      where: { username: 'Bagas' },
-    })
-
+    const existingOwner = await db.user.findUnique({ where: { username: 'Bagas' } })
     if (!existingOwner) {
       const owner = await db.user.create({
-        data: {
-          username: 'Bagas',
-          password: '122333',
-          name: 'Bagas',
-          role: 'owner',
-        },
+        data: { username: 'Bagas', password: '122333', name: 'Abu Aufa', role: 'owner' },
       })
       results.owner = owner.id
     } else {
+      // Update name if needed
+      await db.user.update({ where: { username: 'Bagas' }, data: { name: 'Abu Aufa', role: 'owner' } })
       results.owner = 'already_exists'
+    }
+
+    // Seed staff user
+    const existingStaff = await db.user.findUnique({ where: { username: 'Bagas2' } })
+    if (!existingStaff) {
+      const staff = await db.user.create({
+        data: { username: 'Bagas2', password: '122333', name: 'Bagas', role: 'staff' },
+      })
+      results.staff = staff.id
+    } else {
+      results.staff = 'already_exists'
+    }
+
+    // Seed warehouse user
+    const existingWH = await db.user.findUnique({ where: { username: 'Rizki' } })
+    if (!existingWH) {
+      const warehouse = await db.user.create({
+        data: { username: 'Rizki', password: '122333', name: 'Rizki', role: 'warehouse' },
+      })
+      results.warehouse = warehouse.id
+    } else {
+      results.warehouse = 'already_exists'
     }
 
     // Seed categories (fashion-forward)
     const categoryNames = ['T-Shirt', 'Hoodie', 'Pants', 'Outerwear', 'Accessories']
     const categoryIds: Record<string, string> = {}
     for (const catName of categoryNames) {
-      const existing = await db.category.findFirst({
-        where: { name: catName },
-      })
+      const existing = await db.category.findFirst({ where: { name: catName } })
       if (!existing) {
-        const cat = await db.category.create({
-          data: { name: catName },
-        })
+        const cat = await db.category.create({ data: { name: catName } })
         categoryIds[catName] = cat.id
         results.categories.push(cat.id)
       } else {
@@ -58,13 +73,9 @@ export async function GET() {
     ]
     const warehouseIds: Record<string, string> = {}
     for (const wh of warehouseData) {
-      const existing = await db.warehouse.findUnique({
-        where: { code: wh.code },
-      })
+      const existing = await db.warehouse.findUnique({ where: { code: wh.code } })
       if (!existing) {
-        const created = await db.warehouse.create({
-          data: { name: wh.name, code: wh.code, address: wh.address },
-        })
+        const created = await db.warehouse.create({ data: { name: wh.name, code: wh.code, address: wh.address } })
         warehouseIds[wh.code] = created.id
         results.warehouses.push(created.id)
       } else {
@@ -81,9 +92,7 @@ export async function GET() {
     ]
     const supplierIds: Record<string, string> = {}
     for (const sup of supplierData) {
-      const existing = await db.supplier.findUnique({
-        where: { code: sup.code },
-      })
+      const existing = await db.supplier.findUnique({ where: { code: sup.code } })
       if (!existing) {
         const created = await db.supplier.create({
           data: { code: sup.code, name: sup.name, pic: sup.pic, phone: sup.phone, email: sup.email, address: sup.address },
@@ -104,9 +113,7 @@ export async function GET() {
       { code: 'CUS000004', name: 'Warung Style Bandung', phone: '082112233445', email: 'hello@warungstylebdg.com', address: 'Jl. Dago No. 33, Bandung' },
     ]
     for (const cust of customerData) {
-      const existing = await db.customer.findUnique({
-        where: { code: cust.code },
-      })
+      const existing = await db.customer.findUnique({ where: { code: cust.code } })
       if (!existing) {
         const created = await db.customer.create({
           data: { code: cust.code, name: cust.name, phone: cust.phone, email: cust.email || null, address: cust.address || null },
@@ -124,18 +131,13 @@ export async function GET() {
     // ========================================
     const productVariants = [
       {
-        name: 'Essential Tee',
-        sku: 'CL000001',
-        category: 'T-Shirt',
-        supplier: 'PT Garmen Nusantara',
-        buyPrice: 75000,
-        sellPrice: 165000,
-        minStock: 5,
+        name: 'Essential Tee', sku: 'CL000001', category: 'T-Shirt', supplier: 'PT Garmen Nusantara',
+        buyPrice: 75000, sellPrice: 165000, minStock: 5,
         description: 'Premium cotton essential tee, 30s combed cotton, oversized fit',
         variants: [
           { name: 'Obsidian M', sku: 'CL000001-OBS-M', attributes: '{"color":"Obsidian","size":"M"}', stock: 28, minStock: 5 },
           { name: 'Obsidian L', sku: 'CL000001-OBS-L', attributes: '{"color":"Obsidian","size":"L"}', stock: 32, minStock: 5 },
-          { name: 'Obsidian XL', sku: 'CL000001-OBS-XL', attributes: '{"color":"Obsidian","size":"XL"}', stock: 3, minStock: 5 }, // LOW STOCK
+          { name: 'Obsidian XL', sku: 'CL000001-OBS-XL', attributes: '{"color":"Obsidian","size":"XL"}', stock: 3, minStock: 5 },
           { name: 'Cream M', sku: 'CL000001-CRM-M', attributes: '{"color":"Cream","size":"M"}', stock: 22, minStock: 5 },
           { name: 'Cream L', sku: 'CL000001-CRM-L', attributes: '{"color":"Cream","size":"L"}', stock: 25, minStock: 5 },
           { name: 'Cream XL', sku: 'CL000001-CRM-XL', attributes: '{"color":"Cream","size":"XL"}', stock: 18, minStock: 5 },
@@ -144,47 +146,32 @@ export async function GET() {
         ],
       },
       {
-        name: 'Urban Hoodie',
-        sku: 'CL000002',
-        category: 'Hoodie',
-        supplier: 'PT Garmen Nusantara',
-        buyPrice: 155000,
-        sellPrice: 345000,
-        minStock: 3,
+        name: 'Urban Hoodie', sku: 'CL000002', category: 'Hoodie', supplier: 'PT Garmen Nusantara',
+        buyPrice: 155000, sellPrice: 345000, minStock: 3,
         description: 'Heavyweight fleece hoodie, 420gsm, drop shoulder, kangaroo pocket',
         variants: [
           { name: 'Charcoal M', sku: 'CL000002-CHR-M', attributes: '{"color":"Charcoal","size":"M"}', stock: 10, minStock: 3 },
           { name: 'Charcoal L', sku: 'CL000002-CHR-L', attributes: '{"color":"Charcoal","size":"L"}', stock: 12, minStock: 3 },
-          { name: 'Charcoal XL', sku: 'CL000002-CHR-XL', attributes: '{"color":"Charcoal","size":"XL"}', stock: 2, minStock: 3 }, // LOW STOCK
+          { name: 'Charcoal XL', sku: 'CL000002-CHR-XL', attributes: '{"color":"Charcoal","size":"XL"}', stock: 2, minStock: 3 },
           { name: 'Oatmeal M', sku: 'CL000002-OAT-M', attributes: '{"color":"Oatmeal","size":"M"}', stock: 8, minStock: 3 },
           { name: 'Oatmeal L', sku: 'CL000002-OAT-L', attributes: '{"color":"Oatmeal","size":"L"}', stock: 8, minStock: 3 },
           { name: 'Oatmeal XL', sku: 'CL000002-OAT-XL', attributes: '{"color":"Oatmeal","size":"XL"}', stock: 6, minStock: 3 },
         ],
       },
       {
-        name: 'Cargo Pants',
-        sku: 'CL000003',
-        category: 'Pants',
-        supplier: 'CV Kain Prima',
-        buyPrice: 120000,
-        sellPrice: 275000,
-        minStock: 3,
+        name: 'Cargo Pants', sku: 'CL000003', category: 'Pants', supplier: 'CV Kain Prima',
+        buyPrice: 120000, sellPrice: 275000, minStock: 3,
         description: 'Tactical cargo pants, ripstop fabric, adjustable waist, 6 pockets',
         variants: [
           { name: 'Khaki M', sku: 'CL000003-KHK-M', attributes: '{"color":"Khaki","size":"M"}', stock: 14, minStock: 3 },
           { name: 'Khaki L', sku: 'CL000003-KHK-L', attributes: '{"color":"Khaki","size":"L"}', stock: 14, minStock: 3 },
           { name: 'Obsidian M', sku: 'CL000003-OBS-M', attributes: '{"color":"Obsidian","size":"M"}', stock: 11, minStock: 3 },
-          { name: 'Obsidian L', sku: 'CL000003-OBS-L', attributes: '{"color":"Obsidian","size":"L"}', stock: 1, minStock: 3 }, // LOW STOCK
+          { name: 'Obsidian L', sku: 'CL000003-OBS-L', attributes: '{"color":"Obsidian","size":"L"}', stock: 1, minStock: 3 },
         ],
       },
       {
-        name: 'Canvas Tote Bag',
-        sku: 'CL000004',
-        category: 'Accessories',
-        supplier: 'UD Aksesoris Modis',
-        buyPrice: 45000,
-        sellPrice: 95000,
-        minStock: 5,
+        name: 'Canvas Tote Bag', sku: 'CL000004', category: 'Accessories', supplier: 'UD Aksesoris Modis',
+        buyPrice: 45000, sellPrice: 95000, minStock: 5,
         description: 'Waxed canvas tote, genuine leather handle, inner zip pocket',
         variants: [
           { name: 'Natural One Size', sku: 'CL000004-NAT-OS', attributes: '{"color":"Natural","size":"One Size"}', stock: 20, minStock: 5 },
@@ -192,28 +179,18 @@ export async function GET() {
         ],
       },
       {
-        name: 'Signature Cap',
-        sku: 'CL000005',
-        category: 'Accessories',
-        supplier: 'UD Aksesoris Modis',
-        buyPrice: 35000,
-        sellPrice: 85000,
-        minStock: 5,
+        name: 'Signature Cap', sku: 'CL000005', category: 'Accessories', supplier: 'UD Aksesoris Modis',
+        buyPrice: 35000, sellPrice: 85000, minStock: 5,
         description: 'Unstructured dad cap, washed cotton, embroidered logo, adjustable strap',
         variants: [
           { name: 'Obsidian', sku: 'CL000005-OBS', attributes: '{"color":"Obsidian"}', stock: 25, minStock: 5 },
           { name: 'Cream', sku: 'CL000005-CRM', attributes: '{"color":"Cream"}', stock: 22, minStock: 5 },
-          { name: 'Olive', sku: 'CL000005-OLV', attributes: '{"color":"Olive"}', stock: 4, minStock: 5 }, // LOW STOCK
+          { name: 'Olive', sku: 'CL000005-OLV', attributes: '{"color":"Olive"}', stock: 4, minStock: 5 },
         ],
       },
       {
-        name: 'Runner Sneakers',
-        sku: 'CL000006',
-        category: 'Accessories',
-        supplier: 'UD Aksesoris Modis',
-        buyPrice: 180000,
-        sellPrice: 395000,
-        minStock: 2,
+        name: 'Runner Sneakers', sku: 'CL000006', category: 'Accessories', supplier: 'UD Aksesoris Modis',
+        buyPrice: 180000, sellPrice: 395000, minStock: 2,
         description: 'Knit upper runner, EVA midsole, rubber outsole, lightweight comfort',
         variants: [
           { name: 'Cloud White 40', sku: 'CL000006-WHT-40', attributes: '{"color":"Cloud White","size":"40"}', stock: 6, minStock: 2 },
@@ -223,37 +200,25 @@ export async function GET() {
           { name: 'All Black 40', sku: 'CL000006-BLK-40', attributes: '{"color":"All Black","size":"40"}', stock: 5, minStock: 2 },
           { name: 'All Black 41', sku: 'CL000006-BLK-41', attributes: '{"color":"All Black","size":"41"}', stock: 4, minStock: 2 },
           { name: 'All Black 42', sku: 'CL000006-BLK-42', attributes: '{"color":"All Black","size":"42"}', stock: 2, minStock: 2 },
-          { name: 'All Black 43', sku: 'CL000006-BLK-43', attributes: '{"color":"All Black","size":"43"}', stock: 1, minStock: 2 }, // LOW STOCK
+          { name: 'All Black 43', sku: 'CL000006-BLK-43', attributes: '{"color":"All Black","size":"43"}', stock: 1, minStock: 2 },
         ],
       },
     ]
 
     for (const pData of productVariants) {
-      const existingProduct = await db.product.findUnique({
-        where: { sku: pData.sku },
-      })
-
+      const existingProduct = await db.product.findUnique({ where: { sku: pData.sku } })
       if (!existingProduct) {
         const product = await db.product.create({
           data: {
-            name: pData.name,
-            sku: pData.sku,
-            categoryId: categoryIds[pData.category],
+            name: pData.name, sku: pData.sku, categoryId: categoryIds[pData.category],
             supplierId: supplierIds[pData.supplier] || null,
-            buyPrice: pData.buyPrice,
-            sellPrice: pData.sellPrice,
-            minStock: pData.minStock,
-            isActive: true,
+            buyPrice: pData.buyPrice, sellPrice: pData.sellPrice, minStock: pData.minStock,
+            description: pData.description, isActive: true,
             variants: {
               create: pData.variants.map((v) => ({
-                name: v.name,
-                sku: v.sku,
-                attributes: v.attributes,
-                buyPrice: pData.buyPrice,
-                sellPrice: pData.sellPrice,
-                stock: v.stock,
-                minStock: v.minStock,
-                isActive: true,
+                name: v.name, sku: v.sku, attributes: v.attributes,
+                buyPrice: pData.buyPrice, sellPrice: pData.sellPrice,
+                stock: v.stock, minStock: v.minStock, isActive: true,
               })),
             },
           },
@@ -267,19 +232,29 @@ export async function GET() {
             const variantData = pData.variants.find((v) => v.sku === variant.sku)
             if (variantData) {
               await db.warehouseStock.create({
-                data: {
-                  warehouseId: gudangUtamaId,
-                  productVariantId: variant.id,
-                  stock: variantData.stock,
-                },
+                data: { warehouseId: gudangUtamaId, productVariantId: variant.id, stock: variantData.stock },
               })
             }
           }
         }
-
         results.products.push(product.id)
       } else {
         results.products.push('already_exists')
+      }
+    }
+
+    // Seed inbox items for demo
+    const existingInbox = await db.inbox.count()
+    if (existingInbox === 0) {
+      const inboxItems = [
+        { type: 'stock_low', title: 'Stok Menipis', message: 'Essential Tee Obsidian XL (CL000001-OBS-XL) hanya tersisa 3 unit. Minimum stok: 5', entity: 'Product', entityCode: 'CL000001', priority: 'warning' },
+        { type: 'stock_low', title: 'Stok Habis', message: 'Cargo Pants Obsidian L (CL000003-OBS-L) hanya tersisa 1 unit. Segera restock!', entity: 'Product', entityCode: 'CL000003', priority: 'urgent' },
+        { type: 'stock_low', title: 'Stok Menipis', message: 'Runner Sneakers All Black 43 (CL000006-BLK-43) hanya tersisa 1 unit', entity: 'Product', entityCode: 'CL000006', priority: 'urgent' },
+        { type: 'general', title: 'Selamat Datang', message: 'Sistem Inventra sudah siap digunakan. Mulai dengan menambahkan transaksi pertama Anda.', entity: null, entityCode: null, priority: 'info' },
+      ]
+      for (const item of inboxItems) {
+        const created = await db.inbox.create({ data: { ...item, entityId: null } })
+        results.inbox.push(created.id)
       }
     }
 
