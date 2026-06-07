@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
 
 export type AppPage =
   | 'dashboard'
@@ -54,28 +55,39 @@ interface AppState {
   setActiveWarehouse: (warehouse: string) => void
 }
 
-export const useAppStore = create<AppState>((set) => ({
-  activePage: 'dashboard',
-  setActivePage: (page) => set({ activePage: page }),
-  sidebarOpen: true,
-  setSidebarOpen: (open) => set({ sidebarOpen: open }),
-  currentUser: null,
-  setCurrentUser: (user) => set({ currentUser: user }),
-  notifications: [],
-  addNotification: (notification) =>
-    set((state) => ({ notifications: [notification, ...state.notifications] })),
-  markNotificationRead: (id) =>
-    set((state) => ({
-      notifications: state.notifications.map((n) =>
-        n.id === id ? { ...n, read: true } : n
-      ),
-    })),
-  searchQuery: '',
-  setSearchQuery: (query) => set({ searchQuery: query }),
-  searchOpen: false,
-  setSearchOpen: (open) => set({ searchOpen: open }),
-  quickActionOpen: false,
-  setQuickActionOpen: (open) => set({ quickActionOpen: open }),
-  activeWarehouse: 'Gudang Utama',
-  setActiveWarehouse: (warehouse) => set({ activeWarehouse: warehouse }),
-}))
+export const useAppStore = create<AppState>()(
+  persist(
+    (set) => ({
+      activePage: 'dashboard',
+      setActivePage: (page) => set({ activePage: page }),
+      sidebarOpen: true,
+      setSidebarOpen: (open) => set({ sidebarOpen: open }),
+      currentUser: null,
+      setCurrentUser: (user) => set({ currentUser: user }),
+      notifications: [],
+      addNotification: (notification) =>
+        set((state) => ({ notifications: [notification, ...state.notifications] })),
+      markNotificationRead: (id) =>
+        set((state) => ({
+          notifications: state.notifications.map((n) =>
+            n.id === id ? { ...n, read: true } : n
+          ),
+        })),
+      searchQuery: '',
+      setSearchQuery: (query) => set({ searchQuery: query }),
+      searchOpen: false,
+      setSearchOpen: (open) => set({ searchOpen: open }),
+      quickActionOpen: false,
+      setQuickActionOpen: (open) => set({ quickActionOpen: open }),
+      activeWarehouse: 'Gudang Utama',
+      setActiveWarehouse: (warehouse) => set({ activeWarehouse: warehouse }),
+    }),
+    {
+      name: 'inventra-store',
+      partialize: (state) => ({
+        currentUser: state.currentUser,
+        activeWarehouse: state.activeWarehouse,
+      }),
+    }
+  )
+)
