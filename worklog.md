@@ -1,5 +1,10 @@
 # NAUKA INVENTRA - Worklog
 
+## Git Author Config
+- **Username**: abuauf4
+- **Email**: mochamadbagussuhada@gmail.com
+- **Reason**: Vercel deployment requires verified git author. All commits must use this identity to avoid build blocks.
+
 ---
 Task ID: phase4-workspace
 Agent: Main
