@@ -1,0 +1,106 @@
+import { db } from '@/lib/db'
+import { NextRequest, NextResponse } from 'next/server'
+
+const VALID_ROLES = ['owner', 'admin', 'staff']
+
+// GET /api/users - List all users (exclude password)
+export async function GET(request: NextRequest) {
+  try {
+    const searchParams = request.nextUrl.searchParams
+    const search = searchParams.get('search') || ''
+
+    const where = search
+      ? {
+          OR: [
+            { name: { contains: search } },
+            { email: { contains: search } },
+          ],
+        }
+      : {}
+
+    const users = await db.user.findMany({
+      where,
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    })
+
+    return NextResponse.json({ success: true, data: users })
+  } catch (error) {
+    console.error('Get users error:', error)
+    return NextResponse.json(
+      { success: false, message: 'Gagal mengambil data pengguna' },
+      { status: 500 }
+    )
+  }
+}
+
+// POST /api/users - Create new user
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json()
+    const { name, email, password, role } = body
+
+    // Validation
+    if (!name || !email || !password) {
+      return NextResponse.json(
+        { success: false, message: 'Nama, email, dan password wajib diisi' },
+        { status: 400 }
+      )
+    }
+
+    if (!VALID_ROLES.includes(role)) {
+      return NextResponse.json(
+        { success: false, message: 'Role harus salah satu dari: owner, admin, staff' },
+        { status: 400 }
+      )
+    }
+
+    // Check email uniqueness
+    const existingUser = await db.user.findUnique({
+      where: { email },
+    })
+
+    if (existingUser) {
+      return NextResponse.json(
+        { success: false, message: 'Email sudah digunakan' },
+        { status: 409 }
+      )
+    }
+
+    const user = await db.user.create({
+      data: {
+        name,
+        email,
+        password, // Plain text for V1
+        role,
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    })
+
+    return NextResponse.json({ success: true, data: user }, { status: 201 })
+  } catch (error) {
+    console.error('Create user error:', error)
+    return NextResponse.json(
+      { success: false, message: 'Gagal membuat pengguna' },
+      { status: 500 }
+    )
+  }
+}

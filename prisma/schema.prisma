@@ -1,0 +1,133 @@
+// NAUKA INVENTRA V1 - Sistem Operasional Bisnis untuk UMKM
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  password  String
+  role      String   @default("staff") // owner, admin, staff
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Category {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  products    Product[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Supplier {
+  id        String         @id @default(cuid())
+  name      String
+  pic       String?
+  phone     String?
+  email     String?
+  address   String?
+  notes     String?
+  products  Product[]
+  purchases Purchase[]
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+}
+
+model Customer {
+  id        String    @id @default(cuid())
+  name      String
+  phone     String?
+  email     String?
+  address   String?
+  notes     String?
+  sales     Sale[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Product {
+  id          String          @id @default(cuid())
+  name        String
+  sku         String          @unique
+  categoryId  String
+  supplierId  String?
+  buyPrice    Float           @default(0)
+  sellPrice   Float           @default(0)
+  stock       Int             @default(0)
+  minStock    Int             @default(0)
+  isActive    Boolean         @default(true)
+  category    Category        @relation(fields: [categoryId], references: [id])
+  supplier    Supplier?       @relation(fields: [supplierId], references: [id])
+  purchaseItems PurchaseItem[]
+  saleItems    SaleItem[]
+  stockMutations StockMutation[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+}
+
+model Purchase {
+  id         String         @id @default(cuid())
+  transNo    String         @unique
+  supplierId String
+  date       DateTime
+  total      Float          @default(0)
+  notes      String?
+  supplier   Supplier       @relation(fields: [supplierId], references: [id])
+  items      PurchaseItem[]
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+}
+
+model PurchaseItem {
+  id         String   @id @default(cuid())
+  purchaseId String
+  productId  String
+  qty        Int
+  buyPrice   Float
+  product    Product  @relation(fields: [productId], references: [id])
+  purchase   Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+}
+
+model Sale {
+  id         String     @id @default(cuid())
+  transNo    String     @unique
+  customerId String?
+  date       DateTime
+  total      Float      @default(0)
+  notes      String?
+  customer   Customer?  @relation(fields: [customerId], references: [id])
+  items      SaleItem[]
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+}
+
+model SaleItem {
+  id        String  @id @default(cuid())
+  saleId    String
+  productId String
+  qty       Int
+  sellPrice Float
+  product   Product @relation(fields: [productId], references: [id])
+  sale      Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+}
+
+model StockMutation {
+  id          String   @id @default(cuid())
+  productId   String
+  type        String   // IN, OUT, ADJUSTMENT
+  qty         Int
+  note        String?
+  referenceId String?  // purchase or sale id
+  product     Product  @relation(fields: [productId], references: [id])
+  createdAt   DateTime @default(now())
+}
