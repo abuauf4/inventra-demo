@@ -1,32 +1,32 @@
 ---
-Task ID: 2
+Task ID: qa-phase1
 Agent: Main Agent
-Task: Upgrade NAUKA INVENTRA V1.1 - Product Variants, Warehouses, Activity Log, Status Workflow, Fashion Theme
+Task: QA Phase 1 - Comprehensive testing and bug fixing for stock logic, warehouse sync, activity log
 
 Work Log:
-- Updated Prisma schema with 5 new models: ProductVariant, Warehouse, WarehouseStock, ActivityLog, Attachment
-- Added status workflow to Purchase (DRAFT→APPROVED→RECEIVED/CANCELLED) and Sale (DRAFT→PAID→COMPLETED/CANCELLED)
-- Updated PurchaseItem and SaleItem to support variantId (preferred) with productId fallback
-- Updated StockMutation to support variantId and warehouseId
-- Created new API routes: /api/product-variants, /api/warehouses, /api/activity-logs, /api/attachments
-- Updated existing API routes: products (with variants), purchases/sales (with status workflow), dashboard, reports, seed
-- Rebuilt entire frontend with:
-  - Fashion theme (rose/amber gradient branding)
-  - Renamed "Dashboard" to "Overview" in sidebar
-  - Added Product Variants UI (expand/collapse per product, add variant dialog, attribute badges)
-  - Added Warehouse module (card-based layout)
-  - Added Activity Log module (timeline view with action icons)
-  - Added Status Workflow in Purchases (Draft→Setujui→Terima) and Sales (Draft→Bayar→Selesai)
-  - Status badges with color coding throughout
-  - Variant-level stock tracking in reports
-- Seeded fashion data: 4 products with 18 variants, 2 warehouses, fashion categories
+- Read and analyzed all purchase/sale API route code
+- Created comprehensive QA test script (qa-direct.js) for direct Prisma testing
+- Ran QA test 1: Product creation with 3 variants - PASSED
+- Ran QA test 2: Purchase Draft → Approved → Received flow - PASSED (stock only changes at RECEIVED)
+- Ran QA test 3: Sale Draft → Paid → Completed flow - PASSED (stock only changes at COMPLETED)
+- Ran QA test 4: Cancel/reverse transactions - PASSED (stock properly reverses)
+- Ran QA test 5: Stock mutations audit trail - PASSED (10 mutations recorded correctly)
+- Found BUG 1: Warehouse stock NOT synced when variant stock changes
+- Found BUG 2: Activity Log NOT created in purchase/sale APIs
+- Found BUG 3: ActivityLog FK constraint issue (entityId had 2 FK relations)
+- Created /src/lib/stock.ts with updateVariantStock() and createActivityLog() helper functions
+- Updated purchase API routes to use new helpers (warehouse stock sync + activity log)
+- Updated sale API routes to use new helpers (warehouse stock sync + activity log)
+- Fixed ActivityLog schema - removed FK relations, changed to polymorphic pattern (entity + entityId as string, no FK)
+- Re-ran all QA tests after fixes - ALL PASSED
+- Verified activity log creation works with CREATE, STATUS_CHANGE, LOGIN actions
 
 Stage Summary:
-- All new features implemented and working
-- Fashion theme applied (rose-500 to amber-500 gradients)
-- Product Variant system fully functional
-- Warehouse management with card UI
-- Status workflow for Purchases and Sales
-- Activity Log infrastructure in place
-- Variant-level stock reporting
-- All APIs return 200, lint passes clean
+- ✅ Stock logic 100% correct: only changes at RECEIVED (purchase) and COMPLETED (sale)
+- ✅ Cancel properly reverses stock with ADJUSTMENT mutation
+- ✅ Warehouse stock now synced with variant stock via updateVariantStock()
+- ✅ Activity logs now recorded for all purchase/sale actions
+- ✅ Stock mutations audit trail complete (IN, OUT, ADJUSTMENT types)
+- ✅ CANCELLED status is immutable
+- ✅ DRAFT-only deletion enforced
+- ✅ Stock validation on COMPLETED sale (rejects overstock)

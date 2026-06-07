@@ -1,5 +1,6 @@
 import { db } from '@/lib/db'
 import { NextRequest, NextResponse } from 'next/server'
+import { updateVariantStock, createActivityLog } from '@/lib/stock'
 
 // Helper: resolve variant from item (prefer variantId, fallback to first variant of product)
 async function resolveVariant(variantId: string | null | undefined, productId: string | null | undefined) {
@@ -128,15 +129,8 @@ export async function PUT(
           )
         }
 
-        // Add qty to variant stock
-        await db.productVariant.update({
-          where: { id: variant.id },
-          data: {
-            stock: {
-              increment: item.qty,
-            },
-          },
-        })
+        // Update variant stock AND warehouse stock
+        await updateVariantStock(variant.id, item.qty)
 
         // Create stock mutation
         await db.stockMutation.create({
@@ -158,15 +152,8 @@ export async function PUT(
         const variant = await resolveVariant(item.variantId, item.productId)
         if (!variant) continue
 
-        // Subtract qty from variant stock
-        await db.productVariant.update({
-          where: { id: variant.id },
-          data: {
-            stock: {
-              decrement: item.qty,
-            },
-          },
-        })
+        // Reverse variant stock AND warehouse stock
+        await updateVariantStock(variant.id, -item.qty)
 
         // Create stock mutation for reversal
         await db.stockMutation.create({
@@ -199,6 +186,14 @@ export async function PUT(
           },
         },
       },
+    })
+
+    // Activity log
+    await createActivityLog({
+      action: 'STATUS_CHANGE',
+      entity: 'Purchase',
+      entityId: purchase.id,
+      details: `Pembelian ${purchase.transNo} status diubah dari ${currentStatus} ke ${newStatus}`,
     })
 
     return NextResponse.json({ success: true, data: updatedPurchase })
@@ -245,6 +240,14 @@ export async function DELETE(
     // Delete the purchase (cascade will delete items)
     await db.purchase.delete({
       where: { id },
+    })
+
+    // Activity log
+    await createActivityLog({
+      action: 'DELETE',
+      entity: 'Purchase',
+      entityId: id,
+      details: `Pembelian ${purchase.transNo} dihapus (DRAFT)`,
     })
 
     return NextResponse.json({

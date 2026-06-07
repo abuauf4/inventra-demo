@@ -150,7 +150,6 @@ model Purchase {
   supplier   Supplier       @relation(fields: [supplierId], references: [id])
   items      PurchaseItem[]
   attachments Attachment[]
-  activityLogs ActivityLog[]
   createdAt  DateTime       @default(now())
   updatedAt  DateTime       @updatedAt
 }
@@ -180,7 +179,6 @@ model Sale {
   customer   Customer?    @relation(fields: [customerId], references: [id])
   items      SaleItem[]
   attachments Attachment[]
-  activityLogs ActivityLog[]
   createdAt  DateTime     @default(now())
   updatedAt  DateTime     @updatedAt
 }
@@ -221,11 +219,9 @@ model ActivityLog {
   userId    String
   action    String    // CREATE, UPDATE, DELETE, LOGIN, STATUS_CHANGE
   entity    String    // Product, Purchase, Sale, User, etc.
-  entityId  String?
+  entityId  String?   // Polymorphic - no FK, just a string reference
   details   String    // JSON string with change details
   user      User      @relation(fields: [userId], references: [id])
-  purchase  Purchase? @relation(fields: [entityId], references: [id])
-  sale      Sale?     @relation(fields: [entityId], references: [id])
   createdAt DateTime  @default(now())
 }
 

@@ -1,6 +1,7 @@
 import { db } from '@/lib/db'
 import { Prisma } from '@prisma/client'
 import { NextRequest, NextResponse } from 'next/server'
+import { updateVariantStock, createActivityLog } from '@/lib/stock'
 
 // Helper: resolve the target variant for an item (prefer variantId, fallback to first variant of product)
 async function resolveVariant(variantId: string | null | undefined, productId: string | null | undefined) {
@@ -191,15 +192,8 @@ export async function POST(request: NextRequest) {
     // ONLY update stock and create IN mutations if status is "RECEIVED"
     if (purchaseStatus === 'RECEIVED') {
       for (const item of resolvedItems) {
-        // Add qty to variant stock
-        await db.productVariant.update({
-          where: { id: item.variantId },
-          data: {
-            stock: {
-              increment: item.qty,
-            },
-          },
-        })
+        // Update variant stock AND warehouse stock
+        await updateVariantStock(item.variantId, item.qty)
 
         // Create stock mutation
         await db.stockMutation.create({
@@ -214,6 +208,14 @@ export async function POST(request: NextRequest) {
         })
       }
     }
+
+    // Activity log
+    await createActivityLog({
+      action: 'CREATE',
+      entity: 'Purchase',
+      entityId: purchase.id,
+      details: `Pembelian ${transNo} dibuat dengan status ${purchaseStatus}. Total: Rp ${total.toLocaleString('id-ID')}. ${resolvedItems.length} item.`,
+    })
 
     return NextResponse.json({ success: true, data: purchase }, { status: 201 })
   } catch (error) {
