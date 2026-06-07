@@ -1,8 +1,9 @@
 import { db } from './db'
 
 /**
- * Update variant stock AND sync warehouse stock.
+ * Update variant stock AND sync warehouse stock atomically.
  * This is the ONLY way stock should be modified to ensure consistency.
+ * Wrapped in $transaction to prevent data inconsistency on partial failures.
  * 
  * @param variantId - The product variant ID
  * @param qty - The quantity change (positive = add, negative = subtract)
@@ -13,56 +14,68 @@ export async function updateVariantStock(
   qty: number,
   warehouseId?: string
 ) {
-  // 1. Update variant total stock
-  const updatedVariant = await db.productVariant.update({
-    where: { id: variantId },
-    data: {
-      stock: qty > 0 ? { increment: qty } : { decrement: Math.abs(qty) },
-    },
-  })
-
-  // 2. Determine warehouse
-  let whId = warehouseId
-  if (!whId) {
-    // Default to the first active warehouse
-    const defaultWarehouse = await db.warehouse.findFirst({
-      where: { isActive: true },
-      orderBy: { createdAt: 'asc' },
-    })
-    whId = defaultWarehouse?.id
-  }
-
-  // 3. Update warehouse stock
-  if (whId) {
-    const existingStock = await db.warehouseStock.findUnique({
-      where: {
-        warehouseId_productVariantId: {
-          warehouseId: whId,
-          productVariantId: variantId,
-        },
+  return await db.$transaction(async (tx) => {
+    // 1. Update variant total stock
+    const updatedVariant = await tx.productVariant.update({
+      where: { id: variantId },
+      data: {
+        stock: qty > 0 ? { increment: qty } : { decrement: Math.abs(qty) },
       },
     })
 
-    if (existingStock) {
-      await db.warehouseStock.update({
-        where: { id: existingStock.id },
-        data: {
-          stock: qty > 0 ? { increment: qty } : { decrement: Math.abs(qty) },
-        },
+    // 2. Determine warehouse
+    let whId = warehouseId
+    if (!whId) {
+      // Default to the first active warehouse
+      const defaultWarehouse = await tx.warehouse.findFirst({
+        where: { isActive: true },
+        orderBy: { createdAt: 'asc' },
       })
-    } else {
-      // Create warehouse stock entry if it doesn't exist
-      await db.warehouseStock.create({
-        data: {
-          warehouseId: whId,
-          productVariantId: variantId,
-          stock: qty > 0 ? qty : 0,
-        },
-      })
+      whId = defaultWarehouse?.id
     }
-  }
 
-  return updatedVariant
+    // 3. Update warehouse stock
+    if (whId) {
+      const existingStock = await tx.warehouseStock.findUnique({
+        where: {
+          warehouseId_productVariantId: {
+            warehouseId: whId,
+            productVariantId: variantId,
+          },
+        },
+      })
+
+      if (existingStock) {
+        await tx.warehouseStock.update({
+          where: { id: existingStock.id },
+          data: {
+            stock: qty > 0 ? { increment: qty } : { decrement: Math.abs(qty) },
+          },
+        })
+      } else {
+        // Create warehouse stock entry if it doesn't exist
+        // BUGFIX: If qty is negative and no existing stock row, this means we're
+        // trying to deduct from a non-existent warehouse stock. We create with 0
+        // but log a warning because this indicates a data inconsistency.
+        const initialStock = qty > 0 ? qty : 0
+        if (qty < 0) {
+          console.warn(
+            `[STOCK WARNING] Attempting negative stock update (${qty}) for variant ${variantId} with no warehouse stock entry. ` +
+            `Creating warehouse stock with 0 instead. This may indicate a data inconsistency.`
+          )
+        }
+        await tx.warehouseStock.create({
+          data: {
+            warehouseId: whId,
+            productVariantId: variantId,
+            stock: initialStock,
+          },
+        })
+      }
+    }
+
+    return updatedVariant
+  })
 }
 
 /**

@@ -120,19 +120,29 @@ function LoginScreen() {
 }
 
 // ===================== SIDEBAR =====================
-const menuItems: { key: AppPage; label: string; icon: React.ReactNode }[] = [
-  { key: 'dashboard', label: 'Overview', icon: <LayoutDashboard className="w-5 h-5" /> },
-  { key: 'products', label: 'Produk', icon: <Package className="w-5 h-5" /> },
-  { key: 'categories', label: 'Kategori', icon: <FolderOpen className="w-5 h-5" /> },
-  { key: 'suppliers', label: 'Supplier', icon: <Truck className="w-5 h-5" /> },
-  { key: 'customers', label: 'Customer', icon: <Users className="w-5 h-5" /> },
-  { key: 'purchases', label: 'Pembelian', icon: <ShoppingCart className="w-5 h-5" /> },
-  { key: 'sales', label: 'Penjualan', icon: <ShoppingBag className="w-5 h-5" /> },
-  { key: 'stock-mutations', label: 'Mutasi Stok', icon: <ArrowLeftRight className="w-5 h-5" /> },
-  { key: 'warehouses', label: 'Gudang', icon: <WarehouseIcon className="w-5 h-5" /> },
-  { key: 'activity-logs', label: 'Activity Log', icon: <Activity className="w-5 h-5" /> },
-  { key: 'reports', label: 'Laporan', icon: <FileBarChart className="w-5 h-5" /> },
-  { key: 'user-management', label: 'User Management', icon: <UserCog className="w-5 h-5" /> },
+const menuSections = [
+  { label: null, items: [
+    { key: 'dashboard' as AppPage, label: 'Overview', icon: <LayoutDashboard className="w-4 h-4" /> },
+    { key: 'products' as AppPage, label: 'Produk', icon: <Package className="w-4 h-4" /> },
+  ]},
+  { label: 'Transaksi', items: [
+    { key: 'purchases' as AppPage, label: 'Pembelian', icon: <ShoppingCart className="w-4 h-4" /> },
+    { key: 'sales' as AppPage, label: 'Penjualan', icon: <ShoppingBag className="w-4 h-4" /> },
+  ]},
+  { label: 'Inventory', items: [
+    { key: 'stock-mutations' as AppPage, label: 'Mutasi Stok', icon: <ArrowLeftRight className="w-4 h-4" /> },
+    { key: 'warehouses' as AppPage, label: 'Gudang', icon: <WarehouseIcon className="w-4 h-4" /> },
+  ]},
+  { label: 'Master', items: [
+    { key: 'categories' as AppPage, label: 'Kategori', icon: <FolderOpen className="w-4 h-4" /> },
+    { key: 'suppliers' as AppPage, label: 'Supplier', icon: <Truck className="w-4 h-4" /> },
+    { key: 'customers' as AppPage, label: 'Customer', icon: <Users className="w-4 h-4" /> },
+  ]},
+  { label: 'System', items: [
+    { key: 'reports' as AppPage, label: 'Laporan', icon: <FileBarChart className="w-4 h-4" /> },
+    { key: 'activity-logs' as AppPage, label: 'Activity Log', icon: <Activity className="w-4 h-4" /> },
+    { key: 'user-management' as AppPage, label: 'User Management', icon: <UserCog className="w-4 h-4" /> },
+  ]},
 ]
 
 function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -142,17 +152,22 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
       {open && <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={onClose} />}
       <aside className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-white border-r transform transition-transform duration-200 ${open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
         <div className="flex items-center gap-3 p-4 border-b">
-          <div className="w-10 h-10 bg-gradient-to-br from-rose-500 to-amber-500 rounded-xl flex items-center justify-center"><Package className="w-5 h-5 text-white" /></div>
-          <div><h1 className="font-bold text-sm bg-gradient-to-r from-rose-600 to-amber-600 bg-clip-text text-transparent">NAUKA INVENTRA</h1><p className="text-[10px] text-muted-foreground">Sistem Operasional Bisnis</p></div>
+          <div className="w-9 h-9 bg-gradient-to-br from-rose-500 to-amber-500 rounded-xl flex items-center justify-center"><Package className="w-4 h-4 text-white" /></div>
+          <div><h1 className="font-bold text-sm bg-gradient-to-r from-rose-600 to-amber-600 bg-clip-text text-transparent">NAUKA INVENTRA</h1><p className="text-[10px] text-muted-foreground">Northline Apparel</p></div>
           <Button variant="ghost" size="icon" className="ml-auto lg:hidden" onClick={onClose}><X className="w-5 h-5" /></Button>
         </div>
         <ScrollArea className="h-[calc(100vh-180px)]">
-          <nav className="p-2 space-y-0.5">
-            {menuItems.map(item => (
-              <button key={item.key} onClick={() => { setActivePage(item.key); onClose() }}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${activePage === item.key ? 'bg-gradient-to-r from-rose-50 to-amber-50 text-rose-700' : 'text-gray-600 hover:bg-gray-50'}`}>
-                {item.icon}{item.label}
-              </button>
+          <nav className="p-2 space-y-1">
+            {menuSections.map((section, si) => (
+              <div key={si}>
+                {section.label && <p className="px-3 pt-3 pb-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{section.label}</p>}
+                {section.items.map(item => (
+                  <button key={item.key} onClick={() => { setActivePage(item.key); onClose() }}
+                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${activePage === item.key ? 'bg-gradient-to-r from-rose-50 to-amber-50 text-rose-700' : 'text-gray-600 hover:bg-gray-50'}`}>
+                    {item.icon}{item.label}
+                  </button>
+                ))}
+              </div>
             ))}
           </nav>
         </ScrollArea>
@@ -172,7 +187,8 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
 // ===================== HEADER =====================
 function Header() {
   const { activePage, sidebarOpen, setSidebarOpen, currentUser, setCurrentUser, notifications, markNotificationRead } = useAppStore()
-  const label = menuItems.find(m => m.key === activePage)?.label || 'Overview'
+  const allItems = menuSections.flatMap(s => s.items)
+  const label = allItems.find(m => m.key === activePage)?.label || 'Overview'
   const unread = notifications.filter(n => !n.read).length
   return (
     <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-sm border-b px-4 py-3 flex items-center gap-3">
@@ -200,6 +216,7 @@ function Header() {
 function OverviewModule() {
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const { currentUser } = useAppStore()
   const load = useCallback(async () => {
     setLoading(true)
     try { const res = await fetch('/api/dashboard'); const d = await res.json(); setData(d.data) } catch { toast.error('Gagal memuat overview') }
@@ -208,73 +225,114 @@ function OverviewModule() {
   useEffect(() => { load() }, [load])
   if (loading || !data) return <div className="flex items-center justify-center h-64"><RefreshCw className="w-6 h-6 animate-spin text-rose-500" /></div>
 
-  const cards = [
-    { label: 'Total Produk', value: fmt(data.totalProducts), icon: <Package className="w-5 h-5" />, gradient: 'from-blue-500 to-cyan-500' },
-    { label: 'Total Customer', value: fmt(data.totalCustomers), icon: <Users className="w-5 h-5" />, gradient: 'from-purple-500 to-pink-500' },
-    { label: 'Total Supplier', value: fmt(data.totalSuppliers), icon: <Truck className="w-5 h-5" />, gradient: 'from-orange-500 to-red-500' },
-    { label: 'Total Penjualan', value: fmtRp(data.totalSales), icon: <TrendingUp className="w-5 h-5" />, gradient: 'from-emerald-500 to-teal-500' },
-    { label: 'Total Pembelian', value: fmtRp(data.totalPurchases), icon: <TrendingDown className="w-5 h-5" />, gradient: 'from-rose-500 to-pink-500' },
-    { label: 'Stok Menipis', value: fmt(data.lowStockProducts?.length || 0), icon: <AlertTriangle className="w-5 h-5" />, gradient: 'from-amber-500 to-orange-500' },
-  ]
+  // Get time-based greeting
+  const hour = new Date().getHours()
+  const greeting = hour < 12 ? 'Selamat pagi' : hour < 17 ? 'Selamat siang' : 'Selamat sore'
+  const userName = currentUser?.name || 'User'
+  const lowStockCount = data.lowStockProducts?.length || 0
+  const pendingOrders = (data.recentTransactions?.filter((t: any) => ['DRAFT', 'APPROVED', 'PAID'].includes(t.status)).length) || 0
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {cards.map((c, i) => (
-          <Card key={i} className="border-0 shadow-sm hover:shadow-md transition-shadow">
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${c.gradient} flex items-center justify-center text-white`}>{c.icon}</div>
-              <div><p className="text-sm text-muted-foreground">{c.label}</p><p className="text-xl font-bold">{c.value}</p></div>
-            </CardContent>
-          </Card>
-        ))}
+      {/* Personal Greeting */}
+      <div className="space-y-1">
+        <h2 className="text-2xl font-bold tracking-tight">{greeting}, {userName}</h2>
+        <p className="text-muted-foreground">
+          {lowStockCount > 0 && <span className="text-amber-600 font-medium">{lowStockCount} produk perlu restock</span>}
+          {lowStockCount > 0 && pendingOrders > 0 && ' · '}
+          {pendingOrders > 0 && <span className="text-blue-600 font-medium">{pendingOrders} pesanan menunggu</span>}
+          {lowStockCount === 0 && pendingOrders === 0 && 'Semuanya berjalan lancar hari ini'}
+        </p>
       </div>
-      {data.lowStockProducts?.length > 0 && (
-        <Card className="border-0 shadow-sm">
-          <CardHeader className="pb-3"><CardTitle className="text-base flex items-center gap-2"><AlertTriangle className="w-5 h-5 text-amber-500" />Stok Menipis</CardTitle></CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader><TableRow><TableHead>Produk</TableHead><TableHead>Varian</TableHead><TableHead>SKU</TableHead><TableHead className="text-right">Stok</TableHead><TableHead className="text-right">Min. Stok</TableHead></TableRow></TableHeader>
-              <TableBody>
-                {data.lowStockProducts.map((p: any) => (
-                  <TableRow key={p.id}><TableCell className="font-medium">{p.productName || p.name}</TableCell><TableCell>{p.variantName || '-'}</TableCell><TableCell className="font-mono text-sm">{p.sku}</TableCell>
-                    <TableCell className="text-right"><Badge variant={p.stock <= 0 ? 'destructive' : 'secondary'}>{p.stock}</Badge></TableCell><TableCell className="text-right">{p.minStock}</TableCell></TableRow>
-                ))}
-              </TableBody>
-            </Table>
+
+      {/* Action Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="border-0 shadow-sm hover:shadow-md transition-shadow bg-gradient-to-br from-emerald-50 to-white">
+          <CardContent className="p-4">
+            <p className="text-sm text-muted-foreground">Penjualan Hari Ini</p>
+            <p className="text-2xl font-bold text-emerald-700">{fmtRp(data.totalSales)}</p>
           </CardContent>
         </Card>
+        <Card className="border-0 shadow-sm hover:shadow-md transition-shadow bg-gradient-to-br from-blue-50 to-white">
+          <CardContent className="p-4">
+            <p className="text-sm text-muted-foreground">Pembelian</p>
+            <p className="text-2xl font-bold text-blue-700">{fmtRp(data.totalPurchases)}</p>
+          </CardContent>
+        </Card>
+        <Card className="border-0 shadow-sm hover:shadow-md transition-shadow bg-gradient-to-br from-amber-50 to-white">
+          <CardContent className="p-4 flex items-center gap-3">
+            <AlertTriangle className="w-8 h-8 text-amber-500" />
+            <div>
+              <p className="text-sm text-muted-foreground">Stok Menipis</p>
+              <p className="text-2xl font-bold text-amber-700">{lowStockCount}</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-0 shadow-sm hover:shadow-md transition-shadow bg-gradient-to-br from-purple-50 to-white">
+          <CardContent className="p-4 flex items-center gap-3">
+            <Package className="w-8 h-8 text-purple-500" />
+            <div>
+              <p className="text-sm text-muted-foreground">Total Produk</p>
+              <p className="text-2xl font-bold text-purple-700">{fmt(data.totalProducts)}</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Low Stock Alert Cards */}
+      {data.lowStockProducts?.length > 0 && (
+        <div>
+          <h3 className="text-base font-semibold mb-3 flex items-center gap-2"><AlertTriangle className="w-5 h-5 text-amber-500" />Perlu Restock</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {data.lowStockProducts.slice(0, 6).map((p: any) => (
+              <Card key={p.id} className={`border-0 shadow-sm ${p.stock <= 0 ? 'ring-2 ring-red-200' : p.stock <= p.minStock / 2 ? 'ring-2 ring-amber-200' : ''}`}>
+                <CardContent className="p-3 flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white text-sm font-bold ${p.stock <= 0 ? 'bg-red-400' : 'bg-amber-400'}`}>{p.stock}</div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{p.productName}</p>
+                    <p className="text-xs text-muted-foreground">{p.variantName} · Min. {p.minStock}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
       )}
+
+      {/* Recent Transactions */}
       <Card className="border-0 shadow-sm">
         <CardHeader className="pb-3"><CardTitle className="text-base">Transaksi Terbaru</CardTitle></CardHeader>
         <CardContent>
           {!data.recentTransactions?.length ? <p className="text-sm text-muted-foreground text-center py-4">Belum ada transaksi</p> : (
-            <Table>
-              <TableHeader><TableRow><TableHead>Tipe</TableHead><TableHead>No. Transaksi</TableHead><TableHead>Status</TableHead><TableHead>Tanggal</TableHead><TableHead className="text-right">Total</TableHead></TableRow></TableHeader>
-              <TableBody>
-                {data.recentTransactions.map((t: any, i: number) => (
-                  <TableRow key={i}>
-                    <TableCell><Badge className={t.type === 'sale' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}>{t.type === 'sale' ? 'Penjualan' : 'Pembelian'}</Badge></TableCell>
-                    <TableCell className="font-mono text-sm">{t.transNo}</TableCell>
-                    <TableCell>{t.status ? <StatusBadge status={t.status} map={t.type === 'sale' ? saleStatusMap : purchaseStatusMap} /> : '-'}</TableCell>
-                    <TableCell>{fmtDate(t.date)}</TableCell>
-                    <TableCell className="text-right font-medium">{fmtRp(t.total)}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <div className="space-y-3">
+              {data.recentTransactions.slice(0, 8).map((t: any, i: number) => (
+                <div key={i} className="flex items-center gap-3 py-2 border-b last:border-0">
+                  <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${t.type === 'sale' ? 'bg-emerald-100 text-emerald-600' : 'bg-blue-100 text-blue-600'}`}>
+                    {t.type === 'sale' ? <ShoppingBag className="w-4 h-4" /> : <ShoppingCart className="w-4 h-4" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium">{t.transNo}</p>
+                    <p className="text-xs text-muted-foreground">{fmtDate(t.date)}</p>
+                  </div>
+                  <StatusBadge status={t.status} map={t.type === 'sale' ? saleStatusMap : purchaseStatusMap} />
+                  <p className="text-sm font-semibold">{fmtRp(t.total)}</p>
+                </div>
+              ))}
+            </div>
           )}
         </CardContent>
       </Card>
-      {data.recentActivities?.length > 0 && (
+
+      {/* Activity Feed */}
+      {data.recentActivityLogs?.length > 0 && (
         <Card className="border-0 shadow-sm">
           <CardHeader className="pb-3"><CardTitle className="text-base flex items-center gap-2"><Activity className="w-5 h-5 text-rose-500" />Aktivitas Terbaru</CardTitle></CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {data.recentActivities.map((a: any) => (
+              {data.recentActivityLogs.map((a: any) => (
                 <div key={a.id} className="flex items-start gap-3 text-sm">
                   <div className="w-8 h-8 rounded-full bg-gradient-to-br from-rose-100 to-amber-100 flex items-center justify-center text-rose-600 text-xs font-medium mt-0.5">{a.user?.name?.slice(0, 2)?.toUpperCase() || '?'}</div>
-                  <div className="flex-1"><span className="font-medium">{a.user?.name}</span> <span className="text-muted-foreground">{a.action === 'CREATE' ? 'membuat' : a.action === 'UPDATE' ? 'mengubah' : a.action === 'DELETE' ? 'menghapus' : a.action.toLowerCase()} {a.entity}</span><p className="text-xs text-muted-foreground mt-0.5">{fmtDateTime(a.createdAt)}</p></div>
+                  <div className="flex-1"><span className="font-medium">{a.user?.name}</span> <span className="text-muted-foreground">{a.action === 'CREATE' ? 'membuat' : a.action === 'UPDATE' ? 'mengubah' : a.action === 'DELETE' ? 'menghapus' : a.action === 'STATUS_CHANGE' ? 'mengubah status' : a.action.toLowerCase()} {a.entity}</span><p className="text-xs text-muted-foreground mt-0.5">{fmtDateTime(a.createdAt)}</p></div>
                 </div>
               ))}
             </div>
@@ -717,6 +775,7 @@ function PurchasesModule() {
   const [detail, setDetail] = useState<Purchase | null>(null)
   const [form, setForm] = useState({ supplierId: '', date: new Date().toISOString().split('T')[0], notes: '', status: 'DRAFT', items: [{ variantId: '', productId: '', qty: '1', buyPrice: '0' }] })
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
+  const [cancelConfirm, setCancelConfirm] = useState<{ id: string; status: string } | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -746,12 +805,21 @@ function PurchasesModule() {
     try {
       const res = await fetch(`/api/purchases/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: newStatus }) })
       if (!res.ok) { const d = await res.json(); toast.error(d.error || d.message || 'Gagal'); return }
-      toast.success('Status diperbarui'); load()
+      toast.success('Status diperbarui'); setDetailOpen(false); load()
     } catch { toast.error('Gagal') }
   }
 
   const handleDelete = async (id: string) => {
     try { const res = await fetch(`/api/purchases/${id}`, { method: 'DELETE' }); if (!res.ok) { const d = await res.json(); toast.error(d.error || d.message); return } toast.success('Dihapus'); setDeleteConfirm(null); load() } catch { toast.error('Gagal') }
+  }
+
+  const handleCancel = async () => {
+    if (!cancelConfirm) return
+    try {
+      const res = await fetch(`/api/purchases/${cancelConfirm.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'CANCELLED' }) })
+      if (!res.ok) { const d = await res.json(); toast.error(d.error || d.message || 'Gagal'); return }
+      toast.success('Pembelian dibatalkan'); setCancelConfirm(null); setDetailOpen(false); load()
+    } catch { toast.error('Gagal') }
   }
 
   const addItem = () => setForm({ ...form, items: [...form.items, { variantId: '', productId: '', qty: '1', buyPrice: '0' }] })
@@ -782,7 +850,8 @@ function PurchasesModule() {
                 <Button variant="ghost" size="icon" onClick={() => openDetail(p.id)}><Eye className="w-4 h-4" /></Button>
                 {p.status === 'DRAFT' && <Button variant="ghost" size="sm" className="text-blue-600 text-xs" onClick={() => handleStatusChange(p.id, 'APPROVED')}>Setujui</Button>}
                 {p.status === 'APPROVED' && <Button variant="ghost" size="sm" className="text-emerald-600 text-xs" onClick={() => handleStatusChange(p.id, 'RECEIVED')}>Terima</Button>}
-                {p.status === 'DRAFT' && <Button variant="ghost" size="icon" onClick={() => setDeleteConfirm(p.id)} className="text-red-500"><Trash2 className="w-4 h-4" /></Button>}
+                {['DRAFT', 'APPROVED', 'RECEIVED'].includes(p.status) && <Button variant="ghost" size="sm" className="text-red-500 text-xs" onClick={() => setCancelConfirm({ id: p.id, status: p.status })}>Batalkan</Button>}
+                {p.status === 'DRAFT' && <Button variant="ghost" size="icon" onClick={() => setDeleteConfirm(p.id)} className="text-red-400"><Trash2 className="w-4 h-4" /></Button>}
               </div></TableCell></TableRow>
           ))}</TableBody></Table></CardContent></Card>
       )}
@@ -813,6 +882,7 @@ function PurchasesModule() {
         </div>
         <DialogFooter><Button variant="outline" onClick={() => setDialogOpen(false)}>Batal</Button><Button className="bg-gradient-to-r from-rose-500 to-amber-500 text-white" onClick={handleSave}>Simpan</Button></DialogFooter></DialogContent></Dialog>
       <AlertDialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Hapus? Stok tidak akan terpengaruh jika status Draft.</AlertDialogTitle></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Batal</AlertDialogCancel><AlertDialogAction onClick={() => deleteConfirm && handleDelete(deleteConfirm)} className="bg-red-600">Hapus</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
+      <AlertDialog open={!!cancelConfirm} onOpenChange={() => setCancelConfirm(null)}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Batalkan Pembelian?</AlertDialogTitle><AlertDialogDescription>{cancelConfirm?.status === 'RECEIVED' ? 'Stok yang sudah masuk akan dikembalikan. Transaksi ini tidak dapat dibatalkan kembali.' : cancelConfirm?.status === 'APPROVED' ? 'Pembelian yang sudah disetujui akan dibatalkan. Stok tidak terpengaruh karena belum diterima.' : 'Pembelian draft akan dibatalkan.'}</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Kembali</AlertDialogCancel><AlertDialogAction onClick={handleCancel} className="bg-red-600">Ya, Batalkan</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
     </div>
   )
 }
@@ -830,6 +900,7 @@ function SalesModule() {
   const [detail, setDetail] = useState<Sale | null>(null)
   const [form, setForm] = useState({ customerId: '', date: new Date().toISOString().split('T')[0], notes: '', status: 'DRAFT', items: [{ variantId: '', productId: '', qty: '1', sellPrice: '0' }] })
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
+  const [cancelConfirm, setCancelConfirm] = useState<{ id: string; status: string } | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -855,11 +926,20 @@ function SalesModule() {
   }
 
   const handleStatusChange = async (id: string, newStatus: string) => {
-    try { const res = await fetch(`/api/sales/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: newStatus }) }); if (!res.ok) { const d = await res.json(); toast.error(d.error || d.message); return } toast.success('Status diperbarui'); load() } catch { toast.error('Gagal') }
+    try { const res = await fetch(`/api/sales/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: newStatus }) }); if (!res.ok) { const d = await res.json(); toast.error(d.error || d.message); return } toast.success('Status diperbarui'); setDetailOpen(false); load() } catch { toast.error('Gagal') }
   }
 
   const handleDelete = async (id: string) => {
     try { const res = await fetch(`/api/sales/${id}`, { method: 'DELETE' }); if (!res.ok) { const d = await res.json(); toast.error(d.error || d.message); return } toast.success('Dihapus'); setDeleteConfirm(null); load() } catch { toast.error('Gagal') }
+  }
+
+  const handleCancel = async () => {
+    if (!cancelConfirm) return
+    try {
+      const res = await fetch(`/api/sales/${cancelConfirm.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'CANCELLED' }) })
+      if (!res.ok) { const d = await res.json(); toast.error(d.error || d.message || 'Gagal'); return }
+      toast.success('Penjualan dibatalkan'); setCancelConfirm(null); setDetailOpen(false); load()
+    } catch { toast.error('Gagal') }
   }
 
   const addItem = () => setForm({ ...form, items: [...form.items, { variantId: '', productId: '', qty: '1', sellPrice: '0' }] })
@@ -888,7 +968,8 @@ function SalesModule() {
                 <Button variant="ghost" size="icon" onClick={() => openDetail(s.id)}><Eye className="w-4 h-4" /></Button>
                 {s.status === 'DRAFT' && <Button variant="ghost" size="sm" className="text-blue-600 text-xs" onClick={() => handleStatusChange(s.id, 'PAID')}>Bayar</Button>}
                 {s.status === 'PAID' && <Button variant="ghost" size="sm" className="text-emerald-600 text-xs" onClick={() => handleStatusChange(s.id, 'COMPLETED')}>Selesai</Button>}
-                {s.status === 'DRAFT' && <Button variant="ghost" size="icon" onClick={() => setDeleteConfirm(s.id)} className="text-red-500"><Trash2 className="w-4 h-4" /></Button>}
+                {['DRAFT', 'PAID', 'COMPLETED'].includes(s.status) && <Button variant="ghost" size="sm" className="text-red-500 text-xs" onClick={() => setCancelConfirm({ id: s.id, status: s.status })}>Batalkan</Button>}
+                {s.status === 'DRAFT' && <Button variant="ghost" size="icon" onClick={() => setDeleteConfirm(s.id)} className="text-red-400"><Trash2 className="w-4 h-4" /></Button>}
               </div></TableCell></TableRow>
           ))}</TableBody></Table></CardContent></Card>
       )}
@@ -919,6 +1000,7 @@ function SalesModule() {
         </div>
         <DialogFooter><Button variant="outline" onClick={() => setDialogOpen(false)}>Batal</Button><Button className="bg-gradient-to-r from-rose-500 to-amber-500 text-white" onClick={handleSave}>Simpan</Button></DialogFooter></DialogContent></Dialog>
       <AlertDialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Hapus?</AlertDialogTitle></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Batal</AlertDialogCancel><AlertDialogAction onClick={() => deleteConfirm && handleDelete(deleteConfirm)} className="bg-red-600">Hapus</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
+      <AlertDialog open={!!cancelConfirm} onOpenChange={() => setCancelConfirm(null)}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Batalkan Penjualan?</AlertDialogTitle><AlertDialogDescription>{cancelConfirm?.status === 'COMPLETED' ? 'Stok yang sudah dikurangi akan dikembalikan. Transaksi ini tidak dapat dibatalkan kembali.' : cancelConfirm?.status === 'PAID' ? 'Penjualan yang sudah dibayar akan dibatalkan. Stok tidak terpengaruh karena belum selesai.' : 'Penjualan draft akan dibatalkan.'}</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Kembali</AlertDialogCancel><AlertDialogAction onClick={handleCancel} className="bg-red-600">Ya, Batalkan</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
     </div>
   )
 }

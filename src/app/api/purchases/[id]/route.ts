@@ -13,6 +13,14 @@ async function resolveVariant(variantId: string | null | undefined, productId: s
   return null
 }
 
+// Valid purchase status transitions
+const VALID_PURCHASE_TRANSITIONS: Record<string, string[]> = {
+  DRAFT: ['APPROVED', 'CANCELLED'],
+  APPROVED: ['RECEIVED', 'CANCELLED'],
+  RECEIVED: ['CANCELLED'],
+  CANCELLED: [], // No transitions allowed from CANCELLED
+}
+
 // GET /api/purchases/[id] - Get single purchase with all details
 export async function GET(
   request: NextRequest,
@@ -98,24 +106,20 @@ export async function PUT(
     const currentStatus = purchase.status
     const newStatus = status
 
-    // Validate status transitions
-    if (currentStatus === 'CANCELLED') {
+    // Validate status transition is allowed
+    const allowedTransitions = VALID_PURCHASE_TRANSITIONS[currentStatus] || []
+    if (!allowedTransitions.includes(newStatus)) {
+      if (currentStatus === newStatus) {
+        // No state change needed
+        return NextResponse.json({ success: true, data: purchase })
+      }
       return NextResponse.json(
-        { success: false, message: 'Pembelian yang sudah dibatalkan tidak dapat diubah' },
+        {
+          success: false,
+          message: `Transisi status dari ${currentStatus} ke ${newStatus} tidak diizinkan. Transisi yang diizinkan: ${allowedTransitions.join(', ') || 'tidak ada'}`,
+        },
         { status: 400 }
       )
-    }
-
-    if (currentStatus === 'RECEIVED' && newStatus !== 'CANCELLED') {
-      return NextResponse.json(
-        { success: false, message: 'Pembelian yang sudah diterima hanya dapat dibatalkan' },
-        { status: 400 }
-      )
-    }
-
-    if (currentStatus === newStatus) {
-      // No state change needed
-      return NextResponse.json({ success: true, data: purchase })
     }
 
     // When status changes to "RECEIVED", update stock and create IN mutations

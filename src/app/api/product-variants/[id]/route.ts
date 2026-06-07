@@ -36,6 +36,20 @@ export async function PUT(
       }
     }
 
+    // SECURITY: Stock cannot be edited directly via this endpoint.
+    // Stock must be modified through purchase/sale/stock-mutation flows only.
+    // Direct stock editing would break consistency between ProductVariant.stock
+    // and WarehouseStock, and would skip creating StockMutation records.
+    if (stock !== undefined) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'Stok tidak dapat diubah langsung. Gunakan Pembelian, Penjualan, atau Mutasi Stok untuk mengubah stok.',
+        },
+        { status: 400 }
+      )
+    }
+
     // Build update data - only include fields that are provided
     const updateData: Record<string, unknown> = {}
     if (name !== undefined) updateData.name = name
@@ -43,7 +57,6 @@ export async function PUT(
     if (attributes !== undefined) updateData.attributes = attributes
     if (buyPrice !== undefined) updateData.buyPrice = buyPrice
     if (sellPrice !== undefined) updateData.sellPrice = sellPrice
-    if (stock !== undefined) updateData.stock = stock
     if (minStock !== undefined) updateData.minStock = minStock
     if (isActive !== undefined) updateData.isActive = isActive
     if (barcode !== undefined) updateData.barcode = barcode || null

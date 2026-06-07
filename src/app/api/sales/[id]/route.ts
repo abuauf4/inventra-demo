@@ -13,6 +13,14 @@ async function resolveVariant(variantId: string | null | undefined, productId: s
   return null
 }
 
+// Valid sale status transitions
+const VALID_SALE_TRANSITIONS: Record<string, string[]> = {
+  DRAFT: ['PAID', 'COMPLETED', 'CANCELLED'],
+  PAID: ['COMPLETED', 'CANCELLED'],
+  COMPLETED: ['CANCELLED'],
+  CANCELLED: [], // No transitions allowed from CANCELLED
+}
+
 // GET /api/sales/[id] - Get single sale with all details
 export async function GET(
   request: NextRequest,
@@ -98,24 +106,20 @@ export async function PUT(
     const currentStatus = sale.status
     const newStatus = status
 
-    // Validate status transitions
-    if (currentStatus === 'CANCELLED') {
+    // Validate status transition is allowed
+    const allowedTransitions = VALID_SALE_TRANSITIONS[currentStatus] || []
+    if (!allowedTransitions.includes(newStatus)) {
+      if (currentStatus === newStatus) {
+        // No state change needed
+        return NextResponse.json({ success: true, data: sale })
+      }
       return NextResponse.json(
-        { success: false, message: 'Penjualan yang sudah dibatalkan tidak dapat diubah' },
+        {
+          success: false,
+          message: `Transisi status dari ${currentStatus} ke ${newStatus} tidak diizinkan. Transisi yang diizinkan: ${allowedTransitions.join(', ') || 'tidak ada'}`,
+        },
         { status: 400 }
       )
-    }
-
-    if (currentStatus === 'COMPLETED' && newStatus !== 'CANCELLED') {
-      return NextResponse.json(
-        { success: false, message: 'Penjualan yang sudah selesai hanya dapat dibatalkan' },
-        { status: 400 }
-      )
-    }
-
-    if (currentStatus === newStatus) {
-      // No state change needed
-      return NextResponse.json({ success: true, data: sale })
     }
 
     // When status changes to "COMPLETED", update stock and create OUT mutations

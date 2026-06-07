@@ -24,6 +24,14 @@ interface AppState {
   notifications: { id: string; message: string; type: string; read: boolean; createdAt: string }[]
   addNotification: (notification: { id: string; message: string; type: string; read: boolean; createdAt: string }) => void
   markNotificationRead: (id: string) => void
+  searchQuery: string
+  setSearchQuery: (query: string) => void
+  searchOpen: boolean
+  setSearchOpen: (open: boolean) => void
+  quickActionOpen: boolean
+  setQuickActionOpen: (open: boolean) => void
+  activeWarehouse: string
+  setActiveWarehouse: (warehouse: string) => void
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -42,4 +50,12 @@ export const useAppStore = create<AppState>((set) => ({
         n.id === id ? { ...n, read: true } : n
       ),
     })),
+  searchQuery: '',
+  setSearchQuery: (query) => set({ searchQuery: query }),
+  searchOpen: false,
+  setSearchOpen: (open) => set({ searchOpen: open }),
+  quickActionOpen: false,
+  setQuickActionOpen: (open) => set({ quickActionOpen: open }),
+  activeWarehouse: 'Gudang Utama',
+  setActiveWarehouse: (warehouse) => set({ activeWarehouse: warehouse }),
 }))
