@@ -203,12 +203,15 @@ export async function PUT(
       },
     })
 
-    // Activity log
+    // Activity log with enhanced data
     await createActivityLog({
       action: 'STATUS_CHANGE',
       entity: 'Sale',
       entityId: sale.id,
+      entityCode: sale.transNo,
       details: `Penjualan ${sale.transNo} status diubah dari ${currentStatus} ke ${newStatus}`,
+      previousData: JSON.stringify({ status: currentStatus }),
+      newData: JSON.stringify({ status: newStatus }),
     })
 
     return NextResponse.json({ success: true, data: updatedSale })
@@ -262,7 +265,8 @@ export async function DELETE(
       action: 'DELETE',
       entity: 'Sale',
       entityId: id,
-      details: `Penjualan ${sale.transNo} dihapus (DRAFT)`,
+      entityCode: sale.transNo,
+      details: `Menghapus Penjualan ${sale.transNo} (DRAFT)`,
     })
 
     return NextResponse.json({

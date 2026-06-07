@@ -1,5 +1,7 @@
 import { db } from '@/lib/db'
 import { NextRequest, NextResponse } from 'next/server'
+import { generateCode } from '@/lib/autoCode'
+import { createActivityLog } from '@/lib/stock'
 
 // GET /api/customers - List customers with sale count
 export async function GET(request: NextRequest) {
@@ -10,6 +12,7 @@ export async function GET(request: NextRequest) {
     const where = search
       ? {
           OR: [
+            { code: { contains: search } },
             { name: { contains: search } },
             { phone: { contains: search } },
             { email: { contains: search } },
@@ -39,7 +42,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/customers - Create customer
+// POST /api/customers - Create customer with auto-generated code
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
@@ -53,8 +56,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const code = await generateCode('CUS', 'customer')
+
     const customer = await db.customer.create({
       data: {
+        code,
         name,
         phone: phone || null,
         email: email || null,
@@ -66,6 +72,16 @@ export async function POST(request: NextRequest) {
           select: { sales: true },
         },
       },
+    })
+
+    // Activity log
+    await createActivityLog({
+      action: 'CREATE',
+      entity: 'Customer',
+      entityId: customer.id,
+      entityCode: code,
+      details: `Membuat Customer ${code} ${name}`,
+      newData: JSON.stringify({ name, phone, email, address }),
     })
 
     return NextResponse.json({ success: true, data: customer }, { status: 201 })

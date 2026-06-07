@@ -2,6 +2,7 @@ import { db } from '@/lib/db'
 import { Prisma } from '@prisma/client'
 import { NextRequest, NextResponse } from 'next/server'
 import { updateVariantStock, createActivityLog } from '@/lib/stock'
+import { generateTransCode } from '@/lib/autoCode'
 
 // Helper: resolve the target variant for an item (prefer variantId, fallback to first variant of product)
 async function resolveVariant(variantId: string | null | undefined, productId: string | null | undefined) {
@@ -76,7 +77,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/purchases - Create purchase with status handling
+// POST /api/purchases - Create purchase with status handling, PO- prefix
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
@@ -109,28 +110,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Generate transNo: PB-YYYYMMDD-XXXX
+    // Generate transNo: PO-YYYYMMDD-XXXX
     const purchaseDate = new Date(date)
-    const dateStr = purchaseDate.toISOString().slice(0, 10).replace(/-/g, '')
-    const prefix = `PB-${dateStr}-`
-
-    // Count existing purchases for the day
-    const todayStart = new Date(purchaseDate)
-    todayStart.setHours(0, 0, 0, 0)
-    const todayEnd = new Date(purchaseDate)
-    todayEnd.setHours(23, 59, 59, 999)
-
-    const existingCount = await db.purchase.count({
-      where: {
-        date: {
-          gte: todayStart,
-          lte: todayEnd,
-        },
-      },
-    })
-
-    const seqNumber = String(existingCount + 1).padStart(4, '0')
-    const transNo = `${prefix}${seqNumber}`
+    const transNo = await generateTransCode('PO', purchaseDate, 'purchase')
 
     // Calculate total
     const total = items.reduce(
@@ -214,7 +196,9 @@ export async function POST(request: NextRequest) {
       action: 'CREATE',
       entity: 'Purchase',
       entityId: purchase.id,
+      entityCode: transNo,
       details: `Pembelian ${transNo} dibuat dengan status ${purchaseStatus}. Total: Rp ${total.toLocaleString('id-ID')}. ${resolvedItems.length} item.`,
+      newData: JSON.stringify({ supplierId, date, total, status: purchaseStatus, itemCount: resolvedItems.length }),
     })
 
     return NextResponse.json({ success: true, data: purchase }, { status: 201 })

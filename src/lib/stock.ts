@@ -79,14 +79,17 @@ export async function updateVariantStock(
 }
 
 /**
- * Create an activity log entry.
+ * Create an activity log entry with enhanced audit data.
  */
 export async function createActivityLog(params: {
   userId?: string
   action: string // CREATE, UPDATE, DELETE, LOGIN, STATUS_CHANGE
   entity: string // Product, Purchase, Sale, User, etc.
   entityId?: string
+  entityCode?: string // Human-readable code (e.g., "PO-20260607-0001", "CUS000013")
   details: string // JSON or human-readable description
+  previousData?: string // JSON string of previous values
+  newData?: string // JSON string of new values
 }) {
   try {
     // If no userId provided, try to find the owner
@@ -102,7 +105,10 @@ export async function createActivityLog(params: {
         action: params.action,
         entity: params.entity,
         entityId: params.entityId,
+        entityCode: params.entityCode,
         details: params.details,
+        previousData: params.previousData,
+        newData: params.newData,
       },
     })
   } catch (error) {

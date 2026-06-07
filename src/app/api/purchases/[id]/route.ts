@@ -192,12 +192,15 @@ export async function PUT(
       },
     })
 
-    // Activity log
+    // Activity log with enhanced data
     await createActivityLog({
       action: 'STATUS_CHANGE',
       entity: 'Purchase',
       entityId: purchase.id,
+      entityCode: purchase.transNo,
       details: `Pembelian ${purchase.transNo} status diubah dari ${currentStatus} ke ${newStatus}`,
+      previousData: JSON.stringify({ status: currentStatus }),
+      newData: JSON.stringify({ status: newStatus }),
     })
 
     return NextResponse.json({ success: true, data: updatedPurchase })
@@ -251,7 +254,8 @@ export async function DELETE(
       action: 'DELETE',
       entity: 'Purchase',
       entityId: id,
-      details: `Pembelian ${purchase.transNo} dihapus (DRAFT)`,
+      entityCode: purchase.transNo,
+      details: `Menghapus Pembelian ${purchase.transNo} (DRAFT)`,
     })
 
     return NextResponse.json({

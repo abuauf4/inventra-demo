@@ -39,6 +39,7 @@ model Category {
 
 model Supplier {
   id        String         @id @default(cuid())
+  code      String         @unique
   name      String
   pic       String?
   phone     String?
@@ -53,6 +54,7 @@ model Supplier {
 
 model Customer {
   id        String    @id @default(cuid())
+  code      String    @unique
   name      String
   phone     String?
   email     String?
@@ -215,14 +217,17 @@ model StockMutation {
 // ===================== ACTIVITY LOG =====================
 
 model ActivityLog {
-  id        String    @id @default(cuid())
-  userId    String
-  action    String    // CREATE, UPDATE, DELETE, LOGIN, STATUS_CHANGE
-  entity    String    // Product, Purchase, Sale, User, etc.
-  entityId  String?   // Polymorphic - no FK, just a string reference
-  details   String    // JSON string with change details
-  user      User      @relation(fields: [userId], references: [id])
-  createdAt DateTime  @default(now())
+  id           String    @id @default(cuid())
+  userId       String
+  action       String    // CREATE, UPDATE, DELETE, LOGIN, STATUS_CHANGE
+  entity       String    // Product, Purchase, Sale, User, etc.
+  entityId     String?   // Polymorphic - no FK, just a string reference
+  entityCode   String?   // Human-readable code (e.g., "PO-20260607-0001", "CUS000013")
+  details      String    // JSON string with change details
+  previousData String?   // JSON string of previous values (for UPDATE/STATUS_CHANGE)
+  newData      String?   // JSON string of new values (for UPDATE/STATUS_CHANGE)
+  user         User      @relation(fields: [userId], references: [id])
+  createdAt    DateTime  @default(now())
 }
 
 // ===================== ATTACHMENT =====================

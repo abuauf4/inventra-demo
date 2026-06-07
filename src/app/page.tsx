@@ -38,11 +38,13 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { toast } from 'sonner'
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 
 // ===================== TYPES =====================
 interface Category { id: string; name: string; description?: string; _count?: { products: number }; createdAt: string }
-interface Supplier { id: string; name: string; pic?: string; phone?: string; email?: string; address?: string; notes?: string; _count?: { purchases: number }; createdAt: string }
-interface Customer { id: string; name: string; phone?: string; email?: string; address?: string; notes?: string; _count?: { sales: number }; createdAt: string }
+interface Supplier { id: string; code: string; name: string; pic?: string; phone?: string; email?: string; address?: string; notes?: string; _count?: { purchases: number }; createdAt: string }
+interface Customer { id: string; code: string; name: string; phone?: string; email?: string; address?: string; notes?: string; _count?: { sales: number }; createdAt: string }
 interface ProductVariant { id: string; productId: string; name: string; sku: string; attributes: string; buyPrice: number; sellPrice: number; stock: number; minStock: number; isActive: boolean; barcode?: string; createdAt: string }
 interface Product { id: string; name: string; sku: string; categoryId: string; supplierId?: string; description?: string; image?: string; buyPrice: number; sellPrice: number; minStock: number; isActive: boolean; category?: Category; supplier?: Supplier; variants?: ProductVariant[]; createdAt: string }
 interface Warehouse { id: string; name: string; code: string; address?: string; isActive: boolean; _count?: { stocks: number }; createdAt: string }
@@ -51,7 +53,7 @@ interface SaleItem { id?: string; saleId?: string; variantId?: string; productId
 interface Purchase { id: string; transNo: string; supplierId: string; date: string; total: number; status: string; notes?: string; supplier?: Supplier; items: PurchaseItem[]; createdAt: string }
 interface Sale { id: string; transNo: string; customerId?: string; date: string; total: number; status: string; notes?: string; customer?: Customer; items: SaleItem[]; createdAt: string }
 interface StockMutation { id: string; variantId?: string; productId?: string; warehouseId?: string; type: string; qty: number; note?: string; variant?: ProductVariant; product?: Product; warehouse?: Warehouse; createdAt: string }
-interface ActivityLog { id: string; userId: string; action: string; entity: string; entityId?: string; details: string; user?: { id: string; name: string; username: string; role: string }; createdAt: string }
+interface ActivityLog { id: string; userId: string; action: string; entity: string; entityId?: string; entityCode?: string; details: string; previousData?: string; newData?: string; user?: { id: string; name: string; username: string; role: string }; createdAt: string }
 interface User { id: string; name: string; username: string; email?: string; role: string; isActive: boolean; createdAt: string }
 
 // ===================== FORMAT HELPERS =====================
@@ -184,9 +186,204 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
   )
 }
 
+// ===================== GLOBAL SEARCH (Ctrl+K) =====================
+interface SearchResult { type: string; id: string; code: string; label: string; sublabel: string; page: AppPage }
+
+function GlobalSearch() {
+  const { searchOpen, setSearchOpen, setActivePage } = useAppStore()
+  const [query, setQuery] = useState('')
+  const [results, setResults] = useState<SearchResult[]>([])
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (!query || query.length < 1) { setResults([]); return }
+    const timer = setTimeout(async () => {
+      setLoading(true)
+      try {
+        const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`)
+        const data = await res.json()
+        setResults(data.data || [])
+      } catch { setResults([]) }
+      finally { setLoading(false) }
+    }, 200)
+    return () => clearTimeout(timer)
+  }, [query])
+
+  const typeIcons: Record<string, React.ReactNode> = {
+    Customer: <Users className="w-4 h-4 text-blue-500" />,
+    Supplier: <Truck className="w-4 h-4 text-purple-500" />,
+    Product: <Package className="w-4 h-4 text-rose-500" />,
+    Variant: <Package className="w-4 h-4 text-amber-500" />,
+    Purchase: <ShoppingCart className="w-4 h-4 text-blue-500" />,
+    Sale: <ShoppingBag className="w-4 h-4 text-emerald-500" />,
+  }
+
+  const grouped = results.reduce((acc, r) => {
+    if (!acc[r.type]) acc[r.type] = []
+    acc[r.type].push(r)
+    return acc
+  }, {} as Record<string, SearchResult[]>)
+
+  return (
+    <Dialog open={searchOpen} onOpenChange={setSearchOpen}>
+      <DialogContent className="p-0 overflow-hidden max-w-lg border-0 shadow-2xl">
+        <Command shouldFilter={false}>
+          <CommandInput placeholder="Cari apapun... (kode, nama, transaksi)" value={query} onValueChange={setQuery} />
+          <CommandList>
+            {loading && <div className="py-6 text-center text-sm text-muted-foreground">Mencari...</div>}
+            {!loading && query && results.length === 0 && <CommandEmpty>Tidak ditemukan</CommandEmpty>}
+            {!loading && Object.entries(grouped).map(([type, items]) => (
+              <CommandGroup key={type} heading={type}>
+                {items.map(item => (
+                  <CommandItem key={`${item.type}-${item.id}`} onSelect={() => { setActivePage(item.page); setSearchOpen(false); setQuery('') }}
+                    className="flex items-center gap-3 cursor-pointer">
+                    {typeIcons[item.type] || <Search className="w-4 h-4" />}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="font-mono text-[10px]">{item.code}</Badge>
+                        <span className="text-sm truncate">{item.label}</span>
+                      </div>
+                      {item.sublabel && <p className="text-xs text-muted-foreground truncate">{item.sublabel}</p>}
+                    </div>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            ))}
+            {!query && (
+              <div className="py-6 text-center text-sm text-muted-foreground">
+                <p>Ketik untuk mencari...</p>
+                <p className="text-xs mt-1">Cari kode (CUS000001), nama, atau transaksi (PO-, SO-)</p>
+              </div>
+            )}
+          </CommandList>
+        </Command>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+// ===================== QUICK SALE (Alt+S) =====================
+function QuickSaleDialog() {
+  const { quickActionOpen, setQuickActionOpen } = useAppStore()
+  const [customers, setCustomers] = useState<Customer[]>([])
+  const [products, setProducts] = useState<Product[]>([])
+  const [customerId, setCustomerId] = useState('')
+  const [customerSearch, setCustomerSearch] = useState('')
+  const [variantId, setVariantId] = useState('')
+  const [variantSearch, setVariantSearch] = useState('')
+  const [qty, setQty] = useState('1')
+  const [saving, setSaving] = useState(false)
+  const customerRef = useState<HTMLInputElement | null>(null)[1]
+  const variantRef = useState<HTMLInputElement | null>(null)[1]
+
+  useEffect(() => {
+    if (quickActionOpen) {
+      Promise.all([fetch('/api/customers').then(r => r.json()), fetch('/api/products').then(r => r.json())])
+        .then(([c, p]) => { setCustomers(c.data || []); setProducts(p.data || []) })
+      setCustomerId(''); setVariantId(''); setQty('1'); setCustomerSearch(''); setVariantSearch('')
+    }
+  }, [quickActionOpen])
+
+  const allVariants = products.flatMap(p => (p.variants || []).map(v => ({ ...v, productName: p.name, productSku: p.sku })))
+
+  const selectedVariant = allVariants.find(v => v.id === variantId)
+  const selectedCustomer = customers.find(c => c.id === customerId)
+  const total = selectedVariant ? parseInt(qty) * selectedVariant.sellPrice : 0
+
+  const handleSave = async () => {
+    if (!variantId) { toast.error('Pilih produk/varian'); return }
+    setSaving(true)
+    try {
+      const res = await fetch('/api/sales', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customerId: customerId || undefined,
+          date: new Date().toISOString().split('T')[0],
+          status: 'DRAFT',
+          items: [{ variantId, qty: parseInt(qty) || 1, sellPrice: selectedVariant?.sellPrice || 0 }]
+        })
+      })
+      const data = await res.json()
+      if (data.success) { toast.success(`Penjualan ${data.data.transNo} dicatat`); setQuickActionOpen(false) }
+      else { toast.error(data.message || 'Gagal') }
+    } catch { toast.error('Gagal') }
+    finally { setSaving(false) }
+  }
+
+  const filteredCustomers = customers.filter(c =>
+    !customerSearch || c.code?.toLowerCase().includes(customerSearch.toLowerCase()) || c.name.toLowerCase().includes(customerSearch.toLowerCase())
+  ).slice(0, 8)
+
+  const filteredVariants = allVariants.filter(v => {
+    if (!variantSearch) return true
+    const q = variantSearch.toLowerCase()
+    if (v.sku.toLowerCase().includes(q)) return true
+    if (v.productName.toLowerCase().includes(q)) return true
+    if (v.name.toLowerCase().includes(q)) return true
+    try { const attrs = JSON.parse(v.attributes); return Object.values(attrs).some(val => String(val).toLowerCase().includes(q)) } catch { return false }
+  }).slice(0, 10)
+
+  return (
+    <Dialog open={quickActionOpen} onOpenChange={setQuickActionOpen}>
+      <DialogContent className="max-w-md border-0 shadow-xl">
+        <DialogHeader><DialogTitle className="flex items-center gap-2"><ShoppingBag className="w-5 h-5 text-emerald-500" />Jual Cepat <Badge variant="outline" className="text-xs font-mono">Alt+S</Badge></DialogTitle></DialogHeader>
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <Label className="text-xs">Customer</Label>
+            <div className="relative">
+              <Input placeholder="Ketik kode atau nama... (Tab → lanjut)" value={selectedCustomer ? `${selectedCustomer.code} ${selectedCustomer.name}` : customerSearch}
+                onChange={e => { setCustomerSearch(e.target.value); if (customerId) setCustomerId('') }}
+                onKeyDown={e => { if (e.key === 'Tab' && !customerId && filteredCustomers.length === 1) { setCustomerId(filteredCustomers[0].id); e.preventDefault() } }}
+                className="h-9 text-sm" ref={customerRef as any} />
+              {customerSearch && !customerId && filteredCustomers.length > 0 && (
+                <div className="absolute z-50 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-40 overflow-auto">
+                  {filteredCustomers.map(c => (
+                    <button key={c.id} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-left text-sm"
+                      onMouseDown={() => { setCustomerId(c.id); setCustomerSearch('') }}>
+                      <Badge variant="outline" className="font-mono text-[10px]">{c.code}</Badge>
+                      <span>{c.name}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Produk/Varian *</Label>
+            <div className="relative">
+              <Input placeholder="Ketik SKU atau nama... (CL000001, BLK XL)" value={selectedVariant ? `${selectedVariant.sku} ${selectedVariant.productName} — ${selectedVariant.name}` : variantSearch}
+                onChange={e => { setVariantSearch(e.target.value); if (variantId) setVariantId('') }}
+                onKeyDown={e => { if (e.key === 'Tab' && !variantId && filteredVariants.length === 1) { setVariantId(filteredVariants[0].id); e.preventDefault() } }}
+                className="h-9 text-sm" ref={variantRef as any} />
+              {variantSearch && !variantId && filteredVariants.length > 0 && (
+                <div className="absolute z-50 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-48 overflow-auto">
+                  {filteredVariants.map(v => (
+                    <button key={v.id} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-left text-sm"
+                      onMouseDown={() => { setVariantId(v.id); setVariantSearch('') }}>
+                      <Badge variant="outline" className="font-mono text-[10px]">{v.sku}</Badge>
+                      <span className="truncate">{v.productName} — {v.name}</span>
+                      <span className="ml-auto text-xs text-muted-foreground">Stok: {v.stock}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1"><Label className="text-xs">Qty</Label><Input type="number" value={qty} onChange={e => setQty(e.target.value)} min="1" className="h-9" onKeyDown={e => e.key === 'Enter' && handleSave()} /></div>
+            <div className="space-y-1"><Label className="text-xs">Harga</Label><div className="h-9 flex items-center text-sm font-medium">{selectedVariant ? fmtRp(selectedVariant.sellPrice) : '-'}</div></div>
+          </div>
+          <div className="text-right text-lg font-bold border-t pt-3">Total: {fmtRp(total)}</div>
+        </div>
+        <DialogFooter><Button variant="outline" onClick={() => setQuickActionOpen(false)}>Batal</Button><Button className="bg-emerald-600 hover:bg-emerald-700 text-white" onClick={handleSave} disabled={saving || !variantId}>{saving ? 'Menyimpan...' : 'Simpan Draft'}</Button></DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 // ===================== HEADER =====================
 function Header() {
-  const { activePage, sidebarOpen, setSidebarOpen, currentUser, setCurrentUser, notifications, markNotificationRead } = useAppStore()
+  const { activePage, sidebarOpen, setSidebarOpen, currentUser, setCurrentUser, notifications, markNotificationRead, setSearchOpen, setQuickActionOpen } = useAppStore()
   const allItems = menuSections.flatMap(s => s.items)
   const label = allItems.find(m => m.key === activePage)?.label || 'Overview'
   const unread = notifications.filter(n => !n.read).length
@@ -195,6 +392,10 @@ function Header() {
       <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setSidebarOpen(!sidebarOpen)}><Menu className="w-5 h-5" /></Button>
       <h2 className="text-lg font-semibold">{label}</h2>
       <div className="flex-1" />
+      <button onClick={() => setSearchOpen(true)} className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg border bg-gray-50 hover:bg-gray-100 text-sm text-muted-foreground transition-colors min-w-[200px]">
+        <Search className="w-4 h-4" /><span>Cari...</span><kbd className="ml-auto text-[10px] bg-white px-1.5 py-0.5 rounded border font-mono">⌘K</kbd>
+      </button>
+      <Button variant="ghost" size="sm" className="hidden sm:flex text-emerald-600 hover:text-emerald-700 gap-1.5 text-xs" onClick={() => setQuickActionOpen(true)}><ShoppingBag className="w-4 h-4" /><span className="hidden md:inline">Jual Cepat</span><kbd className="text-[10px] bg-emerald-50 px-1 py-0.5 rounded font-mono">Alt+S</kbd></Button>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="icon" className="relative"><Bell className="w-5 h-5" />{unread > 0 && <span className="absolute top-1 right-1 w-4 h-4 bg-rose-500 rounded-full text-[10px] text-white flex items-center justify-center">{unread}</span>}</Button>
@@ -433,9 +634,9 @@ function SuppliersModule() {
         <Button onClick={() => { setEditing(null); setForm({ name: '', pic: '', phone: '', email: '', address: '', notes: '' }); setDialogOpen(true) }} className="bg-gradient-to-r from-rose-500 to-amber-500 text-white"><Plus className="w-4 h-4 mr-2" />Tambah</Button>
       </div>
       {loading ? <div className="flex justify-center py-8"><RefreshCw className="w-6 h-6 animate-spin text-rose-500" /></div> : (
-        <Card className="border-0 shadow-sm"><CardContent className="p-0"><Table><TableHeader><TableRow><TableHead>Nama</TableHead><TableHead>PIC</TableHead><TableHead>Telepon</TableHead><TableHead className="text-center">Pembelian</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
-          <TableBody>{!suppliers.length ? <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Belum ada data</TableCell></TableRow> : suppliers.map(s => (
-            <TableRow key={s.id}><TableCell className="font-medium">{s.name}</TableCell><TableCell>{s.pic || '-'}</TableCell><TableCell>{s.phone || '-'}</TableCell><TableCell className="text-center"><Badge variant="secondary">{s._count?.purchases || 0}</Badge></TableCell>
+        <Card className="border-0 shadow-sm"><CardContent className="p-0"><Table><TableHeader><TableRow><TableHead>Kode</TableHead><TableHead>Nama</TableHead><TableHead>PIC</TableHead><TableHead>Telepon</TableHead><TableHead className="text-center">Pembelian</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
+          <TableBody>{!suppliers.length ? <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Belum ada data</TableCell></TableRow> : suppliers.map(s => (
+            <TableRow key={s.id}><TableCell><Badge variant="outline" className="font-mono text-xs">{s.code}</Badge></TableCell><TableCell className="font-medium">{s.name}</TableCell><TableCell>{s.pic || '-'}</TableCell><TableCell>{s.phone || '-'}</TableCell><TableCell className="text-center"><Badge variant="secondary">{s._count?.purchases || 0}</Badge></TableCell>
               <TableCell className="text-right"><div className="flex justify-end gap-1"><Button variant="ghost" size="icon" onClick={async () => { try { const res = await fetch(`/api/suppliers/${s.id}`); setDetail((await res.json()).data); setDetailOpen(true) } catch {} }}><Eye className="w-4 h-4" /></Button><Button variant="ghost" size="icon" onClick={() => { setEditing(s); setForm({ name: s.name, pic: s.pic || '', phone: s.phone || '', email: s.email || '', address: s.address || '', notes: s.notes || '' }); setDialogOpen(true) }}><Edit className="w-4 h-4" /></Button><Button variant="ghost" size="icon" onClick={() => setDeleteConfirm(s.id)} className="text-red-500"><Trash2 className="w-4 h-4" /></Button></div></TableCell></TableRow>
           ))}</TableBody></Table></CardContent></Card>
       )}
@@ -489,9 +690,9 @@ function CustomersModule() {
         <Button onClick={() => { setEditing(null); setForm({ name: '', phone: '', email: '', address: '', notes: '' }); setDialogOpen(true) }} className="bg-gradient-to-r from-rose-500 to-amber-500 text-white"><Plus className="w-4 h-4 mr-2" />Tambah</Button>
       </div>
       {loading ? <div className="flex justify-center py-8"><RefreshCw className="w-6 h-6 animate-spin text-rose-500" /></div> : (
-        <Card className="border-0 shadow-sm"><CardContent className="p-0"><Table><TableHeader><TableRow><TableHead>Nama</TableHead><TableHead>Telepon</TableHead><TableHead>Email</TableHead><TableHead className="text-center">Penjualan</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
+        <Card className="border-0 shadow-sm"><CardContent className="p-0"><Table><TableHeader><TableRow><TableHead>Kode</TableHead><TableHead>Nama</TableHead><TableHead>Telepon</TableHead><TableHead className="text-center">Penjualan</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
           <TableBody>{!customers.length ? <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Belum ada data</TableCell></TableRow> : customers.map(c => (
-            <TableRow key={c.id}><TableCell className="font-medium">{c.name}</TableCell><TableCell>{c.phone || '-'}</TableCell><TableCell>{c.email || '-'}</TableCell><TableCell className="text-center"><Badge variant="secondary">{c._count?.sales || 0}</Badge></TableCell>
+            <TableRow key={c.id}><TableCell><Badge variant="outline" className="font-mono text-xs">{c.code}</Badge></TableCell><TableCell className="font-medium">{c.name}</TableCell><TableCell>{c.phone || '-'}</TableCell><TableCell className="text-center"><Badge variant="secondary">{c._count?.sales || 0}</Badge></TableCell>
               <TableCell className="text-right"><div className="flex justify-end gap-1"><Button variant="ghost" size="icon" onClick={async () => { try { const res = await fetch(`/api/customers/${c.id}`); setDetail((await res.json()).data); setDetailOpen(true) } catch {} }}><Eye className="w-4 h-4" /></Button><Button variant="ghost" size="icon" onClick={() => { setEditing(c); setForm({ name: c.name, phone: c.phone || '', email: c.email || '', address: c.address || '', notes: c.notes || '' }); setDialogOpen(true) }}><Edit className="w-4 h-4" /></Button><Button variant="ghost" size="icon" onClick={() => setDeleteConfirm(c.id)} className="text-red-500"><Trash2 className="w-4 h-4" /></Button></div></TableCell></TableRow>
           ))}</TableBody></Table></CardContent></Card>
       )}
@@ -625,7 +826,7 @@ function ProductsModule() {
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}><DialogContent className="max-w-lg"><DialogHeader><DialogTitle>{editing ? 'Edit' : 'Tambah'} Produk</DialogTitle></DialogHeader>
         <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-3"><div className="space-y-2"><Label>Nama *</Label><Input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></div><div className="space-y-2"><Label>SKU *</Label><Input value={form.sku} onChange={e => setForm({ ...form, sku: e.target.value })} /></div></div>
+          <div className="grid grid-cols-2 gap-3"><div className="space-y-2"><Label>Nama *</Label><Input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></div><div className="space-y-2"><Label>SKU *</Label><Input value={form.sku} onChange={e => setForm({ ...form, sku: e.target.value })} placeholder="Auto: CL000001 jika kosong" /></div></div>
           <div className="grid grid-cols-2 gap-3"><div className="space-y-2"><Label>Kategori *</Label><Select value={form.categoryId} onValueChange={v => setForm({ ...form, categoryId: v })}><SelectTrigger><SelectValue placeholder="Pilih" /></SelectTrigger><SelectContent>{categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select></div>
             <div className="space-y-2"><Label>Supplier</Label><Select value={form.supplierId || 'none'} onValueChange={v => setForm({ ...form, supplierId: v === 'none' ? '' : v })}><SelectTrigger><SelectValue placeholder="Pilih" /></SelectTrigger><SelectContent><SelectItem value="none">Tanpa</SelectItem>{suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent></Select></div></div>
           <div className="space-y-2"><Label>Deskripsi</Label><Textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} /></div>
@@ -714,16 +915,24 @@ function WarehousesModule() {
   )
 }
 
-// ===================== ACTIVITY LOG MODULE =====================
+// ===================== ACTIVITY LOG MODULE (PREMIUM) =====================
 function ActivityLogModule() {
   const [logs, setLogs] = useState<ActivityLog[]>([])
   const [loading, setLoading] = useState(true)
+  const [filterEntity, setFilterEntity] = useState('all')
+  const [filterAction, setFilterAction] = useState('all')
 
   const load = useCallback(async () => {
     setLoading(true)
-    try { const res = await fetch('/api/activity-logs'); setLogs((await res.json()).data) } catch { toast.error('Gagal') }
+    try {
+      const params = new URLSearchParams()
+      if (filterEntity !== 'all') params.set('entity', filterEntity)
+      if (filterAction !== 'all') params.set('action', filterAction)
+      const res = await fetch(`/api/activity-logs?${params}`)
+      setLogs((await res.json()).data)
+    } catch { toast.error('Gagal') }
     finally { setLoading(false) }
-  }, [])
+  }, [filterEntity, filterAction])
   useEffect(() => { load() }, [load])
 
   const getActionIcon = (action: string) => {
@@ -737,19 +946,54 @@ function ActivityLogModule() {
     }
   }
 
+  const renderDetails = (log: ActivityLog) => {
+    // Try to parse previousData/newData for status transitions
+    if (log.action === 'STATUS_CHANGE' && log.previousData && log.newData) {
+      try {
+        const prev = JSON.parse(log.previousData)
+        const next = JSON.parse(log.newData)
+        if (prev.status && next.status) {
+          const statusMap = log.entity === 'Purchase' ? purchaseStatusMap : saleStatusMap
+          return (
+            <div className="flex items-center gap-2 mt-1">
+              <StatusBadge status={prev.status} map={statusMap} />
+              <ChevronRight className="w-3 h-3 text-muted-foreground" />
+              <StatusBadge status={next.status} map={statusMap} />
+            </div>
+          )
+        }
+      } catch {}
+    }
+    return <p className="text-xs text-muted-foreground mt-0.5">{log.details}</p>
+  }
+
+  const entityTypes = ['Customer', 'Supplier', 'Product', 'Purchase', 'Sale', 'User']
+  const actionTypes = ['CREATE', 'UPDATE', 'DELETE', 'STATUS_CHANGE', 'LOGIN']
+
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center"><h3 className="text-sm text-muted-foreground">Menampilkan {logs.length} aktivitas terbaru</h3><Button variant="outline" size="sm" onClick={load}><RefreshCw className="w-4 h-4 mr-2" />Refresh</Button></div>
+      <div className="flex flex-col sm:flex-row gap-3">
+        <Select value={filterEntity} onValueChange={setFilterEntity}><SelectTrigger className="w-40"><SelectValue placeholder="Entity" /></SelectTrigger><SelectContent><SelectItem value="all">Semua Entity</SelectItem>{entityTypes.map(e => <SelectItem key={e} value={e}>{e}</SelectItem>)}</SelectContent></Select>
+        <Select value={filterAction} onValueChange={setFilterAction}><SelectTrigger className="w-40"><SelectValue placeholder="Aksi" /></SelectTrigger><SelectContent><SelectItem value="all">Semua Aksi</SelectItem>{actionTypes.map(a => <SelectItem key={a} value={a}>{a}</SelectItem>)}</SelectContent></Select>
+        <div className="flex-1" />
+        <Button variant="outline" size="sm" onClick={load}><RefreshCw className="w-4 h-4 mr-2" />Refresh</Button>
+      </div>
+      <p className="text-sm text-muted-foreground">Menampilkan {logs.length} aktivitas</p>
       {loading ? <div className="flex justify-center py-8"><RefreshCw className="w-6 h-6 animate-spin text-rose-500" /></div> : (
         <Card className="border-0 shadow-sm"><CardContent className="p-4">
           {logs.length === 0 ? <p className="text-center py-8 text-muted-foreground">Belum ada aktivitas</p> : (
-            <div className="space-y-4">
+            <div className="space-y-3">
               {logs.map(log => (
-                <div key={log.id} className="flex items-start gap-3">
+                <div key={log.id} className="flex items-start gap-3 pb-3 border-b last:border-0">
                   <div className="mt-0.5">{getActionIcon(log.action)}</div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2"><span className="font-medium text-sm">{log.user?.name || 'Unknown'}</span><Badge variant="outline" className="text-xs">{log.action}</Badge><Badge variant="secondary" className="text-xs">{log.entity}</Badge></div>
-                    <p className="text-xs text-muted-foreground mt-0.5">{log.details}</p>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-medium text-sm">{log.user?.name || 'Unknown'}</span>
+                      <Badge variant="outline" className="text-[10px]">{log.action === 'CREATE' ? 'membuat' : log.action === 'UPDATE' ? 'mengubah' : log.action === 'DELETE' ? 'menghapus' : log.action === 'STATUS_CHANGE' ? 'mengubah status' : log.action.toLowerCase()}</Badge>
+                      <Badge variant="secondary" className="text-[10px]">{log.entity}</Badge>
+                      {log.entityCode && <Badge variant="outline" className="font-mono text-[10px]">{log.entityCode}</Badge>}
+                    </div>
+                    {renderDetails(log)}
                     <p className="text-[10px] text-muted-foreground mt-0.5">{fmtDateTime(log.createdAt)}</p>
                   </div>
                 </div>
@@ -1174,12 +1418,28 @@ function UserManagementModule() {
 
 // ===================== MAIN APP =====================
 export default function InventraApp() {
-  const { currentUser, activePage, sidebarOpen, setSidebarOpen } = useAppStore()
+  const { currentUser, activePage, sidebarOpen, setSidebarOpen, setSearchOpen, setQuickActionOpen } = useAppStore()
   const [seeded, setSeeded] = useState(false)
 
   useEffect(() => {
     if (!seeded) { fetch('/api/seed').then(() => setSeeded(true)).catch(() => setSeeded(true)) }
   }, [seeded])
+
+  // Global keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault()
+        setSearchOpen(true)
+      }
+      if (e.altKey && e.key === 's') {
+        e.preventDefault()
+        setQuickActionOpen(true)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [setSearchOpen, setQuickActionOpen])
 
   if (!currentUser) return <LoginScreen />
 
@@ -1208,6 +1468,8 @@ export default function InventraApp() {
         <Header />
         <main className="flex-1 p-4 lg:p-6">{renderPage()}</main>
       </div>
+      <GlobalSearch />
+      <QuickSaleDialog />
     </div>
   )
 }

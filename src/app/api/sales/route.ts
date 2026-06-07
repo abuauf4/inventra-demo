@@ -2,6 +2,7 @@ import { db } from '@/lib/db'
 import { Prisma } from '@prisma/client'
 import { NextRequest, NextResponse } from 'next/server'
 import { updateVariantStock, createActivityLog } from '@/lib/stock'
+import { generateTransCode } from '@/lib/autoCode'
 
 // Helper: resolve the target variant for an item (prefer variantId, fallback to first variant of product)
 async function resolveVariant(variantId: string | null | undefined, productId: string | null | undefined) {
@@ -76,7 +77,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/sales - Create sale with status handling
+// POST /api/sales - Create sale with status handling, SO- prefix
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
@@ -144,28 +145,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Generate transNo: SL-YYYYMMDD-XXXX
+    // Generate transNo: SO-YYYYMMDD-XXXX
     const saleDate = new Date(date)
-    const dateStr = saleDate.toISOString().slice(0, 10).replace(/-/g, '')
-    const prefix = `SL-${dateStr}-`
-
-    // Count existing sales for the day
-    const todayStart = new Date(saleDate)
-    todayStart.setHours(0, 0, 0, 0)
-    const todayEnd = new Date(saleDate)
-    todayEnd.setHours(23, 59, 59, 999)
-
-    const existingCount = await db.sale.count({
-      where: {
-        date: {
-          gte: todayStart,
-          lte: todayEnd,
-        },
-      },
-    })
-
-    const seqNumber = String(existingCount + 1).padStart(4, '0')
-    const transNo = `${prefix}${seqNumber}`
+    const transNo = await generateTransCode('SO', saleDate, 'sale')
 
     // Calculate total
     const total = items.reduce(
@@ -231,7 +213,9 @@ export async function POST(request: NextRequest) {
       action: 'CREATE',
       entity: 'Sale',
       entityId: sale.id,
+      entityCode: transNo,
       details: `Penjualan ${transNo} dibuat dengan status ${saleStatus}. Total: Rp ${total.toLocaleString('id-ID')}. ${resolvedItems.length} item.`,
+      newData: JSON.stringify({ customerId, date, total, status: saleStatus, itemCount: resolvedItems.length }),
     })
 
     return NextResponse.json({ success: true, data: sale }, { status: 201 })

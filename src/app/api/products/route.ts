@@ -1,6 +1,8 @@
 import { db } from '@/lib/db'
 import { Prisma } from '@prisma/client'
 import { NextRequest, NextResponse } from 'next/server'
+import { generateCode } from '@/lib/autoCode'
+import { createActivityLog } from '@/lib/stock'
 
 // GET /api/products - List products with category, supplier, and variants
 export async function GET(request: NextRequest) {
@@ -60,7 +62,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/products - Create product with optional variants
+// POST /api/products - Create product with optional variants, auto-generate SKU if not provided
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
@@ -78,17 +80,23 @@ export async function POST(request: NextRequest) {
       variants,
     } = body
 
+    // Auto-generate SKU if not provided
+    let productSku = sku
+    if (!productSku) {
+      productSku = await generateCode('CL', 'product')
+    }
+
     // Validation
-    if (!name || !sku || !categoryId) {
+    if (!name || !categoryId) {
       return NextResponse.json(
-        { success: false, message: 'Nama, SKU, dan kategori wajib diisi' },
+        { success: false, message: 'Nama dan kategori wajib diisi' },
         { status: 400 }
       )
     }
 
     // Check SKU uniqueness on product
     const existingProduct = await db.product.findUnique({
-      where: { sku },
+      where: { sku: productSku },
     })
 
     if (existingProduct) {
@@ -130,7 +138,7 @@ export async function POST(request: NextRequest) {
             barcode?: string
           }) => ({
             name: v.name || 'Default',
-            sku: v.sku || `${sku}-DEF`,
+            sku: v.sku || `${productSku}-DEF`,
             attributes: v.attributes || '{}',
             buyPrice: v.buyPrice ?? buyPrice ?? 0,
             sellPrice: v.sellPrice ?? sellPrice ?? 0,
@@ -145,7 +153,7 @@ export async function POST(request: NextRequest) {
     const product = await db.product.create({
       data: {
         name,
-        sku,
+        sku: productSku,
         categoryId,
         supplierId: supplierId || null,
         description: description || null,
@@ -167,6 +175,16 @@ export async function POST(request: NextRequest) {
           orderBy: { name: 'asc' },
         },
       },
+    })
+
+    // Activity log
+    await createActivityLog({
+      action: 'CREATE',
+      entity: 'Product',
+      entityId: product.id,
+      entityCode: productSku,
+      details: `Membuat Product ${productSku} ${name}`,
+      newData: JSON.stringify({ name, sku: productSku, categoryId, buyPrice, sellPrice }),
     })
 
     return NextResponse.json({ success: true, data: product }, { status: 201 })
