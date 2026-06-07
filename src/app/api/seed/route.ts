@@ -4,6 +4,19 @@ import { NextResponse } from 'next/server'
 // GET /api/seed - Seed premium fashion-themed data for Northline Apparel
 export async function GET() {
   try {
+    // Short-circuit: if owner user + products already exist, skip everything
+    const quickCheck = await db.user.findUnique({ where: { username: 'Bagas' } })
+    if (quickCheck) {
+      const productCount = await db.product.count()
+      if (productCount > 0) {
+        return NextResponse.json({
+          success: true,
+          message: 'Seed data sudah ada',
+          data: { status: 'already_seeded' },
+        })
+      }
+    }
+
     const results = {
       owner: null as string | null,
       staff: null as string | null,

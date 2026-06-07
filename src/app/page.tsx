@@ -1682,12 +1682,6 @@ function InboxModule() {
 
 export default function InventraApp() {
   const { currentUser, activePage, sidebarOpen, setSidebarOpen, setSearchOpen, setQuickActionOpen } = useAppStore()
-  const [seeded, setSeeded] = useState(false)
-
-  useEffect(() => {
-    if (!seeded) { fetch('/api/seed').then(() => setSeeded(true)).catch(() => setSeeded(true)) }
-  }, [seeded])
-
   // Global keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
