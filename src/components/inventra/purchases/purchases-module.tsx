@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { toast } from 'sonner'
 import { Purchase, PurchaseItem, Product, ProductVariant, Supplier } from '@/components/inventra/shared/types'
-import { fmtDate, fmtRp, purchaseStatusMap } from '@/components/inventra/shared/constants'
+import { fmtDate, fmtRp } from '@/components/inventra/shared/constants'
 import { StatusBadge } from '@/components/inventra/shared/status-badge'
 
 import {
@@ -26,10 +26,13 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Separator } from '@/components/ui/separator'
+import { Badge } from '@/components/ui/badge'
 
 import {
   Search, Plus, Eye, Trash2, RefreshCw,
 } from 'lucide-react'
+
+const today = () => new Date().toISOString().split('T')[0]
 
 function PurchasesModule() {
   const [purchases, setPurchases] = useState<Purchase[]>([])
@@ -41,9 +44,12 @@ function PurchasesModule() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [detailOpen, setDetailOpen] = useState(false)
   const [detail, setDetail] = useState<Purchase | null>(null)
-  const [form, setForm] = useState({ supplierId: '', date: new Date().toISOString().split('T')[0], notes: '', status: 'DRAFT', items: [{ variantId: '', productId: '', qty: '1', buyPrice: '0' }] })
+  const [form, setForm] = useState({ supplierId: '', date: today(), notes: '', status: 'DRAFT', items: [{ variantId: '', qty: '1', buyPrice: '0' }] })
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
   const [cancelConfirm, setCancelConfirm] = useState<{ id: string; status: string } | null>(null)
+  const [variantSearches, setVariantSearches] = useState<string[]>([''])
+  const [supplierSearch, setSupplierSearch] = useState('')
+  const supplierInputRef = useRef<HTMLInputElement>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -58,14 +64,18 @@ function PurchasesModule() {
   }, [search, filterStatus])
   useEffect(() => { load() }, [load])
 
+  useEffect(() => {
+    if (dialogOpen) setTimeout(() => supplierInputRef.current?.focus(), 100)
+  }, [dialogOpen])
+
   const handleSave = async () => {
-    if (!form.supplierId) { toast.error('Supplier wajib'); return }
+    if (!form.supplierId) { toast.error('Supplier wajib dipilih'); return }
     try {
-      const body = { supplierId: form.supplierId, date: form.date, notes: form.notes || undefined, status: form.status, items: form.items.filter(i => i.variantId || i.productId).map(i => ({ variantId: i.variantId || undefined, productId: i.productId || undefined, qty: parseInt(i.qty) || 0, buyPrice: parseFloat(i.buyPrice) || 0 })) }
-      if (!body.items.length) { toast.error('Item wajib diisi'); return }
+      const body = { supplierId: form.supplierId, date: form.date, notes: form.notes || undefined, status: form.status, items: form.items.filter(i => i.variantId).map(i => ({ variantId: i.variantId, qty: parseInt(i.qty) || 0, buyPrice: parseFloat(i.buyPrice) || 0 })) }
+      if (!body.items.length) { toast.error('Tambahkan minimal 1 item'); return }
       const res = await fetch('/api/purchases', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       if (!res.ok) { const d = await res.json(); toast.error(d.error || d.message || 'Gagal'); return }
-      toast.success('Pembelian dicatat'); setDialogOpen(false); setForm({ supplierId: '', date: new Date().toISOString().split('T')[0], notes: '', status: 'DRAFT', items: [{ variantId: '', productId: '', qty: '1', buyPrice: '0' }] }); load()
+      toast.success('Pembelian dicatat'); setDialogOpen(false); resetForm(); load()
     } catch { toast.error('Gagal') }
   }
 
@@ -90,25 +100,58 @@ function PurchasesModule() {
     } catch { toast.error('Gagal') }
   }
 
-  const addItem = () => setForm({ ...form, items: [...form.items, { variantId: '', productId: '', qty: '1', buyPrice: '0' }] })
-  const removeItem = (idx: number) => setForm({ ...form, items: form.items.filter((_, i) => i !== idx) })
+  const resetForm = () => {
+    setForm({ supplierId: '', date: today(), notes: '', status: 'DRAFT', items: [{ variantId: '', qty: '1', buyPrice: '0' }] })
+    setVariantSearches([''])
+    setSupplierSearch('')
+  }
+
+  const addItem = () => {
+    setForm({ ...form, items: [...form.items, { variantId: '', qty: '1', buyPrice: '0' }] })
+    setVariantSearches([...variantSearches, ''])
+  }
+  const removeItem = (idx: number) => {
+    setForm({ ...form, items: form.items.filter((_, i) => i !== idx) })
+    setVariantSearches(variantSearches.filter((_, i) => i !== idx))
+  }
   const updateItem = (idx: number, field: string, value: string) => {
     const items = [...form.items]; items[idx] = { ...items[idx], [field]: value }
-    if (field === 'variantId') { const p = products.find(p => p.variants?.some(v => v.id === value)); const v = p?.variants?.find(v => v.id === value); if (v) items[idx].buyPrice = String(v.buyPrice) }
+    if (field === 'variantId') {
+      const v = allVariants.find(v => v.id === value)
+      if (v) items[idx].buyPrice = String(v.buyPrice)
+    }
     setForm({ ...form, items })
   }
+
   const openDetail = async (id: string) => { try { const res = await fetch(`/api/purchases/${id}`); setDetail((await res.json()).data); setDetailOpen(true) } catch {} }
   const total = form.items.reduce((s, i) => s + (parseInt(i.qty) || 0) * (parseFloat(i.buyPrice) || 0), 0)
-
-  // Flatten variants for select
   const allVariants = products.flatMap(p => (p.variants || []).map(v => ({ ...v, productName: p.name })))
 
+  const getFilteredVariants = (searchQuery: string) => {
+    if (!searchQuery) return allVariants.slice(0, 8)
+    const q = searchQuery.toLowerCase()
+    return allVariants.filter(v => {
+      if (v.sku.toLowerCase().includes(q)) return true
+      if (v.productName.toLowerCase().includes(q)) return true
+      if (v.name.toLowerCase().includes(q)) return true
+      try { const attrs = JSON.parse(v.attributes); return Object.values(attrs).some(val => String(val).toLowerCase().includes(q)) } catch { return false }
+    }).slice(0, 10)
+  }
+
+  const selectedSupplier = suppliers.find(s => s.id === form.supplierId)
+  const filteredSuppliers = suppliers.filter(s => {
+    if (!supplierSearch) return false
+    const q = supplierSearch.toLowerCase()
+    return s.code?.toLowerCase().includes(q) || s.name.toLowerCase().includes(q)
+  }).slice(0, 8)
+
   return (
+    <>
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" /><Input placeholder="Cari no. transaksi..." value={search} onChange={e => setSearch(e.target.value)} className="pl-10" /></div>
         <Select value={filterStatus} onValueChange={setFilterStatus}><SelectTrigger className="w-40"><SelectValue placeholder="Status" /></SelectTrigger><SelectContent><SelectItem value="all">Semua Status</SelectItem><SelectItem value="DRAFT">Draft</SelectItem><SelectItem value="APPROVED">Disetujui</SelectItem><SelectItem value="RECEIVED">Diterima</SelectItem><SelectItem value="CANCELLED">Dibatalkan</SelectItem></SelectContent></Select>
-        <Button onClick={() => { setForm({ supplierId: '', date: new Date().toISOString().split('T')[0], notes: '', status: 'DRAFT', items: [{ variantId: '', productId: '', qty: '1', buyPrice: '0' }] }); setDialogOpen(true) }} className="bg-gradient-to-r from-rose-500 to-amber-500 text-white"><Plus className="w-4 h-4 mr-2" />Tambah</Button>
+        <Button onClick={() => { resetForm(); setDialogOpen(true) }} className="bg-gradient-to-r from-rose-500 to-amber-500 text-white"><Plus className="w-4 h-4 mr-2" />Tambah</Button>
       </div>
       {loading ? <div className="flex justify-center py-8"><RefreshCw className="w-6 h-6 animate-spin text-rose-500" /></div> : (
         <Card className="border-0 shadow-sm"><CardContent className="p-0"><Table><TableHeader><TableRow><TableHead>No. Transaksi</TableHead><TableHead>Supplier</TableHead><TableHead>Tanggal</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Total</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
@@ -131,27 +174,97 @@ function PurchasesModule() {
         </div>}
       </DialogContent></Dialog>
 
+      {/* New Purchase Dialog — Fast UX */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}><DialogContent className="max-w-2xl"><DialogHeader><DialogTitle>Tambah Pembelian</DialogTitle></DialogHeader>
         <div className="space-y-3">
-          <div className="grid grid-cols-3 gap-3"><div className="space-y-2"><Label>Supplier *</Label><Select value={form.supplierId} onValueChange={v => setForm({ ...form, supplierId: v })}><SelectTrigger><SelectValue placeholder="Pilih" /></SelectTrigger><SelectContent>{suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent></Select></div><div className="space-y-2"><Label>Tanggal</Label><Input type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} /></div><div className="space-y-2"><Label>Status</Label><Select value={form.status} onValueChange={v => setForm({ ...form, status: v })}><SelectTrigger /><SelectContent><SelectItem value="DRAFT">Draft</SelectItem><SelectItem value="APPROVED">Disetujui</SelectItem><SelectItem value="RECEIVED">Diterima</SelectItem></SelectContent></Select></div></div>
-          <div className="space-y-2"><Label>Catatan</Label><Input value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} /></div>
-          <Separator />
-          <div className="space-y-2"><div className="flex items-center justify-between"><Label>Item</Label><Button variant="outline" size="sm" onClick={addItem}><Plus className="w-4 h-4 mr-1" />Tambah</Button></div>
-            {form.items.map((item, idx) => (
-              <div key={idx} className="grid grid-cols-12 gap-2 items-end">
-                <div className="col-span-5"><Select value={item.variantId} onValueChange={v => updateItem(idx, 'variantId', v)}><SelectTrigger><SelectValue placeholder="Pilih varian" /></SelectTrigger><SelectContent>{allVariants.map(v => <SelectItem key={v.id} value={v.id}>{v.productName} — {v.name}</SelectItem>)}</SelectContent></Select></div>
-                <div className="col-span-2"><Input type="number" placeholder="Qty" value={item.qty} onChange={e => updateItem(idx, 'qty', e.target.value)} /></div>
-                <div className="col-span-3"><Input type="number" placeholder="Harga" value={item.buyPrice} onChange={e => updateItem(idx, 'buyPrice', e.target.value)} /></div>
-                <div className="col-span-2 flex justify-end">{form.items.length > 1 && <Button variant="ghost" size="icon" onClick={() => removeItem(idx)} className="text-red-500"><Trash2 className="w-4 h-4" /></Button>}</div>
+          <div className="grid grid-cols-2 gap-3">
+            {/* Supplier — typeahead */}
+            <div className="space-y-1.5">
+              <Label className="text-xs">Supplier *</Label>
+              <div className="relative">
+                <Input
+                  ref={supplierInputRef}
+                  placeholder="Ketik nama / kode... (Tab → lanjut)"
+                  value={selectedSupplier ? `${selectedSupplier.code} ${selectedSupplier.name}` : supplierSearch}
+                  onChange={e => { setSupplierSearch(e.target.value); if (form.supplierId) setForm({ ...form, supplierId: '' }) }}
+                  onKeyDown={e => {
+                    if (e.key === 'Tab' && !form.supplierId && filteredSuppliers.length === 1) {
+                      setForm({ ...form, supplierId: filteredSuppliers[0].id }); setSupplierSearch(''); e.preventDefault()
+                    }
+                  }}
+                />
+                {supplierSearch && !form.supplierId && filteredSuppliers.length > 0 && (
+                  <div className="absolute z-50 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-40 overflow-auto">
+                    {filteredSuppliers.map(s => (
+                      <button key={s.id} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-left text-sm"
+                        onMouseDown={() => { setForm({ ...form, supplierId: s.id }); setSupplierSearch('') }}>
+                        <Badge variant="outline" className="font-mono text-[10px]">{s.code}</Badge>
+                        <span>{s.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
-            ))}
+            </div>
+            <div className="space-y-1.5"><Label className="text-xs">Tanggal</Label><Input type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} /></div>
+          </div>
+          <Separator />
+          <div className="space-y-2">
+            <div className="flex items-center justify-between"><Label className="text-xs">Item</Label><Button variant="outline" size="sm" onClick={addItem} className="text-xs h-7"><Plus className="w-3 h-3 mr-1" />Tambah</Button></div>
+            {form.items.map((item, idx) => {
+              const selectedVariant = allVariants.find(v => v.id === item.variantId)
+              const filteredVariants = getFilteredVariants(variantSearches[idx] || '')
+              return (
+                <div key={idx} className="grid grid-cols-12 gap-2 items-center">
+                  <div className="col-span-5 relative">
+                    <Input
+                      placeholder="SKU / nama varian..."
+                      value={selectedVariant ? `${selectedVariant.sku} ${selectedVariant.productName} — ${selectedVariant.name}` : (variantSearches[idx] || '')}
+                      onChange={e => {
+                        const newSearches = [...variantSearches]; newSearches[idx] = e.target.value; setVariantSearches(newSearches)
+                        if (item.variantId) { const newItems = [...form.items]; newItems[idx] = { ...newItems[idx], variantId: '', buyPrice: '0' }; setForm({ ...form, items: newItems }) }
+                      }}
+                      onKeyDown={e => {
+                        if (e.key === 'Tab' && !item.variantId && filteredVariants.length === 1) {
+                          updateItem(idx, 'variantId', filteredVariants[0].id)
+                          const newSearches = [...variantSearches]; newSearches[idx] = ''; setVariantSearches(newSearches)
+                          e.preventDefault()
+                        }
+                        if (e.key === 'Enter' && item.variantId) { handleSave(); e.preventDefault() }
+                      }}
+                      className="h-8 text-sm"
+                    />
+                    {(variantSearches[idx] || '') && !item.variantId && filteredVariants.length > 0 && (
+                      <div className="absolute z-50 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-48 overflow-auto">
+                        {filteredVariants.map(v => (
+                          <button key={v.id} className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 text-left text-sm"
+                            onMouseDown={() => {
+                              updateItem(idx, 'variantId', v.id)
+                              const newSearches = [...variantSearches]; newSearches[idx] = ''; setVariantSearches(newSearches)
+                            }}>
+                            <Badge variant="outline" className="font-mono text-[10px]">{v.sku}</Badge>
+                            <span className="truncate">{v.productName} — {v.name}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <Input type="number" placeholder="Qty" value={item.qty} onChange={e => updateItem(idx, 'qty', e.target.value)} className="col-span-2 h-8 text-sm"
+                    onKeyDown={e => { if (e.key === 'Enter' && item.variantId) { handleSave(); e.preventDefault() } }} />
+                  <Input type="number" placeholder="Harga" value={item.buyPrice} onChange={e => updateItem(idx, 'buyPrice', e.target.value)} className="col-span-3 h-8 text-sm"
+                    onKeyDown={e => { if (e.key === 'Enter' && item.variantId) { handleSave(); e.preventDefault() } }} />
+                  <div className="col-span-2 flex justify-end">{form.items.length > 1 && <Button variant="ghost" size="icon" onClick={() => removeItem(idx)} className="text-red-500 h-7 w-7"><Trash2 className="w-3.5 h-3.5" /></Button>}</div>
+                </div>
+              )
+            })}
           </div>
           <div className="text-right text-lg font-bold">Total: {fmtRp(total)}</div>
         </div>
-        <DialogFooter><Button variant="outline" onClick={() => setDialogOpen(false)}>Batal</Button><Button className="bg-gradient-to-r from-rose-500 to-amber-500 text-white" onClick={handleSave}>Simpan</Button></DialogFooter></DialogContent></Dialog>
+        <DialogFooter><Button variant="outline" onClick={() => setDialogOpen(false)}>Batal</Button><Button className="bg-gradient-to-r from-rose-500 to-amber-500 text-white" onClick={handleSave}>Simpan</Button></DialogFooter>
+      </DialogContent></Dialog></div>
       <AlertDialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Hapus? Stok tidak akan terpengaruh jika status Draft.</AlertDialogTitle></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Batal</AlertDialogCancel><AlertDialogAction onClick={() => deleteConfirm && handleDelete(deleteConfirm)} className="bg-red-600">Hapus</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
-      <AlertDialog open={!!cancelConfirm} onOpenChange={() => setCancelConfirm(null)}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Batalkan Pembelian?</AlertDialogTitle><AlertDialogDescription>{cancelConfirm?.status === 'RECEIVED' ? 'Stok yang sudah masuk akan dikembalikan. Transaksi ini tidak dapat dibatalkan kembali.' : cancelConfirm?.status === 'APPROVED' ? 'Pembelian yang sudah disetujui akan dibatalkan. Stok tidak terpengaruh karena belum diterima.' : 'Pembelian draft akan dibatalkan.'}</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Kembali</AlertDialogCancel><AlertDialogAction onClick={handleCancel} className="bg-red-600">Ya, Batalkan</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
-    </div>
+      <AlertDialog open={!!cancelConfirm} onOpenChange={() => setCancelConfirm(null)}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Batalkan Pembelian?</AlertDialogTitle><AlertDialogDescription>{cancelConfirm?.status === 'RECEIVED' ? 'Stok yang sudah masuk akan dikembalikan.' : cancelConfirm?.status === 'APPROVED' ? 'Pembelian yang sudah disetujui akan dibatalkan.' : 'Pembelian draft akan dibatalkan.'}</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Kembali</AlertDialogCancel><AlertDialogAction onClick={handleCancel} className="bg-red-600">Ya, Batalkan</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
+    </>
   )
 }
 
