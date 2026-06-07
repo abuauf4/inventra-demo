@@ -11,7 +11,7 @@ export async function PUT(
   try {
     const { id } = await params
     const body = await request.json()
-    const { name, email, password, role, isActive } = body
+    const { name, username, email, password, role, isActive } = body
 
     // Check if user exists
     const existingUser = await db.user.findUnique({
@@ -23,6 +23,19 @@ export async function PUT(
         { success: false, message: 'Pengguna tidak ditemukan' },
         { status: 404 }
       )
+    }
+
+    // If username is changed, check uniqueness
+    if (username && username !== existingUser.username) {
+      const usernameTaken = await db.user.findUnique({
+        where: { username },
+      })
+      if (usernameTaken) {
+        return NextResponse.json(
+          { success: false, message: 'Username sudah digunakan' },
+          { status: 409 }
+        )
+      }
     }
 
     // If email is changed, check uniqueness
@@ -49,7 +62,8 @@ export async function PUT(
     // Build update data - only include fields that are provided
     const updateData: Record<string, unknown> = {}
     if (name !== undefined) updateData.name = name
-    if (email !== undefined) updateData.email = email
+    if (username !== undefined) updateData.username = username
+    if (email !== undefined) updateData.email = email || null
     if (password !== undefined) updateData.password = password
     if (role !== undefined) updateData.role = role
     if (isActive !== undefined) updateData.isActive = isActive
@@ -60,6 +74,7 @@ export async function PUT(
       select: {
         id: true,
         name: true,
+        username: true,
         email: true,
         role: true,
         isActive: true,

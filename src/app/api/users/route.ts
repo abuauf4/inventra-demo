@@ -13,6 +13,7 @@ export async function GET(request: NextRequest) {
       ? {
           OR: [
             { name: { contains: search } },
+            { username: { contains: search } },
             { email: { contains: search } },
           ],
         }
@@ -23,6 +24,7 @@ export async function GET(request: NextRequest) {
       select: {
         id: true,
         name: true,
+        username: true,
         email: true,
         role: true,
         isActive: true,
@@ -48,12 +50,12 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { name, email, password, role } = body
+    const { name, username, email, password, role } = body
 
     // Validation
-    if (!name || !email || !password) {
+    if (!name || !username || !password) {
       return NextResponse.json(
-        { success: false, message: 'Nama, email, dan password wajib diisi' },
+        { success: false, message: 'Nama, username, dan password wajib diisi' },
         { status: 400 }
       )
     }
@@ -65,28 +67,43 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check email uniqueness
+    // Check username uniqueness
     const existingUser = await db.user.findUnique({
-      where: { email },
+      where: { username },
     })
 
     if (existingUser) {
       return NextResponse.json(
-        { success: false, message: 'Email sudah digunakan' },
+        { success: false, message: 'Username sudah digunakan' },
         { status: 409 }
       )
+    }
+
+    // Check email uniqueness if provided
+    if (email) {
+      const emailTaken = await db.user.findUnique({
+        where: { email },
+      })
+      if (emailTaken) {
+        return NextResponse.json(
+          { success: false, message: 'Email sudah digunakan' },
+          { status: 409 }
+        )
+      }
     }
 
     const user = await db.user.create({
       data: {
         name,
-        email,
+        username,
+        email: email || null,
         password, // Plain text for V1
         role,
       },
       select: {
         id: true,
         name: true,
+        username: true,
         email: true,
         role: true,
         isActive: true,

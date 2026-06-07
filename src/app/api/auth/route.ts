@@ -4,22 +4,22 @@ import { NextRequest, NextResponse } from 'next/server'
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { email, password } = body
+    const { username, password } = body
 
-    if (!email || !password) {
+    if (!username || !password) {
       return NextResponse.json(
-        { success: false, message: 'Email dan password wajib diisi' },
+        { success: false, message: 'Username dan password wajib diisi' },
         { status: 400 }
       )
     }
 
     const user = await db.user.findUnique({
-      where: { email },
+      where: { username },
     })
 
     if (!user || user.password !== password) {
       return NextResponse.json(
-        { success: false, message: 'Email atau password salah' },
+        { success: false, message: 'Username atau password salah' },
         { status: 401 }
       )
     }
@@ -36,6 +36,7 @@ export async function POST(request: NextRequest) {
       user: {
         id: user.id,
         name: user.name,
+        username: user.username,
         email: user.email,
         role: user.role,
       },

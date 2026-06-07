@@ -15,15 +15,15 @@ export async function GET() {
 
     // Seed owner user
     const existingOwner = await db.user.findUnique({
-      where: { email: 'owner@inventra.id' },
+      where: { username: 'Bagas' },
     })
 
     if (!existingOwner) {
       const owner = await db.user.create({
         data: {
-          email: 'owner@inventra.id',
-          password: 'owner123',
-          name: 'Owner',
+          username: 'Bagas',
+          password: '122333',
+          name: 'Bagas',
           role: 'owner',
         },
       })

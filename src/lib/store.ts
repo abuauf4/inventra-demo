@@ -19,8 +19,8 @@ interface AppState {
   setActivePage: (page: AppPage) => void
   sidebarOpen: boolean
   setSidebarOpen: (open: boolean) => void
-  currentUser: { id: string; name: string; email: string; role: string } | null
-  setCurrentUser: (user: { id: string; name: string; email: string; role: string } | null) => void
+  currentUser: { id: string; name: string; username: string; email?: string; role: string } | null
+  setCurrentUser: (user: { id: string; name: string; username: string; email?: string; role: string } | null) => void
   notifications: { id: string; message: string; type: string; read: boolean; createdAt: string }[]
   addNotification: (notification: { id: string; message: string; type: string; read: boolean; createdAt: string }) => void
   markNotificationRead: (id: string) => void
