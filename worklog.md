@@ -41,3 +41,30 @@ Stage Summary:
 - Mobile floating action buttons for search and quick sale
 - Visual upgrade: stone/neutral palette, rounded-xl corners, minimal borders, backdrop blur
 - Production build successful, APIs verified working
+
+---
+Task ID: supabase-migration
+Agent: Super Z (main)
+Task: Migrate Inventra from SQLite to Supabase PostgreSQL
+
+Work Log:
+- Switched Prisma provider from sqlite to postgresql in schema.prisma
+- Added directUrl for Supabase connection pooling (both URLs use pooler at port 5432)
+- Fixed Attachment model: removed dual @relation on entityId (polymorphic pattern not supported in PostgreSQL)
+- Added mode: 'insensitive' to all 32 contains filters across 10 API route files
+- Created prisma/seed.ts for direct database seeding via tsx
+- Updated package.json: added postinstall (prisma generate), build (prisma generate && next build), db:seed
+- Pushed schema to Supabase via prisma db push
+- Seeded Supabase: 3 users, 5 categories, 2 warehouses, 3 suppliers, 4 customers, 6 products (31 variants), 4 inbox items
+- Verified data in Supabase via direct Prisma queries
+- Build test passed: next build completes successfully
+- Pushed to GitHub: commit 9d3c4ca on main branch
+
+Stage Summary:
+- SQLite → PostgreSQL migration complete
+- All API routes updated for case-insensitive search in PostgreSQL
+- Attachment model fixed for PostgreSQL compatibility
+- Data seeded in Supabase
+- Build passes, pushed to GitHub
+- Pending: User needs to set DATABASE_URL and DIRECT_URL env vars in Vercel dashboard
+- Supabase connection: postgresql://postgres.zbxjqffmjaedneujlkfr:***@aws-1-ap-southeast-2.pooler.supabase.com:5432/postgres
