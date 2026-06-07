@@ -8,7 +8,11 @@ import {
   ArrowLeftRight, FileBarChart, UserCog, Bell, Menu, X, LogOut, MoreVertical,
   Search, Plus, Edit, Trash2, Eye, RefreshCw, Warehouse as WarehouseIcon,
   Activity, ChevronRight, Check, XCircle, Clock, AlertTriangle, TrendingUp,
-  TrendingDown, ArrowDown, ArrowUp, Minus, Paperclip, ChevronDown, MapPin
+  TrendingDown, ArrowDown, ArrowUp, Minus, Paperclip, ChevronDown, MapPin,
+  Sun, Moon, Zap, Inbox as InboxIcon, ArrowRight, Sparkles, Target,
+  Home, BarChart3, FileText, CircleDot, Circle, CheckCircle2, AlertCircle,
+  Flame, Coffee, Briefcase, BoxIcon, PenLine, HandCoins, ShoppingBasket,
+  PackageCheck, PackageX, ArrowRightLeft, Store
 } from 'lucide-react'
 
 import {
@@ -124,10 +128,11 @@ function LoginScreen() {
 // ===================== SIDEBAR =====================
 const menuSections = [
   { label: null, items: [
-    { key: 'dashboard' as AppPage, label: 'Overview', icon: <LayoutDashboard className="w-4 h-4" /> },
-    { key: 'products' as AppPage, label: 'Produk', icon: <Package className="w-4 h-4" /> },
+    { key: 'dashboard' as AppPage, label: 'Home', icon: <Home className="w-4 h-4" /> },
+    { key: 'inbox' as AppPage, label: 'Inbox', icon: <InboxIcon className="w-4 h-4" /> },
   ]},
   { label: 'Transaksi', items: [
+    { key: 'products' as AppPage, label: 'Produk', icon: <Package className="w-4 h-4" /> },
     { key: 'purchases' as AppPage, label: 'Pembelian', icon: <ShoppingCart className="w-4 h-4" /> },
     { key: 'sales' as AppPage, label: 'Penjualan', icon: <ShoppingBag className="w-4 h-4" /> },
   ]},
@@ -151,22 +156,23 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { activePage, setActivePage, currentUser } = useAppStore()
   return (
     <>
-      {open && <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={onClose} />}
-      <aside className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-white border-r transform transition-transform duration-200 ${open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
-        <div className="flex items-center gap-3 p-4 border-b">
-          <div className="w-9 h-9 bg-gradient-to-br from-rose-500 to-amber-500 rounded-xl flex items-center justify-center"><Package className="w-4 h-4 text-white" /></div>
-          <div><h1 className="font-bold text-sm bg-gradient-to-r from-rose-600 to-amber-600 bg-clip-text text-transparent">NAUKA INVENTRA</h1><p className="text-[10px] text-muted-foreground">Northline Apparel</p></div>
+      {open && <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 lg:hidden" onClick={onClose} />}
+      <aside className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-stone-50/80 backdrop-blur-sm border-r border-stone-200/60 transform transition-transform duration-200 ${open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+        <div className="flex items-center gap-3 p-4 border-b border-stone-200/60">
+          <div className="w-9 h-9 bg-gradient-to-br from-rose-500 to-amber-500 rounded-xl flex items-center justify-center shadow-sm"><Package className="w-4 h-4 text-white" /></div>
+          <div><h1 className="font-bold text-sm bg-gradient-to-r from-rose-600 to-amber-600 bg-clip-text text-transparent">NAUKA INVENTRA</h1><p className="text-[10px] text-stone-400">Northline Apparel</p></div>
           <Button variant="ghost" size="icon" className="ml-auto lg:hidden" onClick={onClose}><X className="w-5 h-5" /></Button>
         </div>
         <ScrollArea className="h-[calc(100vh-180px)]">
-          <nav className="p-2 space-y-1">
+          <nav className="p-2 space-y-0.5">
             {menuSections.map((section, si) => (
               <div key={si}>
-                {section.label && <p className="px-3 pt-3 pb-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{section.label}</p>}
+                {section.label && <p className="px-3 pt-4 pb-1.5 text-[10px] font-semibold text-stone-400 uppercase tracking-wider">{section.label}</p>}
                 {section.items.map(item => (
                   <button key={item.key} onClick={() => { setActivePage(item.key); onClose() }}
-                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${activePage === item.key ? 'bg-gradient-to-r from-rose-50 to-amber-50 text-rose-700' : 'text-gray-600 hover:bg-gray-50'}`}>
+                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${activePage === item.key ? 'bg-white text-rose-700 shadow-sm' : 'text-stone-500 hover:bg-white/60 hover:text-stone-700'}`}>
                     {item.icon}{item.label}
+                    {item.key === 'inbox' && <span className="ml-auto w-5 h-5 rounded-full bg-rose-500 text-white text-[10px] flex items-center justify-center font-bold">4</span>}
                   </button>
                 ))}
               </div>
@@ -174,10 +180,10 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
           </nav>
         </ScrollArea>
         {currentUser && (
-          <div className="absolute bottom-0 left-0 right-0 p-3 border-t bg-white">
-            <div className="flex items-center gap-2">
-              <Avatar className="w-8 h-8"><AvatarFallback className="bg-gradient-to-br from-rose-100 to-amber-100 text-rose-700 text-xs">{currentUser.name.slice(0, 2).toUpperCase()}</AvatarFallback></Avatar>
-              <div className="flex-1 min-w-0"><p className="text-xs font-medium truncate">{currentUser.name}</p><p className="text-[10px] text-muted-foreground capitalize">{currentUser.role}</p></div>
+          <div className="absolute bottom-0 left-0 right-0 p-3 border-t border-stone-200/60 bg-stone-50/90 backdrop-blur-sm">
+            <div className="flex items-center gap-2.5">
+              <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${roleColors[currentUser.role] || 'from-gray-400 to-gray-500'} flex items-center justify-center text-white text-sm font-bold shadow-sm`}>{currentUser.name.slice(0, 2).toUpperCase()}</div>
+              <div className="flex-1 min-w-0"><p className="text-sm font-semibold text-stone-800 truncate">{currentUser.name}</p><div className="flex items-center gap-1.5"><span className="text-[10px] text-stone-400 flex items-center gap-1">{roleIcons[currentUser.role]}<span className="capitalize">{currentUser.role}</span></span></div></div>
             </div>
           </div>
         )}
@@ -187,7 +193,19 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
 }
 
 // ===================== GLOBAL SEARCH (Ctrl+K) =====================
-interface SearchResult { type: string; id: string; code: string; label: string; sublabel: string; page: AppPage }
+interface SearchResult { type: string; id: string; code: string; label: string; sublabel: string; status?: string; page: AppPage }
+
+const searchStatusBadge: Record<string, { label: string; color: string }> = {
+  DRAFT: { label: 'Draft', color: 'bg-slate-100 text-slate-600' },
+  APPROVED: { label: 'Approved', color: 'bg-blue-100 text-blue-600' },
+  RECEIVED: { label: 'Received', color: 'bg-emerald-100 text-emerald-600' },
+  PAID: { label: 'Paid', color: 'bg-blue-100 text-blue-600' },
+  COMPLETED: { label: 'Completed', color: 'bg-emerald-100 text-emerald-600' },
+  CANCELLED: { label: 'Cancelled', color: 'bg-red-100 text-red-600' },
+  low_stock: { label: 'Low Stock', color: 'bg-amber-100 text-amber-600' },
+  active: { label: 'Active', color: 'bg-emerald-100 text-emerald-600' },
+  inactive: { label: 'Inactive', color: 'bg-slate-100 text-slate-500' },
+}
 
 function GlobalSearch() {
   const { searchOpen, setSearchOpen, setActivePage } = useAppStore()
@@ -216,6 +234,7 @@ function GlobalSearch() {
     Variant: <Package className="w-4 h-4 text-amber-500" />,
     Purchase: <ShoppingCart className="w-4 h-4 text-blue-500" />,
     Sale: <ShoppingBag className="w-4 h-4 text-emerald-500" />,
+    Warehouse: <WarehouseIcon className="w-4 h-4 text-stone-500" />,
   }
 
   const grouped = results.reduce((acc, r) => {
@@ -226,33 +245,43 @@ function GlobalSearch() {
 
   return (
     <Dialog open={searchOpen} onOpenChange={setSearchOpen}>
-      <DialogContent className="p-0 overflow-hidden max-w-lg border-0 shadow-2xl">
+      <DialogContent className="p-0 overflow-hidden max-w-xl border-0 shadow-2xl rounded-2xl">
         <Command shouldFilter={false}>
-          <CommandInput placeholder="Cari apapun... (kode, nama, transaksi)" value={query} onValueChange={setQuery} />
+          <div className="flex items-center border-b px-4">
+            <Search className="w-4 h-4 text-stone-400 mr-2 shrink-0" />
+            <CommandInput placeholder="Cari apapun... (kode, nama, transaksi)" value={query} onValueChange={setQuery} className="border-0 focus:ring-0" />
+            <kbd className="text-[10px] bg-stone-100 px-1.5 py-0.5 rounded font-mono text-stone-400 border border-stone-200 shrink-0">ESC</kbd>
+          </div>
           <CommandList>
-            {loading && <div className="py-6 text-center text-sm text-muted-foreground">Mencari...</div>}
+            {loading && <div className="py-8 text-center text-sm text-stone-400"><RefreshCw className="w-4 h-4 animate-spin mx-auto mb-2" />Mencari...</div>}
             {!loading && query && results.length === 0 && <CommandEmpty>Tidak ditemukan</CommandEmpty>}
             {!loading && Object.entries(grouped).map(([type, items]) => (
-              <CommandGroup key={type} heading={type}>
+              <CommandGroup key={type} heading={<span className="text-xs font-semibold text-stone-400 uppercase tracking-wider">{type}</span>}>
                 {items.map(item => (
                   <CommandItem key={`${item.type}-${item.id}`} onSelect={() => { setActivePage(item.page); setSearchOpen(false); setQuery('') }}
-                    className="flex items-center gap-3 cursor-pointer">
+                    className="flex items-center gap-3 cursor-pointer px-4 py-2.5 rounded-lg mx-1 hover:bg-stone-50">
                     {typeIcons[item.type] || <Search className="w-4 h-4" />}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="font-mono text-[10px]">{item.code}</Badge>
-                        <span className="text-sm truncate">{item.label}</span>
+                        <span className="font-mono text-xs text-stone-400 bg-stone-100 px-1.5 py-0.5 rounded">{item.code}</span>
+                        <span className="text-sm font-medium text-stone-800 truncate">{item.label}</span>
                       </div>
-                      {item.sublabel && <p className="text-xs text-muted-foreground truncate">{item.sublabel}</p>}
+                      {item.sublabel && <p className="text-xs text-stone-400 truncate mt-0.5">{item.sublabel}</p>}
                     </div>
+                    {item.status && searchStatusBadge[item.status] && <Badge className={`${searchStatusBadge[item.status].color} text-[10px]`}>{searchStatusBadge[item.status].label}</Badge>}
                   </CommandItem>
                 ))}
               </CommandGroup>
             ))}
             {!query && (
-              <div className="py-6 text-center text-sm text-muted-foreground">
-                <p>Ketik untuk mencari...</p>
-                <p className="text-xs mt-1">Cari kode (CUS000001), nama, atau transaksi (PO-, SO-)</p>
+              <div className="py-8 text-center text-sm text-stone-400">
+                <Search className="w-8 h-8 mx-auto mb-3 text-stone-200" />
+                <p className="font-medium text-stone-500">Cari apapun secara instan</p>
+                <p className="text-xs mt-1 text-stone-300">Cari kode (CUS000001), nama, atau transaksi (PO-, SO-)</p>
+                <div className="flex items-center justify-center gap-4 mt-4 text-xs text-stone-300">
+                  <span className="flex items-center gap-1"><kbd className="bg-stone-100 px-1.5 py-0.5 rounded font-mono border border-stone-200">Ctrl+K</kbd> Buka</span>
+                  <span className="flex items-center gap-1"><kbd className="bg-stone-100 px-1.5 py-0.5 rounded font-mono border border-stone-200">ESC</kbd> Tutup</span>
+                </div>
               </div>
             )}
           </CommandList>
@@ -385,161 +414,319 @@ function QuickSaleDialog() {
 function Header() {
   const { activePage, sidebarOpen, setSidebarOpen, currentUser, setCurrentUser, notifications, markNotificationRead, setSearchOpen, setQuickActionOpen } = useAppStore()
   const allItems = menuSections.flatMap(s => s.items)
-  const label = allItems.find(m => m.key === activePage)?.label || 'Overview'
+  const label = allItems.find(m => m.key === activePage)?.label || 'Home'
   const unread = notifications.filter(n => !n.read).length
   return (
-    <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-sm border-b px-4 py-3 flex items-center gap-3">
+    <header className="sticky top-0 z-30 bg-white/70 backdrop-blur-md border-b border-stone-200/60 px-4 lg:px-6 py-3 flex items-center gap-3">
       <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setSidebarOpen(!sidebarOpen)}><Menu className="w-5 h-5" /></Button>
-      <h2 className="text-lg font-semibold">{label}</h2>
+      <h2 className="text-lg font-semibold text-stone-800">{label}</h2>
       <div className="flex-1" />
-      <button onClick={() => setSearchOpen(true)} className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg border bg-gray-50 hover:bg-gray-100 text-sm text-muted-foreground transition-colors min-w-[200px]">
-        <Search className="w-4 h-4" /><span>Cari...</span><kbd className="ml-auto text-[10px] bg-white px-1.5 py-0.5 rounded border font-mono">⌘K</kbd>
+      <button onClick={() => setSearchOpen(true)} className="hidden sm:flex items-center gap-2 px-3.5 py-2 rounded-xl bg-stone-50 hover:bg-stone-100 text-sm text-stone-400 transition-colors border border-stone-200/60 min-w-[200px]">
+        <Search className="w-4 h-4" /><span className="text-stone-400">Cari...</span><kbd className="ml-auto text-[10px] bg-white px-1.5 py-0.5 rounded border border-stone-200 font-mono text-stone-400">Ctrl+K</kbd>
       </button>
-      <Button variant="ghost" size="sm" className="hidden sm:flex text-emerald-600 hover:text-emerald-700 gap-1.5 text-xs" onClick={() => setQuickActionOpen(true)}><ShoppingBag className="w-4 h-4" /><span className="hidden md:inline">Jual Cepat</span><kbd className="text-[10px] bg-emerald-50 px-1 py-0.5 rounded font-mono">Alt+S</kbd></Button>
+      <Button variant="ghost" size="sm" className="hidden sm:flex text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 gap-1.5 text-xs font-medium" onClick={() => setQuickActionOpen(true)}><ShoppingBag className="w-4 h-4" /><span className="hidden md:inline">Jual Cepat</span><kbd className="text-[10px] bg-emerald-100 px-1 py-0.5 rounded font-mono">Alt+S</kbd></Button>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" className="relative"><Bell className="w-5 h-5" />{unread > 0 && <span className="absolute top-1 right-1 w-4 h-4 bg-rose-500 rounded-full text-[10px] text-white flex items-center justify-center">{unread}</span>}</Button>
+          <Button variant="ghost" size="icon" className="relative"><Bell className="w-5 h-5 text-stone-400" />{unread > 0 && <span className="absolute top-1 right-1 w-4 h-4 bg-rose-500 rounded-full text-[10px] text-white flex items-center justify-center">{unread}</span>}</Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-80">
-          {notifications.length === 0 ? <div className="p-4 text-center text-sm text-muted-foreground">Tidak ada notifikasi</div> :
-            notifications.slice(0, 5).map(n => <DropdownMenuItem key={n.id} onClick={() => markNotificationRead(n.id)} className="flex flex-col items-start gap-1 p-3"><span className="text-sm">{n.message}</span><span className="text-xs text-muted-foreground">{fmtDateTime(n.createdAt)}</span></DropdownMenuItem>)}
+        <DropdownMenuContent align="end" className="w-80 rounded-xl">
+          {notifications.length === 0 ? <div className="p-4 text-center text-sm text-stone-400">Tidak ada notifikasi</div> :
+            notifications.slice(0, 5).map(n => <DropdownMenuItem key={n.id} onClick={() => markNotificationRead(n.id)} className="flex flex-col items-start gap-1 p-3"><span className="text-sm">{n.message}</span><span className="text-xs text-stone-400">{fmtDateTime(n.createdAt)}</span></DropdownMenuItem>)}
         </DropdownMenuContent>
       </DropdownMenu>
       <DropdownMenu>
-        <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreVertical className="w-5 h-5" /></Button></DropdownMenuTrigger>
-        <DropdownMenuContent align="end"><DropdownMenuItem onClick={() => { setCurrentUser(null); toast.success('Berhasil logout') }} className="text-red-600"><LogOut className="w-4 h-4 mr-2" />Logout</DropdownMenuItem></DropdownMenuContent>
+        <DropdownMenuTrigger asChild><Button variant="ghost" size="icon"><MoreVertical className="w-5 h-5 text-stone-400" /></Button></DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="rounded-xl"><DropdownMenuItem onClick={() => { setCurrentUser(null); toast.success('Berhasil logout') }} className="text-red-600"><LogOut className="w-4 h-4 mr-2" />Logout</DropdownMenuItem></DropdownMenuContent>
       </DropdownMenu>
     </header>
   )
 }
 
-// ===================== OVERVIEW (DASHBOARD) =====================
-function OverviewModule() {
+// ===================== WORKSPACE DATA =====================
+const quotes = [
+  '"Consistency builds brands." — Unknown',
+  '"Detail is not a detail. It makes the design." — Charles Eames',
+  '"Quality is not an act, it is a habit." — Aristotle',
+  '"The best time to plant a tree was 20 years ago. The second best time is now."',
+  '"Every sale begins with a conversation." — Unknown',
+  '"Stock is money sitting on a shelf." — Retail Wisdom',
+]
+const roleLabels: Record<string, string> = { owner: 'Owner', admin: 'Admin', staff: 'Staff', warehouse: 'Warehouse' }
+const roleColors: Record<string, string> = { owner: 'from-amber-500 to-rose-500', admin: 'from-blue-500 to-violet-500', staff: 'from-emerald-500 to-teal-500', warehouse: 'from-orange-500 to-amber-500' }
+const roleIcons: Record<string, React.ReactNode> = { owner: <Briefcase className="w-4 h-4" />, admin: <UserCog className="w-4 h-4" />, staff: <PenLine className="w-4 h-4" />, warehouse: <WarehouseIcon className="w-4 h-4" /> }
+
+// ===================== PROFILE CARD =====================
+function ProfileCard({ user, quote }: { user: any; quote: string }) {
+  return (
+    <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-stone-900 via-stone-800 to-stone-900 text-white p-6">
+      <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-bl from-rose-500/20 to-transparent rounded-bl-full" />
+      <div className="absolute bottom-0 left-0 w-32 h-32 bg-gradient-to-tr from-amber-500/15 to-transparent rounded-tr-full" />
+      <div className="relative flex items-center gap-4">
+        <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${roleColors[user.role] || 'from-gray-500 to-gray-600'} flex items-center justify-center text-2xl font-bold shadow-lg ring-2 ring-white/20`}>
+          {user.name.slice(0, 2).toUpperCase()}
+        </div>
+        <div className="flex-1 min-w-0">
+          <h3 className="text-xl font-bold truncate">{user.name}</h3>
+          <div className="flex items-center gap-2 mt-1">
+            <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-white/15 backdrop-blur-sm`}>
+              {roleIcons[user.role]}{roleLabels[user.role] || user.role}
+            </span>
+            <span className="text-xs text-white/60">Northline Apparel</span>
+          </div>
+        </div>
+      </div>
+      <p className="relative mt-4 text-sm text-white/50 italic leading-relaxed">{quote}</p>
+    </div>
+  )
+}
+
+// ===================== DAILY PRIORITIES =====================
+function DailyPriorities({ data }: { data: any }) {
+  const priorities: { emoji: string; text: string; type: string; count: number }[] = []
+  const lowStock = data?.lowStockProducts?.length || 0
+  const pendingPO = data?.pendingPurchaseCount || 0
+  const pendingSO = data?.pendingSaleCount || 0
+  if (lowStock > 0) priorities.push({ emoji: '\u26A0\uFE0F', text: `${lowStock} varian perlu restock`, type: 'urgent', count: lowStock })
+  if (pendingPO > 0) priorities.push({ emoji: '\uD83D\uDFE1', text: `${pendingPO} purchase order menunggu`, type: 'warning', count: pendingPO })
+  if (pendingSO > 0) priorities.push({ emoji: '\uD83D\uDD35', text: `${pendingSO} sales order belum selesai`, type: 'info', count: pendingSO })
+  if (priorities.length === 0) priorities.push({ emoji: '\u2705', text: 'Semua berjalan lancar hari ini', type: 'ok', count: 0 })
+
+  return (
+    <div className="space-y-2">
+      <h3 className="text-sm font-semibold text-stone-500 uppercase tracking-wider flex items-center gap-2"><Target className="w-4 h-4" />Prioritas Hari Ini</h3>
+      <div className="space-y-1.5">
+        {priorities.map((p, i) => (
+          <div key={i} className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${p.type === 'urgent' ? 'bg-red-50/80 hover:bg-red-100/80' : p.type === 'warning' ? 'bg-amber-50/80 hover:bg-amber-100/80' : p.type === 'info' ? 'bg-blue-50/80 hover:bg-blue-100/80' : 'bg-emerald-50/80 hover:bg-emerald-100/80'}`}>
+            <span className="text-lg">{p.emoji}</span>
+            <span className="text-sm font-medium text-stone-700 flex-1">{p.text}</span>
+            {p.count > 0 && <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${p.type === 'urgent' ? 'bg-red-200/60 text-red-800' : p.type === 'warning' ? 'bg-amber-200/60 text-amber-800' : 'bg-blue-200/60 text-blue-800'}`}>{p.count}</span>}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ===================== QUICK ACTION CENTER =====================
+function QuickActionCenter({ role }: { role: string }) {
+  const { setActivePage, setSearchOpen, setQuickActionOpen } = useAppStore()
+  const ownerActions = [
+    { label: 'Penjualan Baru', desc: 'Buat transaksi penjualan', icon: <ShoppingBag className="w-5 h-5" />, shortcut: 'Alt+S', color: 'from-emerald-500 to-teal-500', action: () => setQuickActionOpen(true) },
+    { label: 'Pembelian Baru', desc: 'Buat purchase order', icon: <ShoppingCart className="w-5 h-5" />, shortcut: 'Alt+P', color: 'from-blue-500 to-indigo-500', action: () => setActivePage('purchases') },
+    { label: 'Cari Data', desc: 'Cari apapun secara instan', icon: <Search className="w-5 h-5" />, shortcut: '\u2318K', color: 'from-violet-500 to-purple-500', action: () => setSearchOpen(true) },
+    { label: 'Laporan', desc: 'Lihat ringkasan bisnis', icon: <BarChart3 className="w-5 h-5" />, shortcut: null, color: 'from-amber-500 to-orange-500', action: () => setActivePage('reports') },
+  ]
+  const staffActions = [
+    { label: 'Buat Penjualan', desc: 'Catat penjualan baru', icon: <ShoppingBag className="w-5 h-5" />, shortcut: 'Alt+S', color: 'from-emerald-500 to-teal-500', action: () => setQuickActionOpen(true) },
+    { label: 'Buat Pembelian', desc: 'Catat pembelian baru', icon: <ShoppingCart className="w-5 h-5" />, shortcut: null, color: 'from-blue-500 to-indigo-500', action: () => setActivePage('purchases') },
+    { label: 'Cari Customer', desc: 'Temukan data customer', icon: <Users className="w-5 h-5" />, shortcut: '\u2318K', color: 'from-violet-500 to-purple-500', action: () => setSearchOpen(true) },
+    { label: 'Cari Produk', desc: 'Cek stok & harga', icon: <Package className="w-5 h-5" />, shortcut: null, color: 'from-amber-500 to-orange-500', action: () => setActivePage('products') },
+  ]
+  const warehouseActions = [
+    { label: 'Terima Barang', desc: 'Proses barang masuk', icon: <PackageCheck className="w-5 h-5" />, shortcut: null, color: 'from-emerald-500 to-teal-500', action: () => setActivePage('purchases') },
+    { label: 'Mutasi Stok', desc: 'Catat pergerakan stok', icon: <ArrowRightLeft className="w-5 h-5" />, shortcut: null, color: 'from-blue-500 to-indigo-500', action: () => setActivePage('stock-mutations') },
+    { label: 'Cari Produk', desc: 'Cek stok & lokasi', icon: <Search className="w-5 h-5" />, shortcut: '\u2318K', color: 'from-violet-500 to-purple-500', action: () => setSearchOpen(true) },
+  ]
+  const actions = role === 'warehouse' ? warehouseActions : role === 'staff' ? staffActions : ownerActions
+  return (
+    <div className="space-y-2">
+      <h3 className="text-sm font-semibold text-stone-500 uppercase tracking-wider flex items-center gap-2"><Zap className="w-4 h-4" />Quick Actions</h3>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {actions.map((a, i) => (
+          <button key={i} onClick={a.action} className="group relative overflow-hidden flex items-center gap-4 p-4 rounded-xl bg-white border border-stone-200/80 hover:border-stone-300 shadow-sm hover:shadow-md transition-all text-left">
+            <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${a.color} flex items-center justify-center text-white shadow-sm group-hover:scale-105 transition-transform`}>{a.icon}</div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-stone-800">{a.label}</p>
+              <p className="text-xs text-stone-400">{a.desc}</p>
+            </div>
+            {a.shortcut && <kbd className="text-[10px] bg-stone-100 px-2 py-1 rounded-md font-mono text-stone-500 border border-stone-200">{a.shortcut}</kbd>}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ===================== WORKSPACE HOME (ROLE-BASED) =====================
+function WorkspaceHome() {
   const [data, setData] = useState<any>(null)
+  const [inboxItems, setInboxItems] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const { currentUser } = useAppStore()
+  const { currentUser, setActivePage } = useAppStore()
+  const role = currentUser?.role || 'staff'
+
   const load = useCallback(async () => {
     setLoading(true)
-    try { const res = await fetch('/api/dashboard'); const d = await res.json(); setData(d.data) } catch { toast.error('Gagal memuat overview') }
+    try {
+      const [dashRes, inboxRes] = await Promise.all([fetch('/api/dashboard'), fetch('/api/inbox?limit=6')])
+      const dash = await dashRes.json()
+      const inbox = await inboxRes.json()
+      setData(dash.data)
+      setInboxItems(inbox.data?.items || [])
+    } catch { toast.error('Gagal memuat workspace') }
     finally { setLoading(false) }
   }, [])
   useEffect(() => { load() }, [load])
+
   if (loading || !data) return <div className="flex items-center justify-center h-64"><RefreshCw className="w-6 h-6 animate-spin text-rose-500" /></div>
 
-  // Get time-based greeting
   const hour = new Date().getHours()
   const greeting = hour < 12 ? 'Selamat pagi' : hour < 17 ? 'Selamat siang' : 'Selamat sore'
+  const greetingIcon = hour < 12 ? <Sun className="w-6 h-6 text-amber-400" /> : hour < 17 ? <Sun className="w-6 h-6 text-orange-400" /> : <Moon className="w-6 h-6 text-indigo-400" />
   const userName = currentUser?.name || 'User'
+  const quote = quotes[Math.floor(Date.now() / 86400000) % quotes.length]
   const lowStockCount = data.lowStockProducts?.length || 0
-  const pendingOrders = (data.recentTransactions?.filter((t: any) => ['DRAFT', 'APPROVED', 'PAID'].includes(t.status)).length) || 0
 
   return (
-    <div className="space-y-6">
-      {/* Personal Greeting */}
-      <div className="space-y-1">
-        <h2 className="text-2xl font-bold tracking-tight">{greeting}, {userName}</h2>
-        <p className="text-muted-foreground">
-          {lowStockCount > 0 && <span className="text-amber-600 font-medium">{lowStockCount} produk perlu restock</span>}
-          {lowStockCount > 0 && pendingOrders > 0 && ' · '}
-          {pendingOrders > 0 && <span className="text-blue-600 font-medium">{pendingOrders} pesanan menunggu</span>}
-          {lowStockCount === 0 && pendingOrders === 0 && 'Semuanya berjalan lancar hari ini'}
-        </p>
+    <div className="max-w-5xl mx-auto space-y-8">
+      {/* Hero Greeting */}
+      <div className="flex items-start gap-4">
+        <div className="mt-1">{greetingIcon}</div>
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-stone-900">{greeting}, {userName}</h1>
+          <p className="mt-1 text-stone-400 text-base">
+            {lowStockCount > 0 ? <span className="text-amber-600 font-medium">{lowStockCount} varian perlu restock</span> : 'Semua berjalan lancar hari ini'}
+            {data.pendingPurchaseCount > 0 && <span className="text-stone-400"> · {data.pendingPurchaseCount} PO menunggu</span>}
+            {data.pendingSaleCount > 0 && <span className="text-stone-400"> · {data.pendingSaleCount} SO belum selesai</span>}
+          </p>
+        </div>
       </div>
 
-      {/* Action Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="border-0 shadow-sm hover:shadow-md transition-shadow bg-gradient-to-br from-emerald-50 to-white">
-          <CardContent className="p-4">
-            <p className="text-sm text-muted-foreground">Penjualan Hari Ini</p>
-            <p className="text-2xl font-bold text-emerald-700">{fmtRp(data.totalSales)}</p>
-          </CardContent>
-        </Card>
-        <Card className="border-0 shadow-sm hover:shadow-md transition-shadow bg-gradient-to-br from-blue-50 to-white">
-          <CardContent className="p-4">
-            <p className="text-sm text-muted-foreground">Pembelian</p>
-            <p className="text-2xl font-bold text-blue-700">{fmtRp(data.totalPurchases)}</p>
-          </CardContent>
-        </Card>
-        <Card className="border-0 shadow-sm hover:shadow-md transition-shadow bg-gradient-to-br from-amber-50 to-white">
-          <CardContent className="p-4 flex items-center gap-3">
-            <AlertTriangle className="w-8 h-8 text-amber-500" />
-            <div>
-              <p className="text-sm text-muted-foreground">Stok Menipis</p>
-              <p className="text-2xl font-bold text-amber-700">{lowStockCount}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-0 shadow-sm hover:shadow-md transition-shadow bg-gradient-to-br from-purple-50 to-white">
-          <CardContent className="p-4 flex items-center gap-3">
-            <Package className="w-8 h-8 text-purple-500" />
-            <div>
-              <p className="text-sm text-muted-foreground">Total Produk</p>
-              <p className="text-2xl font-bold text-purple-700">{fmt(data.totalProducts)}</p>
-            </div>
-          </CardContent>
-        </Card>
+      {/* Top Grid: Profile + Priorities */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        <div className="lg:col-span-2"><ProfileCard user={currentUser} quote={quote} /></div>
+        <div className="lg:col-span-3"><DailyPriorities data={data} /></div>
       </div>
+
+      {/* Quick Actions */}
+      <QuickActionCenter role={role} />
+
+      {/* Role-Specific Focus Cards */}
+      {role === 'owner' || role === 'admin' ? (
+        <div className="space-y-2">
+          <h3 className="text-sm font-semibold text-stone-500 uppercase tracking-wider flex items-center gap-2"><BarChart3 className="w-4 h-4" />Ringkasan Bisnis</h3>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-white rounded-xl border border-stone-200/80 p-5 hover:shadow-md transition-shadow">
+              <p className="text-xs font-medium text-stone-400 uppercase tracking-wider">Penjualan Hari Ini</p>
+              <p className="mt-2 text-2xl font-bold text-emerald-600">{fmtRp(data.salesToday || 0)}</p>
+              <p className="mt-1 text-xs text-stone-400">{data.salesTodayCount || 0} transaksi</p>
+            </div>
+            <div className="bg-white rounded-xl border border-stone-200/80 p-5 hover:shadow-md transition-shadow">
+              <p className="text-xs font-medium text-stone-400 uppercase tracking-wider">Pembelian Hari Ini</p>
+              <p className="mt-2 text-2xl font-bold text-blue-600">{fmtRp(data.purchasesToday || 0)}</p>
+              <p className="mt-1 text-xs text-stone-400">{data.purchasesTodayCount || 0} transaksi</p>
+            </div>
+            <div className="bg-white rounded-xl border border-stone-200/80 p-5 hover:shadow-md transition-shadow">
+              <p className="text-xs font-medium text-stone-400 uppercase tracking-wider">Total Penjualan</p>
+              <p className="mt-2 text-2xl font-bold text-stone-800">{fmtRp(data.totalSales || 0)}</p>
+              <p className="mt-1 text-xs text-stone-400">{fmt(data.totalCustomers || 0)} customer</p>
+            </div>
+            <div className="bg-white rounded-xl border border-stone-200/80 p-5 hover:shadow-md transition-shadow">
+              <p className="text-xs font-medium text-stone-400 uppercase tracking-wider">Total Produk</p>
+              <p className="mt-2 text-2xl font-bold text-stone-800">{fmt(data.totalProducts || 0)}</p>
+              <p className="mt-1 text-xs text-stone-400">{fmt(data.totalWarehouses || 0)} gudang</p>
+            </div>
+          </div>
+        </div>
+      ) : role === 'staff' ? (
+        <div className="space-y-2">
+          <h3 className="text-sm font-semibold text-stone-500 uppercase tracking-wider flex items-center gap-2"><PenLine className="w-4 h-4" />Fokus Anda</h3>
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+            <button onClick={() => setActivePage('sales')} className="bg-white rounded-xl border border-stone-200/80 p-5 hover:shadow-md transition-shadow text-left group">
+              <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-600 group-hover:scale-105 transition-transform"><ShoppingBag className="w-5 h-5" /></div><div><p className="text-2xl font-bold text-emerald-600">{data.pendingSaleCount || 0}</p><p className="text-xs text-stone-400">Sales Order Pending</p></div></div>
+            </button>
+            <button onClick={() => setActivePage('purchases')} className="bg-white rounded-xl border border-stone-200/80 p-5 hover:shadow-md transition-shadow text-left group">
+              <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600 group-hover:scale-105 transition-transform"><ShoppingCart className="w-5 h-5" /></div><div><p className="text-2xl font-bold text-blue-600">{data.pendingPurchaseCount || 0}</p><p className="text-xs text-stone-400">Purchase Order Pending</p></div></div>
+            </button>
+            <button onClick={() => setActivePage('customers')} className="bg-white rounded-xl border border-stone-200/80 p-5 hover:shadow-md transition-shadow text-left group">
+              <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center text-violet-600 group-hover:scale-105 transition-transform"><Users className="w-5 h-5" /></div><div><p className="text-2xl font-bold text-violet-600">{data.newCustomersThisWeek || 0}</p><p className="text-xs text-stone-400">Customer Baru (7 Hari)</p></div></div>
+            </button>
+          </div>
+        </div>
+      ) : role === 'warehouse' ? (
+        <div className="space-y-2">
+          <h3 className="text-sm font-semibold text-stone-500 uppercase tracking-wider flex items-center gap-2"><WarehouseIcon className="w-4 h-4" />Fokus Gudang</h3>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <button onClick={() => setActivePage('purchases')} className="bg-white rounded-xl border border-stone-200/80 p-5 hover:shadow-md transition-shadow text-left group">
+              <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-600 group-hover:scale-105 transition-transform"><PackageCheck className="w-5 h-5" /></div><div><p className="text-2xl font-bold text-emerald-600">{data.stockInToday || 0}</p><p className="text-xs text-stone-400">Barang Masuk Hari Ini</p></div></div>
+            </button>
+            <button onClick={() => setActivePage('sales')} className="bg-white rounded-xl border border-stone-200/80 p-5 hover:shadow-md transition-shadow text-left group">
+              <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600 group-hover:scale-105 transition-transform"><PackageX className="w-5 h-5" /></div><div><p className="text-2xl font-bold text-blue-600">{data.stockOutToday || 0}</p><p className="text-xs text-stone-400">Barang Keluar Hari Ini</p></div></div>
+            </button>
+            <button onClick={() => setActivePage('products')} className="bg-white rounded-xl border border-stone-200/80 p-5 hover:shadow-md transition-shadow text-left group">
+              <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center text-amber-600 group-hover:scale-105 transition-transform"><AlertTriangle className="w-5 h-5" /></div><div><p className="text-2xl font-bold text-amber-600">{lowStockCount}</p><p className="text-xs text-stone-400">Stok Menipis</p></div></div>
+            </button>
+            <button onClick={() => setActivePage('warehouses')} className="bg-white rounded-xl border border-stone-200/80 p-5 hover:shadow-md transition-shadow text-left group">
+              <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-stone-100 flex items-center justify-center text-stone-600 group-hover:scale-105 transition-transform"><ArrowRightLeft className="w-5 h-5" /></div><div><p className="text-2xl font-bold text-stone-600">{fmt(data.totalWarehouses || 0)}</p><p className="text-xs text-stone-400">Gudang Aktif</p></div></div>
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       {/* Low Stock Alert Cards */}
-      {data.lowStockProducts?.length > 0 && (
-        <div>
-          <h3 className="text-base font-semibold mb-3 flex items-center gap-2"><AlertTriangle className="w-5 h-5 text-amber-500" />Perlu Restock</h3>
+      {data.lowStockProducts?.length > 0 && (role === 'owner' || role === 'admin' || role === 'warehouse') && (
+        <div className="space-y-2">
+          <h3 className="text-sm font-semibold text-stone-500 uppercase tracking-wider flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-amber-500" />Perlu Restock</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {data.lowStockProducts.slice(0, 6).map((p: any) => (
-              <Card key={p.id} className={`border-0 shadow-sm ${p.stock <= 0 ? 'ring-2 ring-red-200' : p.stock <= p.minStock / 2 ? 'ring-2 ring-amber-200' : ''}`}>
-                <CardContent className="p-3 flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white text-sm font-bold ${p.stock <= 0 ? 'bg-red-400' : 'bg-amber-400'}`}>{p.stock}</div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{p.productName}</p>
-                    <p className="text-xs text-muted-foreground">{p.variantName} · Min. {p.minStock}</p>
-                  </div>
-                </CardContent>
-              </Card>
+              <button key={p.variantId} onClick={() => setActivePage('products')} className={`flex items-center gap-3 p-4 rounded-xl bg-white border hover:shadow-md transition-shadow text-left ${p.stock <= 0 ? 'border-red-200 bg-red-50/30' : p.stock <= p.minStock / 2 ? 'border-amber-200 bg-amber-50/30' : 'border-stone-200/80'}`}>
+                <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-white text-sm font-bold shadow-sm ${p.stock <= 0 ? 'bg-gradient-to-br from-red-400 to-red-500' : 'bg-gradient-to-br from-amber-400 to-amber-500'}`}>{p.stock}</div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-stone-800 truncate">{p.productName}</p>
+                  <p className="text-xs text-stone-400">{p.variantName} · Min. {p.minStock}</p>
+                </div>
+              </button>
             ))}
           </div>
         </div>
       )}
 
-      {/* Recent Transactions */}
-      <Card className="border-0 shadow-sm">
-        <CardHeader className="pb-3"><CardTitle className="text-base">Transaksi Terbaru</CardTitle></CardHeader>
-        <CardContent>
-          {!data.recentTransactions?.length ? <p className="text-sm text-muted-foreground text-center py-4">Belum ada transaksi</p> : (
-            <div className="space-y-3">
-              {data.recentTransactions.slice(0, 8).map((t: any, i: number) => (
-                <div key={i} className="flex items-center gap-3 py-2 border-b last:border-0">
-                  <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${t.type === 'sale' ? 'bg-emerald-100 text-emerald-600' : 'bg-blue-100 text-blue-600'}`}>
-                    {t.type === 'sale' ? <ShoppingBag className="w-4 h-4" /> : <ShoppingCart className="w-4 h-4" />}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium">{t.transNo}</p>
-                    <p className="text-xs text-muted-foreground">{fmtDate(t.date)}</p>
-                  </div>
-                  <StatusBadge status={t.status} map={t.type === 'sale' ? saleStatusMap : purchaseStatusMap} />
-                  <p className="text-sm font-semibold">{fmtRp(t.total)}</p>
+      {/* Bottom Grid: Recent Transactions + Inbox */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Recent Transactions */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-stone-500 uppercase tracking-wider flex items-center gap-2"><Activity className="w-4 h-4" />Transaksi Terbaru</h3>
+            <button onClick={() => setActivePage('sales')} className="text-xs text-rose-500 hover:text-rose-600 font-medium flex items-center gap-1">Lihat Semua <ArrowRight className="w-3 h-3" /></button>
+          </div>
+          <div className="bg-white rounded-xl border border-stone-200/80 divide-y divide-stone-100">
+            {!data.recentTransactions?.length ? <div className="p-6 text-center text-sm text-stone-400">Belum ada transaksi</div> : data.recentTransactions.slice(0, 5).map((t: any, i: number) => (
+              <div key={i} className="flex items-center gap-3 px-4 py-3 hover:bg-stone-50/50 transition-colors">
+                <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${t.type === 'sale' ? 'bg-emerald-100 text-emerald-600' : 'bg-blue-100 text-blue-600'}`}>
+                  {t.type === 'sale' ? <ShoppingBag className="w-4 h-4" /> : <ShoppingCart className="w-4 h-4" />}
                 </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2"><p className="text-sm font-medium text-stone-800">{t.transNo}</p><StatusBadge status={t.status} map={t.type === 'sale' ? saleStatusMap : purchaseStatusMap} /></div>
+                  <p className="text-xs text-stone-400">{t.party || 'Umum'} · {fmtDate(t.date)}</p>
+                </div>
+                <p className="text-sm font-semibold text-stone-700">{fmtRp(t.total)}</p>
+              </div>
+            ))}
+          </div>
+        </div>
 
-      {/* Activity Feed */}
-      {data.recentActivityLogs?.length > 0 && (
-        <Card className="border-0 shadow-sm">
-          <CardHeader className="pb-3"><CardTitle className="text-base flex items-center gap-2"><Activity className="w-5 h-5 text-rose-500" />Aktivitas Terbaru</CardTitle></CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {data.recentActivityLogs.map((a: any) => (
-                <div key={a.id} className="flex items-start gap-3 text-sm">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-rose-100 to-amber-100 flex items-center justify-center text-rose-600 text-xs font-medium mt-0.5">{a.user?.name?.slice(0, 2)?.toUpperCase() || '?'}</div>
-                  <div className="flex-1"><span className="font-medium">{a.user?.name}</span> <span className="text-muted-foreground">{a.action === 'CREATE' ? 'membuat' : a.action === 'UPDATE' ? 'mengubah' : a.action === 'DELETE' ? 'menghapus' : a.action === 'STATUS_CHANGE' ? 'mengubah status' : a.action.toLowerCase()} {a.entity}</span><p className="text-xs text-muted-foreground mt-0.5">{fmtDateTime(a.createdAt)}</p></div>
+        {/* Inbox */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-stone-500 uppercase tracking-wider flex items-center gap-2"><InboxIcon className="w-4 h-4" />Inbox</h3>
+            <button onClick={() => setActivePage('inbox')} className="text-xs text-rose-500 hover:text-rose-600 font-medium flex items-center gap-1">Buka Inbox <ArrowRight className="w-3 h-3" /></button>
+          </div>
+          <div className="bg-white rounded-xl border border-stone-200/80 divide-y divide-stone-100">
+            {inboxItems.length === 0 ? <div className="p-6 text-center text-sm text-stone-400">Tidak ada pesan baru</div> : inboxItems.slice(0, 5).map((item: any) => (
+              <div key={item.id} className="flex items-start gap-3 px-4 py-3 hover:bg-stone-50/50 transition-colors">
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center mt-0.5 ${item.priority === 'urgent' ? 'bg-red-100 text-red-500' : item.priority === 'warning' ? 'bg-amber-100 text-amber-500' : 'bg-blue-100 text-blue-500'}`}>
+                  {item.type === 'stock_low' ? <AlertTriangle className="w-4 h-4" /> : <Bell className="w-4 h-4" />}
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-stone-800">{item.title}</p>
+                  <p className="text-xs text-stone-400 truncate">{item.message}</p>
+                </div>
+                <span className="text-[10px] text-stone-300 shrink-0">{fmtDateTime(item.createdAt)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
@@ -1417,6 +1604,82 @@ function UserManagementModule() {
 }
 
 // ===================== MAIN APP =====================
+// ===================== INBOX MODULE =====================
+function InboxModule() {
+  const [items, setItems] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [filter, setFilter] = useState('all')
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    try { const res = await fetch('/api/inbox?limit=50'); const d = await res.json(); setItems(d.data?.items || []) } catch { toast.error('Gagal memuat inbox') }
+    finally { setLoading(false) }
+  }, [])
+  useEffect(() => { load() }, [load])
+
+  const markAllRead = async () => {
+    try { await fetch('/api/inbox', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ markAllRead: true }) }); load(); toast.success('Semua ditandai dibaca') } catch { toast.error('Gagal') }
+  }
+  const markRead = async (id: string) => {
+    try { await fetch('/api/inbox', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) }); setItems(prev => prev.map(i => i.id === id ? { ...i, isRead: true } : i)) } catch {}
+  }
+
+  const filtered = filter === 'all' ? items : filter === 'unread' ? items.filter((i: any) => !i.isRead) : items.filter((i: any) => i.priority === filter)
+  const unreadCount = items.filter((i: any) => !i.isRead).length
+
+  const typeIcon = (type: string) => {
+    if (type === 'stock_low') return <AlertTriangle className="w-4 h-4" />
+    if (type === 'purchase_status') return <ShoppingCart className="w-4 h-4" />
+    if (type === 'sale_status') return <ShoppingBag className="w-4 h-4" />
+    if (type === 'customer_created') return <Users className="w-4 h-4" />
+    return <Bell className="w-4 h-4" />
+  }
+  const priorityColor = (p: string) => {
+    if (p === 'urgent') return 'bg-red-100 text-red-500'
+    if (p === 'warning') return 'bg-amber-100 text-amber-500'
+    return 'bg-blue-100 text-blue-500'
+  }
+
+  return (
+    <div className="max-w-3xl mx-auto space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-stone-900">Inbox</h2>
+          <p className="text-sm text-stone-400">{unreadCount > 0 ? `${unreadCount} pesan belum dibaca` : 'Semua pesan sudah dibaca'}</p>
+        </div>
+        {unreadCount > 0 && <Button variant="outline" size="sm" onClick={markAllRead} className="text-xs"><Check className="w-3 h-3 mr-1" />Tandai Semua Dibaca</Button>}
+      </div>
+      <div className="flex items-center gap-2">
+        {['all', 'unread', 'urgent', 'warning', 'info'].map(f => (
+          <button key={f} onClick={() => setFilter(f)} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${filter === f ? 'bg-stone-900 text-white' : 'bg-stone-100 text-stone-500 hover:bg-stone-200'}`}>
+            {f === 'all' ? 'Semua' : f === 'unread' ? 'Belum Dibaca' : f.charAt(0).toUpperCase() + f.slice(1)}
+          </button>
+        ))}
+      </div>
+      {loading ? <div className="flex justify-center py-12"><RefreshCw className="w-6 h-6 animate-spin text-rose-500" /></div> : (
+        <div className="bg-white rounded-xl border border-stone-200/80 divide-y divide-stone-100 overflow-hidden">
+          {filtered.length === 0 ? <div className="p-8 text-center"><InboxIcon className="w-12 h-12 text-stone-200 mx-auto mb-3" /><p className="text-stone-400">Tidak ada pesan</p></div> : filtered.map((item: any) => (
+            <button key={item.id} onClick={() => !item.isRead && markRead(item.id)} className={`w-full flex items-start gap-4 px-5 py-4 text-left hover:bg-stone-50/50 transition-colors ${!item.isRead ? 'bg-stone-50/80' : ''}`}>
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${priorityColor(item.priority)}`}>{typeIcon(item.type)}</div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  {!item.isRead && <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0" />}
+                  <p className={`text-sm truncate ${!item.isRead ? 'font-semibold text-stone-800' : 'font-medium text-stone-600'}`}>{item.title}</p>
+                </div>
+                <p className="text-xs text-stone-400 mt-1 line-clamp-2">{item.message}</p>
+                <div className="flex items-center gap-3 mt-2">
+                  {item.entityCode && <span className="font-mono text-[10px] bg-stone-100 px-1.5 py-0.5 rounded text-stone-400">{item.entityCode}</span>}
+                  <span className="text-[10px] text-stone-300">{fmtDateTime(item.createdAt)}</span>
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function InventraApp() {
   const { currentUser, activePage, sidebarOpen, setSidebarOpen, setSearchOpen, setQuickActionOpen } = useAppStore()
   const [seeded, setSeeded] = useState(false)
@@ -1445,7 +1708,8 @@ export default function InventraApp() {
 
   const renderPage = () => {
     switch (activePage) {
-      case 'dashboard': return <OverviewModule />
+      case 'dashboard': return <WorkspaceHome />
+      case 'inbox': return <InboxModule />
       case 'products': return <ProductsModule />
       case 'categories': return <CategoriesModule />
       case 'suppliers': return <SuppliersModule />
@@ -1457,19 +1721,28 @@ export default function InventraApp() {
       case 'activity-logs': return <ActivityLogModule />
       case 'reports': return <ReportsModule />
       case 'user-management': return <UserManagementModule />
-      default: return <OverviewModule />
+      default: return <WorkspaceHome />
     }
   }
 
   return (
-    <div className="min-h-screen flex bg-gradient-to-br from-slate-50 to-rose-50/30">
+    <div className="min-h-screen flex bg-gradient-to-br from-stone-50 to-stone-100/50">
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="flex-1 flex flex-col min-w-0">
         <Header />
-        <main className="flex-1 p-4 lg:p-6">{renderPage()}</main>
+        <main className="flex-1 p-4 lg:p-8">{renderPage()}</main>
       </div>
       <GlobalSearch />
       <QuickSaleDialog />
+      {/* Mobile Floating Action Buttons */}
+      <div className="fixed bottom-6 right-6 flex flex-col gap-3 lg:hidden z-40">
+        <button onClick={() => setSearchOpen(true)} className="w-12 h-12 rounded-full bg-stone-900 text-white shadow-lg hover:shadow-xl transition-all flex items-center justify-center">
+          <Search className="w-5 h-5" />
+        </button>
+        <button onClick={() => setQuickActionOpen(true)} className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 text-white shadow-lg hover:shadow-xl transition-all flex items-center justify-center">
+          <ShoppingBag className="w-5 h-5" />
+        </button>
+      </div>
     </div>
   )
 }

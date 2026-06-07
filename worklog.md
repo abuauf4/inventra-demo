@@ -1,64 +1,38 @@
-# NAUKA INVENTRA Work Log
+# NAUKA INVENTRA - Worklog
 
 ---
-Task ID: 1
+Task ID: phase4-workspace
 Agent: Main
-Task: QA Hard Testing - 8 Test Scenarios for Stock Logic
+Task: Implement Phase 4 - Workspace Experience transformation
 
 Work Log:
-- Reset DB and seeded premium Northline Apparel data (6 products, 31 variants)
-- Created comprehensive QA test suite (qa_test_direct.js) testing all 8 scenarios directly via Prisma
-- QA Test 1: Created product with 3 variants ✅
-- QA Test 2-3: Purchase Draft→Approved→Received, stock only at Received ✅
-- QA Test 4-5: Sale Draft→Paid→Completed, stock decreases at Completed ✅
-- QA Test 6: Cancel/delete transactions with stock reversal ✅
-- QA Test 7: Activity Log verified for all actions ✅
-- QA Test 8: Stock reports per variant and per warehouse verified ✅
-- All 51 tests PASSED, 0 failures
+- Analyzed existing project structure: monolithic page.tsx (~1748 lines), all modules inline
+- Added new icon imports (Sun, Moon, Zap, Inbox, ArrowRight, Sparkles, Target, Home, BarChart3, etc.)
+- Created workspace data constants: quotes, roleLabels, roleColors, roleIcons
+- Built ProfileCard component: dark stone gradient, role-colored avatar, role badge, company name, daily quote
+- Built DailyPriorities component: emoji indicators (⚠️ restock, 🟡 pending PO, 🔵 pending SO, ✅ all clear)
+- Built QuickActionCenter component: role-based action cards (Owner/Staff/Warehouse different actions), keyboard shortcuts visible
+- Replaced OverviewModule with WorkspaceHome: role-based layout, profile card + priorities + quick actions + role-specific focus cards
+- Owner Home: Ringkasan Bisnis (sales today, purchases today, total sales, total products)
+- Staff Home: Fokus Anda (pending SO, pending PO, new customers)
+- Warehouse Home: Fokus Gudang (barang masuk, barang keluar, stok menipis, gudang aktif)
+- Added InboxModule: timeline-style inbox with filters (all/unread/urgent/warning/info), mark read, entity code display
+- Updated Sidebar: Home + Inbox at top, Produk moved to Transaksi section, role-colored profile at bottom, inbox badge count
+- Enhanced GlobalSearch: status badges for transactions (Draft/Approved/Received/Paid/Completed), Warehouse type icon, empty state with shortcuts guide
+- Updated Header: stone color palette, rounded-xl search bar, Ctrl+K label, backdrop blur
+- Updated InventraApp: WorkspaceHome routing, InboxModule routing, mobile floating action buttons (search + quick sale)
+- Updated background: stone-50 gradient instead of slate-50/rose-50
+- Fixed inbox API: added .toISOString() for Date serialization in fallback activity log items
+- Build: successful (no compilation errors)
+- Dashboard API tested: returns all data correctly (6 products, 6 low stock variants, etc.)
 
 Stage Summary:
-- Stock logic is 100% correct and verified
-- Bug fixes applied: $transaction in updateVariantStock, status transition enforcement, variant stock direct edit blocked
-- Premium seed data created: Northline Apparel brand (Essential Tee, Urban Hoodie, Cargo Pants, Canvas Tote Bag, Signature Cap, Runner Sneakers)
-
----
-Task ID: 2
-Agent: Main
-Task: Bug Fixes - Critical Issues Found During Code Review
-
-Work Log:
-- Fixed: updateVariantStock now uses db.$transaction for atomicity (src/lib/stock.ts)
-- Fixed: Added warning for negative qty on non-existent warehouse stock entry
-- Fixed: Blocked direct stock editing via PUT /api/product-variants/[id] (returns 400)
-- Fixed: Added VALID_PURCHASE_TRANSITIONS and VALID_SALE_TRANSITIONS enforcement
-- Fixed: Status transitions now validated (DRAFT→CANCELLED, APPROVED→CANCELLED, RECEIVED→CANCELLED only)
-
-Stage Summary:
-- Stock updates are now atomic (wrapped in $transaction)
-- Direct stock editing blocked at API level
-- Status transitions strictly enforced (no more skipping steps)
-- Negative qty on new warehouse stock properly handled with warning
-
----
-Task ID: 3
-Agent: Main
-Task: UI Premium Overhaul - Phase 1 (Cancel buttons, Personalized Overview, Grouped Sidebar)
-
-Work Log:
-- Added Cancel button for Purchases (DRAFT/APPROVED/RECEIVED → CANCELLED) with confirmation dialog
-- Added Cancel button for Sales (DRAFT/PAID/COMPLETED → CANCELLED) with confirmation dialog
-- Cancel confirmation shows stock reversal warning for RECEIVED/COMPLETED status
-- Updated Overview to personalized greeting ("Selamat pagi, Bagas") with actionable cards
-- Replaced generic stats with: Today's Sales, Purchases, Low Stock count, Total Products
-- Low stock alerts shown as visual cards with urgency color coding (red/amber)
-- Recent transactions shown as timeline-style list instead of table
-- Activity feed enhanced with STATUS_CHANGE action label
-- Sidebar grouped into sections: Main, Transaksi, Inventory, Master, System
-- Sidebar shows "Northline Apparel" branding
-- Updated Header to use flattened menuSections for label lookup
-
-Stage Summary:
-- Cancel functionality now available in UI for all status transitions
-- Overview is personalized with greeting and actionable insights
-- Sidebar organized into logical sections with subtle headers
-- All TypeScript compilation passes for page.tsx
+- Complete workspace paradigm shift: Dashboard→Statistics→Charts→Tables becomes Workspace→Identity→Priorities→Actions→Information
+- Role-based rendering: Owner sees business summary, Staff sees pending orders, Warehouse sees stock movement
+- ProfileCard with dark gradient, role badge, company name, daily quote
+- DailyPriorities with contextual emoji indicators
+- QuickActionCenter with role-specific actions and visible keyboard shortcuts
+- InboxModule as full timeline with priority filtering
+- Mobile floating action buttons for search and quick sale
+- Visual upgrade: stone/neutral palette, rounded-xl corners, minimal borders, backdrop blur
+- Production build successful, APIs verified working

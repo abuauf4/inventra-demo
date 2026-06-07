@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
         entityCode: log.entityCode,
         priority: mapPriority(log.action, log.entity),
         isRead: false,
-        createdAt: log.createdAt,
+        createdAt: log.createdAt.toISOString(),
         user: log.user,
       }))
     }
