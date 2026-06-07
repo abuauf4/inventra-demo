@@ -2,31 +2,27 @@
 
 import React, { useState, useCallback, useEffect } from 'react'
 import {
-  RefreshCw, Sun, Moon, BarChart3, PenLine, Warehouse,
-  ShoppingBag, ShoppingCart, PackageCheck, PackageX,
+  RefreshCw, Sun, Moon, ShoppingBag, ShoppingCart, Package, Search,
   AlertTriangle, ArrowRightLeft, Activity, ArrowRight,
-  Inbox as InboxIcon, Bell, Users,
+  Inbox as InboxIcon, Bell,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAppStore } from '@/lib/store'
-import { fmtRp, fmt, fmtDate, fmtDateTime, roleGreetings } from '@/components/inventra/shared/constants'
+import { fmtRp, fmt, fmtDate, fmtDateTime, roleGreetings, roleColors } from '@/components/inventra/shared/constants'
 import { StatusBadge } from '@/components/inventra/shared/status-badge'
 import type { DashboardData } from '@/components/inventra/shared/types'
-import ProfileCard from '@/components/inventra/workspace/profile-card'
-import DailyPriorities from '@/components/inventra/workspace/priorities'
-import QuickActionCenter from '@/components/inventra/workspace/quick-actions'
 
 export default function WorkspaceHome() {
   const [data, setData] = useState<DashboardData | null>(null)
   const [inboxItems, setInboxItems] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const { currentUser, setActivePage } = useAppStore()
+  const { currentUser, setActivePage, setSearchOpen, setQuickActionOpen } = useAppStore()
   const role = currentUser?.role || 'staff'
 
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const [dashRes, inboxRes] = await Promise.all([fetch('/api/dashboard'), fetch('/api/inbox?limit=6')])
+      const [dashRes, inboxRes] = await Promise.all([fetch('/api/dashboard'), fetch('/api/inbox?limit=4')])
       const dash = await dashRes.json()
       const inbox = await inboxRes.json()
       setData(dash.data)
@@ -41,111 +37,85 @@ export default function WorkspaceHome() {
 
   const userName = currentUser?.name || 'User'
   const lowStockCount = data.lowStockProducts?.length || 0
-
-  // Natural role-based greeting
   const roleGreeting = roleGreetings[role] || roleGreetings.staff
-  const greetingLine = `Halo ${userName} 👋 ${roleGreeting.line1}`
-
   const hour = new Date().getHours()
-  const greetingIcon = hour < 12 ? <Sun className="w-6 h-6 text-amber-400" /> : hour < 17 ? <Sun className="w-6 h-6 text-orange-400" /> : <Moon className="w-6 h-6 text-indigo-400" />
+  const timeIcon = hour < 12 ? <Sun className="w-5 h-5 text-amber-400" /> : hour < 17 ? <Sun className="w-5 h-5 text-orange-400" /> : <Moon className="w-5 h-5 text-indigo-400" />
+
+  // Quick actions — compact, just 3 for each role
+  const quickActions = role === 'warehouse'
+    ? [
+        { label: 'Terima Barang', icon: <Package className="w-4 h-4" />, shortcut: null, color: 'from-emerald-500 to-teal-500', action: () => setActivePage('purchases') },
+        { label: 'Mutasi Stok', icon: <ArrowRightLeft className="w-4 h-4" />, shortcut: null, color: 'from-blue-500 to-indigo-500', action: () => setActivePage('stock-mutations') },
+        { label: 'Cari', icon: <Search className="w-4 h-4" />, shortcut: '⌘K', color: 'from-violet-500 to-purple-500', action: () => setSearchOpen(true) },
+      ]
+    : [
+        { label: 'Jual', icon: <ShoppingBag className="w-4 h-4" />, shortcut: 'Alt+S', color: 'from-emerald-500 to-teal-500', action: () => setQuickActionOpen(true) },
+        { label: 'Beli', icon: <ShoppingCart className="w-4 h-4" />, shortcut: null, color: 'from-blue-500 to-indigo-500', action: () => setActivePage('purchases') },
+        { label: 'Cari', icon: <Search className="w-4 h-4" />, shortcut: '⌘K', color: 'from-violet-500 to-purple-500', action: () => setSearchOpen(true) },
+      ]
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8">
-      {/* Hero Greeting */}
-      <div className="flex items-start gap-4">
-        <div className="mt-1">{greetingIcon}</div>
+    <div className="max-w-4xl mx-auto space-y-6">
+      {/* Greeting — clean, one breath */}
+      <div className="flex items-start gap-3">
+        <div className="mt-0.5">{timeIcon}</div>
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-stone-900">{greetingLine}</h1>
-          <p className="mt-1 text-stone-400 text-base">
-            {lowStockCount > 0 ? <span className="text-amber-600 font-medium">{lowStockCount} varian perlu restock</span> : 'Semua berjalan lancar hari ini'}
-            {data.pendingPurchaseCount > 0 && <span className="text-stone-400"> · {data.pendingPurchaseCount} PO menunggu</span>}
-            {data.pendingSaleCount > 0 && <span className="text-stone-400"> · {data.pendingSaleCount} SO belum selesai</span>}
-          </p>
+          <h1 className="text-2xl font-bold tracking-tight text-stone-900">
+            Halo {userName} 👋
+          </h1>
+          <p className="mt-0.5 text-stone-500">{roleGreeting.line1}</p>
         </div>
       </div>
 
-      {/* Top Grid: Profile + Priorities */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        <div className="lg:col-span-2"><ProfileCard user={currentUser!} quote={roleGreeting.line1} /></div>
-        <div className="lg:col-span-3"><DailyPriorities data={data} /></div>
+      {/* Priority line — inline, not a section */}
+      <div className="flex flex-wrap items-center gap-2">
+        {lowStockCount > 0 && (
+          <button onClick={() => setActivePage('products')} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 text-amber-700 text-xs font-medium hover:bg-amber-100 transition-colors border border-amber-200/60">
+            <AlertTriangle className="w-3.5 h-3.5" />{lowStockCount} varian perlu restock
+          </button>
+        )}
+        {data.pendingPurchaseCount > 0 && (
+          <button onClick={() => setActivePage('purchases')} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 text-xs font-medium hover:bg-blue-100 transition-colors border border-blue-200/60">
+            {data.pendingPurchaseCount} PO menunggu
+          </button>
+        )}
+        {data.pendingSaleCount > 0 && (
+          <button onClick={() => setActivePage('sales')} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-50 text-violet-700 text-xs font-medium hover:bg-violet-100 transition-colors border border-violet-200/60">
+            {data.pendingSaleCount} SO belum selesai
+          </button>
+        )}
+        {lowStockCount === 0 && data.pendingPurchaseCount === 0 && data.pendingSaleCount === 0 && (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-medium border border-emerald-200/60">
+            ✅ Semua lancar hari ini
+          </span>
+        )}
       </div>
 
-      {/* Quick Actions */}
-      <QuickActionCenter role={role} />
+      {/* Quick Actions — compact row */}
+      <div className="flex items-center gap-2">
+        {quickActions.map((a, i) => (
+          <button key={i} onClick={a.action} className="group flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-stone-200/80 hover:border-stone-300 shadow-sm hover:shadow transition-all text-sm font-medium text-stone-700">
+            <div className={`w-7 h-7 rounded-lg bg-gradient-to-br ${a.color} flex items-center justify-center text-white group-hover:scale-105 transition-transform`}>{a.icon}</div>
+            {a.label}
+            {a.shortcut && <kbd className="text-[10px] bg-stone-100 px-1.5 py-0.5 rounded font-mono text-stone-400 border border-stone-200 ml-1">{a.shortcut}</kbd>}
+          </button>
+        ))}
+      </div>
 
-      {/* Role-Specific Focus Cards */}
-      {role === 'owner' || role === 'admin' ? (
-        <div className="space-y-2">
-          <h3 className="text-sm font-semibold text-stone-500 uppercase tracking-wider flex items-center gap-2"><BarChart3 className="w-4 h-4" />Ringkasan Bisnis</h3>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-white rounded-xl border border-stone-200/80 p-5 hover:shadow-md transition-shadow">
-              <p className="text-xs font-medium text-stone-400 uppercase tracking-wider">Penjualan Hari Ini</p>
-              <p className="mt-2 text-2xl font-bold text-emerald-600">{fmtRp(data.salesToday || 0)}</p>
-              <p className="mt-1 text-xs text-stone-400">{data.salesTodayCount || 0} transaksi</p>
-            </div>
-            <div className="bg-white rounded-xl border border-stone-200/80 p-5 hover:shadow-md transition-shadow">
-              <p className="text-xs font-medium text-stone-400 uppercase tracking-wider">Pembelian Hari Ini</p>
-              <p className="mt-2 text-2xl font-bold text-blue-600">{fmtRp(data.purchasesToday || 0)}</p>
-              <p className="mt-1 text-xs text-stone-400">{data.purchasesTodayCount || 0} transaksi</p>
-            </div>
-            <div className="bg-white rounded-xl border border-stone-200/80 p-5 hover:shadow-md transition-shadow">
-              <p className="text-xs font-medium text-stone-400 uppercase tracking-wider">Total Penjualan</p>
-              <p className="mt-2 text-2xl font-bold text-stone-800">{fmtRp(data.totalSales || 0)}</p>
-              <p className="mt-1 text-xs text-stone-400">{fmt(data.totalCustomers || 0)} customer</p>
-            </div>
-            <div className="bg-white rounded-xl border border-stone-200/80 p-5 hover:shadow-md transition-shadow">
-              <p className="text-xs font-medium text-stone-400 uppercase tracking-wider">Total Produk</p>
-              <p className="mt-2 text-2xl font-bold text-stone-800">{fmt(data.totalProducts || 0)}</p>
-              <p className="mt-1 text-xs text-stone-400">{fmt(data.totalWarehouses || 0)} gudang</p>
-            </div>
-          </div>
-        </div>
-      ) : role === 'staff' ? (
-        <div className="space-y-2">
-          <h3 className="text-sm font-semibold text-stone-500 uppercase tracking-wider flex items-center gap-2"><PenLine className="w-4 h-4" />Fokus Anda</h3>
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-            <button onClick={() => setActivePage('sales')} className="bg-white rounded-xl border border-stone-200/80 p-5 hover:shadow-md transition-shadow text-left group">
-              <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-600 group-hover:scale-105 transition-transform"><ShoppingBag className="w-5 h-5" /></div><div><p className="text-2xl font-bold text-emerald-600">{data.pendingSaleCount || 0}</p><p className="text-xs text-stone-400">Sales Order Pending</p></div></div>
-            </button>
-            <button onClick={() => setActivePage('purchases')} className="bg-white rounded-xl border border-stone-200/80 p-5 hover:shadow-md transition-shadow text-left group">
-              <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600 group-hover:scale-105 transition-transform"><ShoppingCart className="w-5 h-5" /></div><div><p className="text-2xl font-bold text-blue-600">{data.pendingPurchaseCount || 0}</p><p className="text-xs text-stone-400">Purchase Order Pending</p></div></div>
-            </button>
-            <button onClick={() => setActivePage('customers')} className="bg-white rounded-xl border border-stone-200/80 p-5 hover:shadow-md transition-shadow text-left group">
-              <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-violet-100 flex items-center justify-center text-violet-600 group-hover:scale-105 transition-transform"><Users className="w-5 h-5" /></div><div><p className="text-2xl font-bold text-violet-600">{data.newCustomersThisWeek || 0}</p><p className="text-xs text-stone-400">Customer Baru (7 Hari)</p></div></div>
-            </button>
-          </div>
-        </div>
-      ) : role === 'warehouse' ? (
-        <div className="space-y-2">
-          <h3 className="text-sm font-semibold text-stone-500 uppercase tracking-wider flex items-center gap-2"><Warehouse className="w-4 h-4" />Fokus Gudang</h3>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <button onClick={() => setActivePage('purchases')} className="bg-white rounded-xl border border-stone-200/80 p-5 hover:shadow-md transition-shadow text-left group">
-              <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-600 group-hover:scale-105 transition-transform"><PackageCheck className="w-5 h-5" /></div><div><p className="text-2xl font-bold text-emerald-600">{data.stockInToday || 0}</p><p className="text-xs text-stone-400">Barang Masuk Hari Ini</p></div></div>
-            </button>
-            <button onClick={() => setActivePage('sales')} className="bg-white rounded-xl border border-stone-200/80 p-5 hover:shadow-md transition-shadow text-left group">
-              <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600 group-hover:scale-105 transition-transform"><PackageX className="w-5 h-5" /></div><div><p className="text-2xl font-bold text-blue-600">{data.stockOutToday || 0}</p><p className="text-xs text-stone-400">Barang Keluar Hari Ini</p></div></div>
-            </button>
-            <button onClick={() => setActivePage('products')} className="bg-white rounded-xl border border-stone-200/80 p-5 hover:shadow-md transition-shadow text-left group">
-              <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center text-amber-600 group-hover:scale-105 transition-transform"><AlertTriangle className="w-5 h-5" /></div><div><p className="text-2xl font-bold text-amber-600">{lowStockCount}</p><p className="text-xs text-stone-400">Stok Menipis</p></div></div>
-            </button>
-            <button onClick={() => setActivePage('warehouses')} className="bg-white rounded-xl border border-stone-200/80 p-5 hover:shadow-md transition-shadow text-left group">
-              <div className="flex items-center gap-3"><div className="w-10 h-10 rounded-xl bg-stone-100 flex items-center justify-center text-stone-600 group-hover:scale-105 transition-transform"><ArrowRightLeft className="w-5 h-5" /></div><div><p className="text-2xl font-bold text-stone-600">{fmt(data.totalWarehouses || 0)}</p><p className="text-xs text-stone-400">Gudang Aktif</p></div></div>
-            </button>
-          </div>
-        </div>
-      ) : null}
-
-      {/* Low Stock Alert Cards */}
+      {/* Low Stock — compact list, only show top 4 */}
       {data.lowStockProducts?.length > 0 && (role === 'owner' || role === 'admin' || role === 'warehouse') && (
-        <div className="space-y-2">
-          <h3 className="text-sm font-semibold text-stone-500 uppercase tracking-wider flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-amber-500" />Perlu Restock</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {data.lowStockProducts.slice(0, 6).map((p) => (
-              <button key={p.variantId} onClick={() => setActivePage('products')} className={`flex items-center gap-3 p-4 rounded-xl bg-white border hover:shadow-md transition-shadow text-left ${p.stock <= 0 ? 'border-red-200 bg-red-50/30' : p.stock <= p.minStock / 2 ? 'border-amber-200 bg-amber-50/30' : 'border-stone-200/80'}`}>
-                <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-white text-sm font-bold shadow-sm ${p.stock <= 0 ? 'bg-gradient-to-br from-red-400 to-red-500' : 'bg-gradient-to-br from-amber-400 to-amber-500'}`}>{p.stock}</div>
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-semibold text-stone-400 uppercase tracking-wider">Perlu Restock</p>
+            {lowStockCount > 4 && <button onClick={() => setActivePage('products')} className="text-[10px] text-rose-500 hover:text-rose-600 font-medium">+{lowStockCount - 4} lainnya</button>}
+          </div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+            {data.lowStockProducts.slice(0, 4).map((p) => (
+              <button key={p.variantId} onClick={() => setActivePage('products')} className={`flex items-center gap-2.5 p-3 rounded-lg bg-white border hover:shadow-sm transition-shadow text-left ${p.stock <= 0 ? 'border-red-200' : 'border-stone-200/80'}`}>
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold ${p.stock <= 0 ? 'bg-red-400' : 'bg-amber-400'}`}>{p.stock}</div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-stone-800 truncate">{p.productName}</p>
-                  <p className="text-xs text-stone-400">{p.variantName} · Min. {p.minStock}</p>
+                  <p className="text-xs font-medium text-stone-800 truncate">{p.productName}</p>
+                  <p className="text-[10px] text-stone-400 truncate">{p.variantName}</p>
                 </div>
               </button>
             ))}
@@ -153,47 +123,53 @@ export default function WorkspaceHome() {
         </div>
       )}
 
-      {/* Bottom Grid: Recent Transactions + Inbox */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Bottom: Recent + Inbox — side by side */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Recent Transactions */}
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-stone-500 uppercase tracking-wider flex items-center gap-2"><Activity className="w-4 h-4" />Transaksi Terbaru</h3>
-            <button onClick={() => setActivePage('sales')} className="text-xs text-rose-500 hover:text-rose-600 font-medium flex items-center gap-1">Lihat Semua <ArrowRight className="w-3 h-3" /></button>
+            <p className="text-xs font-semibold text-stone-400 uppercase tracking-wider">Transaksi Terakhir</p>
+            <button onClick={() => setActivePage('sales')} className="text-[10px] text-rose-500 hover:text-rose-600 font-medium flex items-center gap-0.5">Semua <ArrowRight className="w-2.5 h-2.5" /></button>
           </div>
           <div className="bg-white rounded-xl border border-stone-200/80 divide-y divide-stone-100">
-            {!data.recentTransactions?.length ? <div className="p-6 text-center text-sm text-stone-400">Belum ada transaksi</div> : data.recentTransactions.slice(0, 5).map((t, i) => (
-              <div key={i} className="flex items-center gap-3 px-4 py-3 hover:bg-stone-50/50 transition-colors">
-                <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${t.type === 'sale' ? 'bg-emerald-100 text-emerald-600' : 'bg-blue-100 text-blue-600'}`}>
-                  {t.type === 'sale' ? <ShoppingBag className="w-4 h-4" /> : <ShoppingCart className="w-4 h-4" />}
+            {!data.recentTransactions?.length ? (
+              <div className="p-5 text-center text-xs text-stone-400">Belum ada transaksi</div>
+            ) : data.recentTransactions.slice(0, 4).map((t, i) => (
+              <div key={i} className="flex items-center gap-2.5 px-3.5 py-2.5 hover:bg-stone-50/50 transition-colors">
+                <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${t.type === 'sale' ? 'bg-emerald-100 text-emerald-600' : 'bg-blue-100 text-blue-600'}`}>
+                  {t.type === 'sale' ? <ShoppingBag className="w-3.5 h-3.5" /> : <ShoppingCart className="w-3.5 h-3.5" />}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2"><p className="text-sm font-medium text-stone-800">{t.transNo}</p><StatusBadge status={t.status} map={t.type === 'sale' ? 'sale' : 'purchase'} /></div>
-                  <p className="text-xs text-stone-400">{t.party || 'Umum'} · {fmtDate(t.date)}</p>
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-xs font-medium text-stone-800">{t.transNo}</p>
+                    <StatusBadge status={t.status} map={t.type === 'sale' ? 'sale' : 'purchase'} />
+                  </div>
+                  <p className="text-[10px] text-stone-400">{t.party || 'Umum'} · {fmtDate(t.date)}</p>
                 </div>
-                <p className="text-sm font-semibold text-stone-700">{fmtRp(t.total)}</p>
+                <p className="text-xs font-semibold text-stone-700 shrink-0">{fmtRp(t.total)}</p>
               </div>
             ))}
           </div>
         </div>
 
         {/* Inbox */}
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-stone-500 uppercase tracking-wider flex items-center gap-2"><InboxIcon className="w-4 h-4" />Inbox</h3>
-            <button onClick={() => setActivePage('inbox')} className="text-xs text-rose-500 hover:text-rose-600 font-medium flex items-center gap-1">Buka Inbox <ArrowRight className="w-3 h-3" /></button>
+            <p className="text-xs font-semibold text-stone-400 uppercase tracking-wider">Inbox</p>
+            <button onClick={() => setActivePage('inbox')} className="text-[10px] text-rose-500 hover:text-rose-600 font-medium flex items-center gap-0.5">Buka <ArrowRight className="w-2.5 h-2.5" /></button>
           </div>
           <div className="bg-white rounded-xl border border-stone-200/80 divide-y divide-stone-100">
-            {inboxItems.length === 0 ? <div className="p-6 text-center text-sm text-stone-400">Tidak ada pesan baru</div> : inboxItems.slice(0, 5).map((item: any) => (
-              <div key={item.id} className="flex items-start gap-3 px-4 py-3 hover:bg-stone-50/50 transition-colors">
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center mt-0.5 ${item.priority === 'urgent' ? 'bg-red-100 text-red-500' : item.priority === 'warning' ? 'bg-amber-100 text-amber-500' : 'bg-blue-100 text-blue-500'}`}>
-                  {item.type === 'stock_low' ? <AlertTriangle className="w-4 h-4" /> : <Bell className="w-4 h-4" />}
+            {inboxItems.length === 0 ? (
+              <div className="p-5 text-center text-xs text-stone-400">Tidak ada pesan baru</div>
+            ) : inboxItems.slice(0, 4).map((item: any) => (
+              <div key={item.id} className="flex items-start gap-2.5 px-3.5 py-2.5 hover:bg-stone-50/50 transition-colors">
+                <div className={`w-7 h-7 rounded-lg flex items-center justify-center mt-0.5 shrink-0 ${item.priority === 'urgent' ? 'bg-red-100 text-red-500' : item.priority === 'warning' ? 'bg-amber-100 text-amber-500' : 'bg-blue-100 text-blue-500'}`}>
+                  {item.type === 'stock_low' ? <AlertTriangle className="w-3.5 h-3.5" /> : <Bell className="w-3.5 h-3.5" />}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-stone-800">{item.title}</p>
-                  <p className="text-xs text-stone-400 truncate">{item.message}</p>
+                  <p className="text-xs font-medium text-stone-800">{item.title}</p>
+                  <p className="text-[10px] text-stone-400 truncate">{item.message}</p>
                 </div>
-                <span className="text-[10px] text-stone-300 shrink-0">{fmtDateTime(item.createdAt)}</span>
               </div>
             ))}
           </div>
