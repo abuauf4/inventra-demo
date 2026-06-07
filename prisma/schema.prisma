@@ -1,4 +1,5 @@
-// NAUKA INVENTRA V1 - Sistem Operasional Bisnis untuk UMKM
+// NAUKA INVENTRA V1.1 - Sistem Operasional Bisnis untuk UMKM
+// Foundation for Nauka ERP Core
 
 generator client {
   provider = "prisma-client-js"
@@ -9,16 +10,22 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ===================== AUTH & USER =====================
+
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String
-  password  String
-  role      String   @default("staff") // owner, admin, staff
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String        @id @default(cuid())
+  email        String        @unique
+  name         String
+  password     String
+  role         String        @default("staff") // owner, admin, staff
+  isActive     Boolean       @default(true)
+  activityLogs ActivityLog[]
+  attachments  Attachment[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 }
+
+// ===================== MASTER DATA =====================
 
 model Category {
   id          String    @id @default(cuid())
@@ -55,25 +62,81 @@ model Customer {
   updatedAt DateTime  @updatedAt
 }
 
+// ===================== WAREHOUSE =====================
+
+model Warehouse {
+  id       String           @id @default(cuid())
+  name     String
+  code     String           @unique
+  address  String?
+  isActive Boolean          @default(true)
+  stocks   WarehouseStock[]
+  mutations StockMutation[]
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+}
+
+model WarehouseStock {
+  id              String     @id @default(cuid())
+  warehouseId     String
+  productVariantId String
+  stock           Int        @default(0)
+  warehouse       Warehouse  @relation(fields: [warehouseId], references: [id])
+  variant         ProductVariant @relation(fields: [productVariantId], references: [id])
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  @@unique([warehouseId, productVariantId])
+}
+
+// ===================== PRODUCT & VARIANT =====================
+
 model Product {
-  id          String          @id @default(cuid())
-  name        String
-  sku         String          @unique
-  categoryId  String
-  supplierId  String?
-  buyPrice    Float           @default(0)
-  sellPrice   Float           @default(0)
-  stock       Int             @default(0)
-  minStock    Int             @default(0)
-  isActive    Boolean         @default(true)
-  category    Category        @relation(fields: [categoryId], references: [id])
-  supplier    Supplier?       @relation(fields: [supplierId], references: [id])
+  id            String           @id @default(cuid())
+  name          String
+  sku           String           @unique
+  categoryId    String
+  supplierId    String?
+  description   String?
+  image         String?          // URL or path to product image
+  buyPrice      Float            @default(0) // base buy price
+  sellPrice     Float            @default(0) // base sell price
+  minStock      Int              @default(0)
+  isActive      Boolean          @default(true)
+  category      Category         @relation(fields: [categoryId], references: [id])
+  supplier      Supplier?        @relation(fields: [supplierId], references: [id])
+  variants      ProductVariant[]
+  purchaseItems PurchaseItem[]
+  saleItems     SaleItem[]
+  stockMutations StockMutation[]
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+}
+
+model ProductVariant {
+  id           String           @id @default(cuid())
+  productId    String
+  name         String           // e.g. "Black M", "White L"
+  sku          String           // e.g. "OVT-BLK-M"
+  attributes   String           // JSON: {"color":"Black","size":"M"}
+  buyPrice     Float            @default(0) // variant-specific price
+  sellPrice    Float            @default(0) // variant-specific price
+  stock        Int              @default(0) // total stock across all warehouses
+  minStock     Int              @default(0)
+  isActive     Boolean          @default(true)
+  barcode      String?
+  product      Product          @relation(fields: [productId], references: [id], onDelete: Cascade)
+  warehouseStocks WarehouseStock[]
   purchaseItems PurchaseItem[]
   saleItems    SaleItem[]
   stockMutations StockMutation[]
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  @@unique([sku])
 }
+
+// ===================== PURCHASE =====================
 
 model Purchase {
   id         String         @id @default(cuid())
@@ -81,53 +144,103 @@ model Purchase {
   supplierId String
   date       DateTime
   total      Float          @default(0)
+  status     String         @default("DRAFT") // DRAFT, APPROVED, RECEIVED, CANCELLED
   notes      String?
   supplier   Supplier       @relation(fields: [supplierId], references: [id])
   items      PurchaseItem[]
+  attachments Attachment[]
+  activityLogs ActivityLog[]
   createdAt  DateTime       @default(now())
   updatedAt  DateTime       @updatedAt
 }
 
 model PurchaseItem {
-  id         String   @id @default(cuid())
-  purchaseId String
-  productId  String
-  qty        Int
-  buyPrice   Float
-  product    Product  @relation(fields: [productId], references: [id])
-  purchase   Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  id           String         @id @default(cuid())
+  purchaseId   String
+  variantId    String?        // nullable for backward compat, prefer variant
+  productId    String?        // fallback when no variant
+  qty          Int
+  buyPrice     Float
+  variant      ProductVariant? @relation(fields: [variantId], references: [id])
+  product      Product?       @relation(fields: [productId], references: [id])
+  purchase     Purchase       @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
 }
 
+// ===================== SALE =====================
+
 model Sale {
-  id         String     @id @default(cuid())
-  transNo    String     @unique
+  id         String       @id @default(cuid())
+  transNo    String       @unique
   customerId String?
   date       DateTime
-  total      Float      @default(0)
+  total      Float        @default(0)
+  status     String       @default("DRAFT") // DRAFT, PAID, COMPLETED, CANCELLED
   notes      String?
-  customer   Customer?  @relation(fields: [customerId], references: [id])
+  customer   Customer?    @relation(fields: [customerId], references: [id])
   items      SaleItem[]
-  createdAt  DateTime   @default(now())
-  updatedAt  DateTime   @updatedAt
+  attachments Attachment[]
+  activityLogs ActivityLog[]
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
 }
 
 model SaleItem {
-  id        String  @id @default(cuid())
-  saleId    String
-  productId String
-  qty       Int
-  sellPrice Float
-  product   Product @relation(fields: [productId], references: [id])
-  sale      Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  id         String         @id @default(cuid())
+  saleId     String
+  variantId  String?        // nullable for backward compat, prefer variant
+  productId  String?        // fallback when no variant
+  qty        Int
+  sellPrice  Float
+  variant    ProductVariant? @relation(fields: [variantId], references: [id])
+  product    Product?       @relation(fields: [productId], references: [id])
+  sale       Sale           @relation(fields: [saleId], references: [id], onDelete: Cascade)
 }
 
+// ===================== STOCK MUTATION =====================
+
 model StockMutation {
-  id          String   @id @default(cuid())
-  productId   String
-  type        String   // IN, OUT, ADJUSTMENT
+  id          String         @id @default(cuid())
+  variantId   String?        // prefer variant
+  productId   String?        // fallback
+  warehouseId String?
+  type        String         // IN, OUT, ADJUSTMENT
   qty         Int
   note        String?
-  referenceId String?  // purchase or sale id
-  product     Product  @relation(fields: [productId], references: [id])
-  createdAt   DateTime @default(now())
+  referenceId String?        // purchase or sale id
+  variant     ProductVariant? @relation(fields: [variantId], references: [id])
+  product     Product?       @relation(fields: [productId], references: [id])
+  warehouse   Warehouse?     @relation(fields: [warehouseId], references: [id])
+  createdAt   DateTime       @default(now())
+}
+
+// ===================== ACTIVITY LOG =====================
+
+model ActivityLog {
+  id        String    @id @default(cuid())
+  userId    String
+  action    String    // CREATE, UPDATE, DELETE, LOGIN, STATUS_CHANGE
+  entity    String    // Product, Purchase, Sale, User, etc.
+  entityId  String?
+  details   String    // JSON string with change details
+  user      User      @relation(fields: [userId], references: [id])
+  purchase  Purchase? @relation(fields: [entityId], references: [id])
+  sale      Sale?     @relation(fields: [entityId], references: [id])
+  createdAt DateTime  @default(now())
+}
+
+// ===================== ATTACHMENT =====================
+
+model Attachment {
+  id         String    @id @default(cuid())
+  entity     String    // Purchase, Sale, Product, etc.
+  entityId   String
+  fileName   String
+  filePath   String
+  fileType   String    // image, pdf, document
+  fileSize   Int       @default(0)
+  uploadedBy String?
+  user       User?     @relation(fields: [uploadedBy], references: [id])
+  purchase   Purchase? @relation(fields: [entityId], references: [id])
+  sale       Sale?     @relation(fields: [entityId], references: [id])
+  createdAt  DateTime  @default(now())
 }

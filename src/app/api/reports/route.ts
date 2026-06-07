@@ -111,6 +111,9 @@ export async function GET(request: NextRequest) {
             customer: true,
             items: {
               include: {
+                variant: {
+                  select: { id: true, name: true, sku: true },
+                },
                 product: {
                   select: { id: true, name: true, sku: true },
                 },
@@ -150,6 +153,9 @@ export async function GET(request: NextRequest) {
             supplier: true,
             items: {
               include: {
+                variant: {
+                  select: { id: true, name: true, sku: true },
+                },
                 product: {
                   select: { id: true, name: true, sku: true },
                 },
@@ -177,37 +183,54 @@ export async function GET(request: NextRequest) {
       }
 
       case 'stock': {
-        const products = await db.product.findMany({
+        // Use variant-level stock data
+        const variants = await db.productVariant.findMany({
           where: { isActive: true },
           include: {
-            category: true,
+            product: {
+              include: {
+                category: {
+                  select: { name: true },
+                },
+              },
+            },
           },
           orderBy: { name: 'asc' },
         })
 
-        const stockData = products.map((p) => ({
-          id: p.id,
-          name: p.name,
-          sku: p.sku,
-          category: p.category.name,
-          stock: p.stock,
-          minStock: p.minStock,
-          buyPrice: p.buyPrice,
-          stockValue: p.stock * p.buyPrice,
-          isLowStock: p.stock <= p.minStock,
+        const stockData = variants.map((v) => ({
+          id: v.id,
+          name: v.name,
+          sku: v.sku,
+          attributes: v.attributes,
+          productId: v.product.id,
+          productName: v.product.name,
+          productSku: v.product.sku,
+          category: v.product.category?.name || null,
+          stock: v.stock,
+          minStock: v.minStock,
+          buyPrice: v.buyPrice,
+          sellPrice: v.sellPrice,
+          stockValue: v.stock * v.buyPrice,
+          isLowStock: v.stock <= v.minStock,
         }))
 
-        const lowStockItems = stockData.filter((p) => p.isLowStock)
-        const totalInventoryValue = stockData.reduce((sum, p) => sum + p.stockValue, 0)
-        const totalProducts = stockData.length
+        const lowStockItems = stockData.filter((v) => v.isLowStock)
+        const totalInventoryValue = stockData.reduce((sum, v) => sum + v.stockValue, 0)
+        const totalVariants = stockData.length
+
+        // Also get unique product count
+        const uniqueProductIds = new Set(variants.map((v) => v.productId))
+        const totalProducts = uniqueProductIds.size
 
         return NextResponse.json({
           success: true,
           data: {
-            products: stockData,
+            variants: stockData,
             lowStockItems,
             totalInventoryValue,
             totalProducts,
+            totalVariants,
             lowStockCount: lowStockItems.length,
           },
         })

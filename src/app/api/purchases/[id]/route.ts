@@ -1,6 +1,17 @@
 import { db } from '@/lib/db'
 import { NextRequest, NextResponse } from 'next/server'
 
+// Helper: resolve variant from item (prefer variantId, fallback to first variant of product)
+async function resolveVariant(variantId: string | null | undefined, productId: string | null | undefined) {
+  if (variantId) {
+    return await db.productVariant.findUnique({ where: { id: variantId } })
+  }
+  if (productId) {
+    return await db.productVariant.findFirst({ where: { productId, isActive: true } })
+  }
+  return null
+}
+
 // GET /api/purchases/[id] - Get single purchase with all details
 export async function GET(
   request: NextRequest,
@@ -15,8 +26,11 @@ export async function GET(
         supplier: true,
         items: {
           include: {
-            product: {
+            variant: {
               select: { id: true, name: true, sku: true, buyPrice: true, sellPrice: true, stock: true },
+            },
+            product: {
+              select: { id: true, name: true, sku: true },
             },
           },
         },
@@ -40,7 +54,164 @@ export async function GET(
   }
 }
 
-// DELETE /api/purchases/[id] - Delete purchase and reverse stock
+// PUT /api/purchases/[id] - Update purchase (mainly status changes)
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params
+    const body = await request.json()
+    const { status } = body
+
+    if (!status) {
+      return NextResponse.json(
+        { success: false, message: 'Status wajib diisi' },
+        { status: 400 }
+      )
+    }
+
+    const validStatuses = ['DRAFT', 'APPROVED', 'RECEIVED', 'CANCELLED']
+    if (!validStatuses.includes(status)) {
+      return NextResponse.json(
+        { success: false, message: 'Status tidak valid. Gunakan: DRAFT, APPROVED, RECEIVED, CANCELLED' },
+        { status: 400 }
+      )
+    }
+
+    // Check if purchase exists with items
+    const purchase = await db.purchase.findUnique({
+      where: { id },
+      include: {
+        items: true,
+      },
+    })
+
+    if (!purchase) {
+      return NextResponse.json(
+        { success: false, message: 'Pembelian tidak ditemukan' },
+        { status: 404 }
+      )
+    }
+
+    const currentStatus = purchase.status
+    const newStatus = status
+
+    // Validate status transitions
+    if (currentStatus === 'CANCELLED') {
+      return NextResponse.json(
+        { success: false, message: 'Pembelian yang sudah dibatalkan tidak dapat diubah' },
+        { status: 400 }
+      )
+    }
+
+    if (currentStatus === 'RECEIVED' && newStatus !== 'CANCELLED') {
+      return NextResponse.json(
+        { success: false, message: 'Pembelian yang sudah diterima hanya dapat dibatalkan' },
+        { status: 400 }
+      )
+    }
+
+    if (currentStatus === newStatus) {
+      // No state change needed
+      return NextResponse.json({ success: true, data: purchase })
+    }
+
+    // When status changes to "RECEIVED", update stock and create IN mutations
+    if (newStatus === 'RECEIVED') {
+      for (const item of purchase.items) {
+        const variant = await resolveVariant(item.variantId, item.productId)
+        if (!variant) {
+          return NextResponse.json(
+            { success: false, message: `Variant tidak ditemukan untuk item pembelian` },
+            { status: 404 }
+          )
+        }
+
+        // Add qty to variant stock
+        await db.productVariant.update({
+          where: { id: variant.id },
+          data: {
+            stock: {
+              increment: item.qty,
+            },
+          },
+        })
+
+        // Create stock mutation
+        await db.stockMutation.create({
+          data: {
+            variantId: variant.id,
+            productId: variant.productId,
+            type: 'IN',
+            qty: item.qty,
+            note: `Pembelian ${purchase.transNo} - Status RECEIVED`,
+            referenceId: purchase.id,
+          },
+        })
+      }
+    }
+
+    // When status changes to "CANCELLED" from "RECEIVED", reverse stock
+    if (newStatus === 'CANCELLED' && currentStatus === 'RECEIVED') {
+      for (const item of purchase.items) {
+        const variant = await resolveVariant(item.variantId, item.productId)
+        if (!variant) continue
+
+        // Subtract qty from variant stock
+        await db.productVariant.update({
+          where: { id: variant.id },
+          data: {
+            stock: {
+              decrement: item.qty,
+            },
+          },
+        })
+
+        // Create stock mutation for reversal
+        await db.stockMutation.create({
+          data: {
+            variantId: variant.id,
+            productId: variant.productId,
+            type: 'ADJUSTMENT',
+            qty: item.qty,
+            note: `Pembatalan pembelian ${purchase.transNo}`,
+            referenceId: purchase.id,
+          },
+        })
+      }
+    }
+
+    // Update the purchase status
+    const updatedPurchase = await db.purchase.update({
+      where: { id },
+      data: { status: newStatus },
+      include: {
+        supplier: true,
+        items: {
+          include: {
+            variant: {
+              select: { id: true, name: true, sku: true },
+            },
+            product: {
+              select: { id: true, name: true, sku: true },
+            },
+          },
+        },
+      },
+    })
+
+    return NextResponse.json({ success: true, data: updatedPurchase })
+  } catch (error) {
+    console.error('Update purchase error:', error)
+    return NextResponse.json(
+      { success: false, message: 'Gagal memperbarui pembelian' },
+      { status: 500 }
+    )
+  }
+}
+
+// DELETE /api/purchases/[id] - Delete purchase (only if status is DRAFT)
 export async function DELETE(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -63,28 +234,12 @@ export async function DELETE(
       )
     }
 
-    // Reverse stock for each item and create adjustment stock mutations
-    for (const item of purchase.items) {
-      // Subtract qty from product stock
-      await db.product.update({
-        where: { id: item.productId },
-        data: {
-          stock: {
-            decrement: item.qty,
-          },
-        },
-      })
-
-      // Create stock mutation for reversal
-      await db.stockMutation.create({
-        data: {
-          productId: item.productId,
-          type: 'ADJUSTMENT',
-          qty: item.qty,
-          note: `Pembatalan pembelian ${purchase.transNo}`,
-          referenceId: purchase.id,
-        },
-      })
+    // Only allow deletion if status is DRAFT
+    if (purchase.status !== 'DRAFT') {
+      return NextResponse.json(
+        { success: false, message: 'Hanya pembelian dengan status DRAFT yang dapat dihapus' },
+        { status: 400 }
+      )
     }
 
     // Delete the purchase (cascade will delete items)
@@ -94,7 +249,7 @@ export async function DELETE(
 
     return NextResponse.json({
       success: true,
-      message: 'Pembelian berhasil dihapus dan stok dikembalikan',
+      message: 'Pembelian berhasil dihapus',
     })
   } catch (error) {
     console.error('Delete purchase error:', error)

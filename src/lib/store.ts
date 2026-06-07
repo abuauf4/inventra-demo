@@ -9,6 +9,8 @@ export type AppPage =
   | 'purchases'
   | 'sales'
   | 'stock-mutations'
+  | 'warehouses'
+  | 'activity-logs'
   | 'reports'
   | 'user-management'
 

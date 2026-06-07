@@ -1,7 +1,7 @@
 import { db } from '@/lib/db'
 import { NextResponse } from 'next/server'
 
-// GET /api/dashboard - Return dashboard statistics
+// GET /api/dashboard - Return dashboard statistics (V1.1 with variant-level stock)
 export async function GET() {
   try {
     // Run independent queries in parallel
@@ -11,13 +11,19 @@ export async function GET() {
       totalSuppliers,
       salesAggregate,
       purchasesAggregate,
-      lowStockProducts,
+      variantsWithProducts,
       recentPurchases,
       recentSales,
+      recentActivityLogs,
     ] = await Promise.all([
-      // Count active products
+      // Count active products that have at least one active variant
       db.product.count({
-        where: { isActive: true },
+        where: {
+          isActive: true,
+          variants: {
+            some: { isActive: true },
+          },
+        },
       }),
 
       // Count customers
@@ -26,28 +32,36 @@ export async function GET() {
       // Count suppliers
       db.supplier.count(),
 
-      // Sum of all sale totals
+      // Sum of all sale totals (only COMPLETED)
       db.sale.aggregate({
         _sum: {
           total: true,
         },
+        where: { status: { in: ['COMPLETED', 'PAID'] } },
       }),
 
-      // Sum of all purchase totals
+      // Sum of all purchase totals (only RECEIVED)
       db.purchase.aggregate({
         _sum: {
           total: true,
         },
+        where: { status: 'RECEIVED' },
       }),
 
-      // Products where stock <= minStock
-      db.product.findMany({
+      // All variants with product info for low stock check
+      db.productVariant.findMany({
         where: { isActive: true },
-        select: {
-          name: true,
-          sku: true,
-          stock: true,
-          minStock: true,
+        include: {
+          product: {
+            select: {
+              id: true,
+              name: true,
+              sku: true,
+              category: {
+                select: { name: true },
+              },
+            },
+          },
         },
       }),
 
@@ -59,6 +73,7 @@ export async function GET() {
           transNo: true,
           date: true,
           total: true,
+          status: true,
         },
       }),
 
@@ -70,12 +85,36 @@ export async function GET() {
           transNo: true,
           date: true,
           total: true,
+          status: true,
+        },
+      }),
+
+      // Recent activity logs (last 10)
+      db.activityLog.findMany({
+        take: 10,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          user: {
+            select: { id: true, name: true, email: true, role: true },
+          },
         },
       }),
     ])
 
-    // Filter low stock products in JS (Prisma SQLite doesn't support column comparison)
-    const lowStockFiltered = lowStockProducts.filter((p) => p.stock <= p.minStock)
+    // Filter low stock variants: variant.stock <= variant.minStock
+    const lowStockVariants = variantsWithProducts
+      .filter((v) => v.stock <= v.minStock)
+      .map((v) => ({
+        variantId: v.id,
+        variantName: v.name,
+        variantSku: v.sku,
+        stock: v.stock,
+        minStock: v.minStock,
+        productId: v.product.id,
+        productName: v.product.name,
+        productSku: v.product.sku,
+        category: v.product.category?.name || null,
+      }))
 
     // Combine recent transactions and sort by date
     const recentTransactions = [
@@ -84,12 +123,14 @@ export async function GET() {
         transNo: p.transNo,
         date: p.date,
         total: p.total,
+        status: p.status,
       })),
       ...recentSales.map((s) => ({
         type: 'sale' as const,
         transNo: s.transNo,
         date: s.date,
         total: s.total,
+        status: s.status,
       })),
     ]
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
@@ -103,8 +144,9 @@ export async function GET() {
         totalSuppliers,
         totalSales: salesAggregate._sum.total ?? 0,
         totalPurchases: purchasesAggregate._sum.total ?? 0,
-        lowStockProducts: lowStockFiltered,
+        lowStockProducts: lowStockVariants,
         recentTransactions,
+        recentActivityLogs,
       },
     })
   } catch (error) {

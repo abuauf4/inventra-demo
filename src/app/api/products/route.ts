@@ -2,7 +2,7 @@ import { db } from '@/lib/db'
 import { Prisma } from '@prisma/client'
 import { NextRequest, NextResponse } from 'next/server'
 
-// GET /api/products - List products with category and supplier info
+// GET /api/products - List products with category, supplier, and variants
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
@@ -34,15 +34,20 @@ export async function GET(request: NextRequest) {
       include: {
         category: true,
         supplier: true,
+        variants: {
+          orderBy: { name: 'asc' },
+        },
       },
       orderBy: {
         createdAt: 'desc',
       },
     })
 
-    // Filter lowStock in JS because Prisma SQLite doesn't support column-to-column comparison in where
+    // Filter lowStock in JS: check if ANY variant has stock <= variant.minStock
     const filtered = lowStock
-      ? products.filter((p) => p.stock <= p.minStock)
+      ? products.filter((p) =>
+          p.variants.some((v) => v.stock <= v.minStock)
+        )
       : products
 
     return NextResponse.json({ success: true, data: filtered })
@@ -55,11 +60,23 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/products - Create product
+// POST /api/products - Create product with optional variants
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { name, sku, categoryId, supplierId, buyPrice, sellPrice, stock, minStock, isActive } = body
+    const {
+      name,
+      sku,
+      categoryId,
+      supplierId,
+      description,
+      image,
+      buyPrice,
+      sellPrice,
+      minStock,
+      isActive,
+      variants,
+    } = body
 
     // Validation
     if (!name || !sku || !categoryId) {
@@ -69,7 +86,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check SKU uniqueness
+    // Check SKU uniqueness on product
     const existingProduct = await db.product.findUnique({
       where: { sku },
     })
@@ -81,21 +98,74 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Check variant SKU uniqueness if variants provided
+    if (variants && Array.isArray(variants) && variants.length > 0) {
+      for (const v of variants) {
+        if (v.sku) {
+          const existingVariant = await db.productVariant.findUnique({
+            where: { sku: v.sku },
+          })
+          if (existingVariant) {
+            return NextResponse.json(
+              { success: false, message: `SKU variant "${v.sku}" sudah digunakan` },
+              { status: 409 }
+            )
+          }
+        }
+      }
+    }
+
+    // Build variant create data
+    const variantCreateData = variants && Array.isArray(variants) && variants.length > 0
+      ? variants.map(
+          (v: {
+            name: string
+            sku: string
+            attributes?: string
+            buyPrice?: number
+            sellPrice?: number
+            stock?: number
+            minStock?: number
+            isActive?: boolean
+            barcode?: string
+          }) => ({
+            name: v.name || 'Default',
+            sku: v.sku || `${sku}-DEF`,
+            attributes: v.attributes || '{}',
+            buyPrice: v.buyPrice ?? buyPrice ?? 0,
+            sellPrice: v.sellPrice ?? sellPrice ?? 0,
+            stock: v.stock ?? 0,
+            minStock: v.minStock ?? minStock ?? 0,
+            isActive: v.isActive ?? true,
+            barcode: v.barcode || null,
+          })
+        )
+      : undefined
+
     const product = await db.product.create({
       data: {
         name,
         sku,
         categoryId,
         supplierId: supplierId || null,
+        description: description || null,
+        image: image || null,
         buyPrice: buyPrice ?? 0,
         sellPrice: sellPrice ?? 0,
-        stock: stock ?? 0,
         minStock: minStock ?? 0,
         isActive: isActive ?? true,
+        ...(variantCreateData && {
+          variants: {
+            create: variantCreateData,
+          },
+        }),
       },
       include: {
         category: true,
         supplier: true,
+        variants: {
+          orderBy: { name: 'asc' },
+        },
       },
     })
 

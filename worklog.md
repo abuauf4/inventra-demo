@@ -1,39 +1,32 @@
 ---
-Task ID: 1
+Task ID: 2
 Agent: Main Agent
-Task: Build NAUKA INVENTRA V1 - Complete Business Operations System for UMKM
+Task: Upgrade NAUKA INVENTRA V1.1 - Product Variants, Warehouses, Activity Log, Status Workflow, Fashion Theme
 
 Work Log:
-- Initialized fullstack-dev skill and project environment
-- Designed and created Prisma database schema with 10 models (User, Category, Supplier, Customer, Product, Purchase, PurchaseItem, Sale, SaleItem, StockMutation)
-- Pushed schema to SQLite database
-- Created Zustand store for client-side navigation and state management
-- Built 14 API route files covering all CRUD operations:
-  - /api/auth (login)
-  - /api/users, /api/users/[id] (CRUD)
-  - /api/categories, /api/categories/[id] (CRUD)
-  - /api/products, /api/products/[id] (CRUD with search/filter)
-  - /api/suppliers, /api/suppliers/[id] (CRUD with purchase history)
-  - /api/customers, /api/customers/[id] (CRUD with sale history)
-  - /api/purchases, /api/purchases/[id] (CRUD with auto stock increment)
-  - /api/sales, /api/sales/[id] (CRUD with auto stock decrement)
-  - /api/stock-mutations (list with filters)
-  - /api/reports (sales, purchases, stock reports)
-  - /api/dashboard (KPI statistics)
-  - /api/seed (initial data seeding)
-- Built complete SPA frontend in page.tsx with 10 modules:
-  - LoginScreen, Dashboard, Categories, Suppliers, Customers, Products, Purchases, Sales, StockMutations, Reports, UserManagement
-- Fixed API response unwrapping (all APIs return { success: true, data: ... })
-- Fixed reports module field name mismatches (grouped/grandTotal/totalAmount/totalInventoryValue)
-- Fixed supplier/customer "none" select value handling
-- Fixed error handling to check both d.error and d.message
-- Comprehensive browser testing passed - all 9 pages verified working
+- Updated Prisma schema with 5 new models: ProductVariant, Warehouse, WarehouseStock, ActivityLog, Attachment
+- Added status workflow to Purchase (DRAFT→APPROVED→RECEIVED/CANCELLED) and Sale (DRAFT→PAID→COMPLETED/CANCELLED)
+- Updated PurchaseItem and SaleItem to support variantId (preferred) with productId fallback
+- Updated StockMutation to support variantId and warehouseId
+- Created new API routes: /api/product-variants, /api/warehouses, /api/activity-logs, /api/attachments
+- Updated existing API routes: products (with variants), purchases/sales (with status workflow), dashboard, reports, seed
+- Rebuilt entire frontend with:
+  - Fashion theme (rose/amber gradient branding)
+  - Renamed "Dashboard" to "Overview" in sidebar
+  - Added Product Variants UI (expand/collapse per product, add variant dialog, attribute badges)
+  - Added Warehouse module (card-based layout)
+  - Added Activity Log module (timeline view with action icons)
+  - Added Status Workflow in Purchases (Draft→Setujui→Terima) and Sales (Draft→Bayar→Selesai)
+  - Status badges with color coding throughout
+  - Variant-level stock tracking in reports
+- Seeded fashion data: 4 products with 18 variants, 2 warehouses, fashion categories
 
 Stage Summary:
-- Full NAUKA INVENTRA V1 application built and functional
-- All modules: Dashboard, Produk, Kategori, Supplier, Customer, Pembelian, Penjualan, Mutasi Stok, Laporan, User Management
-- Auto stock management: Pembelian adds stock + creates IN mutation, Penjualan reduces stock + creates OUT mutation
-- Stock validation on sales (checks availability before allowing)
-- Transaction reversal on deletion (creates ADJUSTMENT mutations)
-- Seeded data: owner user, 5 categories, 3 suppliers, 3 customers
-- Lint passes clean, no runtime errors
+- All new features implemented and working
+- Fashion theme applied (rose-500 to amber-500 gradients)
+- Product Variant system fully functional
+- Warehouse management with card UI
+- Status workflow for Purchases and Sales
+- Activity Log infrastructure in place
+- Variant-level stock reporting
+- All APIs return 200, lint passes clean

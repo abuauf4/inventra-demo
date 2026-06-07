@@ -2,6 +2,19 @@ import { db } from '@/lib/db'
 import { Prisma } from '@prisma/client'
 import { NextRequest, NextResponse } from 'next/server'
 
+// Helper: resolve the target variant for an item (prefer variantId, fallback to first variant of product)
+async function resolveVariant(variantId: string | null | undefined, productId: string | null | undefined) {
+  if (variantId) {
+    const variant = await db.productVariant.findUnique({ where: { id: variantId } })
+    return variant
+  }
+  if (productId) {
+    const variant = await db.productVariant.findFirst({ where: { productId, isActive: true } })
+    return variant
+  }
+  return null
+}
+
 // GET /api/purchases - List purchases with supplier info and items
 export async function GET(request: NextRequest) {
   try {
@@ -10,6 +23,7 @@ export async function GET(request: NextRequest) {
     const supplierId = searchParams.get('supplierId') || ''
     const dateFrom = searchParams.get('dateFrom') || ''
     const dateTo = searchParams.get('dateTo') || ''
+    const status = searchParams.get('status') || ''
 
     const where: Prisma.PurchaseWhereInput = {}
 
@@ -19,6 +33,10 @@ export async function GET(request: NextRequest) {
 
     if (supplierId) {
       where.supplierId = supplierId
+    }
+
+    if (status) {
+      where.status = status
     }
 
     if (dateFrom || dateTo) {
@@ -33,6 +51,9 @@ export async function GET(request: NextRequest) {
         supplier: true,
         items: {
           include: {
+            variant: {
+              select: { id: true, name: true, sku: true },
+            },
             product: {
               select: { id: true, name: true, sku: true },
             },
@@ -54,11 +75,11 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/purchases - Create purchase with stock update
+// POST /api/purchases - Create purchase with status handling
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { supplierId, date, notes, items } = body
+    const { supplierId, date, notes, status, items } = body
 
     // Validation
     if (!supplierId || !date || !items || !Array.isArray(items) || items.length === 0) {
@@ -70,12 +91,21 @@ export async function POST(request: NextRequest) {
 
     // Validate each item
     for (const item of items) {
-      if (!item.productId || !item.qty || item.qty <= 0 || item.buyPrice === undefined || item.buyPrice < 0) {
+      if ((!item.variantId && !item.productId) || !item.qty || item.qty <= 0 || item.buyPrice === undefined || item.buyPrice < 0) {
         return NextResponse.json(
-          { success: false, message: 'Setiap item harus memiliki productId, qty (> 0), dan buyPrice (>= 0)' },
+          { success: false, message: 'Setiap item harus memiliki variantId atau productId, qty (> 0), dan buyPrice (>= 0)' },
           { status: 400 }
         )
       }
+    }
+
+    const purchaseStatus = status || 'DRAFT'
+    const validStatuses = ['DRAFT', 'APPROVED', 'RECEIVED', 'CANCELLED']
+    if (!validStatuses.includes(purchaseStatus)) {
+      return NextResponse.json(
+        { success: false, message: 'Status tidak valid. Gunakan: DRAFT, APPROVED, RECEIVED, CANCELLED' },
+        { status: 400 }
+      )
     }
 
     // Generate transNo: PB-YYYYMMDD-XXXX
@@ -107,6 +137,24 @@ export async function POST(request: NextRequest) {
       0
     )
 
+    // Resolve variants for items
+    const resolvedItems = []
+    for (const item of items) {
+      const variant = await resolveVariant(item.variantId, item.productId)
+      if (!variant) {
+        return NextResponse.json(
+          { success: false, message: `Variant tidak ditemukan untuk item (variantId: ${item.variantId}, productId: ${item.productId})` },
+          { status: 404 }
+        )
+      }
+      resolvedItems.push({
+        variantId: variant.id,
+        productId: variant.productId,
+        qty: item.qty,
+        buyPrice: item.buyPrice,
+      })
+    }
+
     // Create purchase with items
     const purchase = await db.purchase.create({
       data: {
@@ -114,21 +162,24 @@ export async function POST(request: NextRequest) {
         supplierId,
         date: purchaseDate,
         total,
+        status: purchaseStatus,
         notes: notes || null,
         items: {
-          create: items.map(
-            (item: { productId: string; qty: number; buyPrice: number }) => ({
-              productId: item.productId,
-              qty: item.qty,
-              buyPrice: item.buyPrice,
-            })
-          ),
+          create: resolvedItems.map((item) => ({
+            variantId: item.variantId,
+            productId: item.productId,
+            qty: item.qty,
+            buyPrice: item.buyPrice,
+          })),
         },
       },
       include: {
         supplier: true,
         items: {
           include: {
+            variant: {
+              select: { id: true, name: true, sku: true },
+            },
             product: {
               select: { id: true, name: true, sku: true },
             },
@@ -137,30 +188,31 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    // Update stock for each item and create stock mutations
-    for (const item of items) {
-      const { productId, qty } = item as { productId: string; qty: number }
-
-      // Add qty to product stock
-      await db.product.update({
-        where: { id: productId },
-        data: {
-          stock: {
-            increment: qty,
+    // ONLY update stock and create IN mutations if status is "RECEIVED"
+    if (purchaseStatus === 'RECEIVED') {
+      for (const item of resolvedItems) {
+        // Add qty to variant stock
+        await db.productVariant.update({
+          where: { id: item.variantId },
+          data: {
+            stock: {
+              increment: item.qty,
+            },
           },
-        },
-      })
+        })
 
-      // Create stock mutation
-      await db.stockMutation.create({
-        data: {
-          productId,
-          type: 'IN',
-          qty,
-          note: `Pembelian ${transNo}`,
-          referenceId: purchase.id,
-        },
-      })
+        // Create stock mutation
+        await db.stockMutation.create({
+          data: {
+            variantId: item.variantId,
+            productId: item.productId,
+            type: 'IN',
+            qty: item.qty,
+            note: `Pembelian ${transNo}`,
+            referenceId: purchase.id,
+          },
+        })
+      }
     }
 
     return NextResponse.json({ success: true, data: purchase }, { status: 201 })

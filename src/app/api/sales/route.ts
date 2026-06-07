@@ -2,6 +2,19 @@ import { db } from '@/lib/db'
 import { Prisma } from '@prisma/client'
 import { NextRequest, NextResponse } from 'next/server'
 
+// Helper: resolve the target variant for an item (prefer variantId, fallback to first variant of product)
+async function resolveVariant(variantId: string | null | undefined, productId: string | null | undefined) {
+  if (variantId) {
+    const variant = await db.productVariant.findUnique({ where: { id: variantId } })
+    return variant
+  }
+  if (productId) {
+    const variant = await db.productVariant.findFirst({ where: { productId, isActive: true } })
+    return variant
+  }
+  return null
+}
+
 // GET /api/sales - List sales with customer info and items
 export async function GET(request: NextRequest) {
   try {
@@ -10,6 +23,7 @@ export async function GET(request: NextRequest) {
     const customerId = searchParams.get('customerId') || ''
     const dateFrom = searchParams.get('dateFrom') || ''
     const dateTo = searchParams.get('dateTo') || ''
+    const status = searchParams.get('status') || ''
 
     const where: Prisma.SaleWhereInput = {}
 
@@ -19,6 +33,10 @@ export async function GET(request: NextRequest) {
 
     if (customerId) {
       where.customerId = customerId
+    }
+
+    if (status) {
+      where.status = status
     }
 
     if (dateFrom || dateTo) {
@@ -33,6 +51,9 @@ export async function GET(request: NextRequest) {
         customer: true,
         items: {
           include: {
+            variant: {
+              select: { id: true, name: true, sku: true },
+            },
             product: {
               select: { id: true, name: true, sku: true },
             },
@@ -54,11 +75,11 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/sales - Create sale with stock reduction
+// POST /api/sales - Create sale with status handling
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { customerId, date, notes, items } = body
+    const { customerId, date, notes, status, items } = body
 
     // Validation
     if (!date || !items || !Array.isArray(items) || items.length === 0) {
@@ -70,32 +91,55 @@ export async function POST(request: NextRequest) {
 
     // Validate each item
     for (const item of items) {
-      if (!item.productId || !item.qty || item.qty <= 0 || item.sellPrice === undefined || item.sellPrice < 0) {
+      if ((!item.variantId && !item.productId) || !item.qty || item.qty <= 0 || item.sellPrice === undefined || item.sellPrice < 0) {
         return NextResponse.json(
-          { success: false, message: 'Setiap item harus memiliki productId, qty (> 0), dan sellPrice (>= 0)' },
+          { success: false, message: 'Setiap item harus memiliki variantId atau productId, qty (> 0), dan sellPrice (>= 0)' },
           { status: 400 }
         )
       }
     }
 
-    // Check stock availability for all items first
-    for (const item of items) {
-      const product = await db.product.findUnique({
-        where: { id: item.productId },
-      })
+    const saleStatus = status || 'DRAFT'
+    const validStatuses = ['DRAFT', 'PAID', 'COMPLETED', 'CANCELLED']
+    if (!validStatuses.includes(saleStatus)) {
+      return NextResponse.json(
+        { success: false, message: 'Status tidak valid. Gunakan: DRAFT, PAID, COMPLETED, CANCELLED' },
+        { status: 400 }
+      )
+    }
 
-      if (!product) {
+    // Resolve variants for items and check stock if status is COMPLETED
+    const resolvedItems = []
+    for (const item of items) {
+      const variant = await resolveVariant(item.variantId, item.productId)
+      if (!variant) {
         return NextResponse.json(
-          { success: false, message: `Produk dengan ID ${item.productId} tidak ditemukan` },
+          { success: false, message: `Variant tidak ditemukan untuk item (variantId: ${item.variantId}, productId: ${item.productId})` },
           { status: 404 }
         )
       }
+      resolvedItems.push({
+        variantId: variant.id,
+        productId: variant.productId,
+        qty: item.qty,
+        sellPrice: item.sellPrice,
+        variantStock: variant.stock,
+        variantName: variant.name,
+      })
+    }
 
-      if (item.qty > product.stock) {
-        return NextResponse.json(
-          { success: false, message: `Stok tidak cukup untuk produk ${product.name}. Stok tersedia: ${product.stock}, diminta: ${item.qty}` },
-          { status: 400 }
-        )
+    // Check stock availability if status is COMPLETED
+    if (saleStatus === 'COMPLETED') {
+      for (const item of resolvedItems) {
+        if (item.qty > item.variantStock) {
+          return NextResponse.json(
+            {
+              success: false,
+              message: `Stok tidak cukup untuk variant ${item.variantName}. Stok tersedia: ${item.variantStock}, diminta: ${item.qty}`,
+            },
+            { status: 400 }
+          )
+        }
       }
     }
 
@@ -135,21 +179,24 @@ export async function POST(request: NextRequest) {
         customerId: customerId || null,
         date: saleDate,
         total,
+        status: saleStatus,
         notes: notes || null,
         items: {
-          create: items.map(
-            (item: { productId: string; qty: number; sellPrice: number }) => ({
-              productId: item.productId,
-              qty: item.qty,
-              sellPrice: item.sellPrice,
-            })
-          ),
+          create: resolvedItems.map((item) => ({
+            variantId: item.variantId,
+            productId: item.productId,
+            qty: item.qty,
+            sellPrice: item.sellPrice,
+          })),
         },
       },
       include: {
         customer: true,
         items: {
           include: {
+            variant: {
+              select: { id: true, name: true, sku: true },
+            },
             product: {
               select: { id: true, name: true, sku: true },
             },
@@ -158,30 +205,31 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    // Reduce stock for each item and create stock mutations
-    for (const item of items) {
-      const { productId, qty } = item as { productId: string; qty: number }
-
-      // Subtract qty from product stock
-      await db.product.update({
-        where: { id: productId },
-        data: {
-          stock: {
-            decrement: qty,
+    // ONLY update stock and create OUT mutations if status is "COMPLETED"
+    if (saleStatus === 'COMPLETED') {
+      for (const item of resolvedItems) {
+        // Subtract qty from variant stock
+        await db.productVariant.update({
+          where: { id: item.variantId },
+          data: {
+            stock: {
+              decrement: item.qty,
+            },
           },
-        },
-      })
+        })
 
-      // Create stock mutation
-      await db.stockMutation.create({
-        data: {
-          productId,
-          type: 'OUT',
-          qty,
-          note: `Penjualan ${transNo}`,
-          referenceId: sale.id,
-        },
-      })
+        // Create stock mutation
+        await db.stockMutation.create({
+          data: {
+            variantId: item.variantId,
+            productId: item.productId,
+            type: 'OUT',
+            qty: item.qty,
+            note: `Penjualan ${transNo}`,
+            referenceId: sale.id,
+          },
+        })
+      }
     }
 
     return NextResponse.json({ success: true, data: sale }, { status: 201 })
