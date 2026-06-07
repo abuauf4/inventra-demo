@@ -6,8 +6,9 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // ===================== AUTH & USER =====================
@@ -151,7 +152,6 @@ model Purchase {
   notes      String?
   supplier   Supplier       @relation(fields: [supplierId], references: [id])
   items      PurchaseItem[]
-  attachments Attachment[]
   createdAt  DateTime       @default(now())
   updatedAt  DateTime       @updatedAt
 }
@@ -180,7 +180,6 @@ model Sale {
   notes      String?
   customer   Customer?    @relation(fields: [customerId], references: [id])
   items      SaleItem[]
-  attachments Attachment[]
   createdAt  DateTime     @default(now())
   updatedAt  DateTime     @updatedAt
 }
@@ -251,14 +250,12 @@ model Inbox {
 model Attachment {
   id         String    @id @default(cuid())
   entity     String    // Purchase, Sale, Product, etc.
-  entityId   String
+  entityId   String    // Polymorphic reference - no FK, resolved by entity field
   fileName   String
   filePath   String
   fileType   String    // image, pdf, document
   fileSize   Int       @default(0)
   uploadedBy String?
   user       User?     @relation(fields: [uploadedBy], references: [id])
-  purchase   Purchase? @relation(fields: [entityId], references: [id])
-  sale       Sale?     @relation(fields: [entityId], references: [id])
   createdAt  DateTime  @default(now())
 }

@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
 
     const where = search
       ? {
-          name: { contains: search },
+          name: { contains: search, mode: 'insensitive' },
         }
       : {}
 

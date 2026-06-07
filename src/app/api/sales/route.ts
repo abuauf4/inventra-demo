@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
     const where: Prisma.SaleWhereInput = {}
 
     if (search) {
-      where.transNo = { contains: search }
+      where.transNo = { contains: search, mode: 'insensitive' }
     }
 
     if (customerId) {

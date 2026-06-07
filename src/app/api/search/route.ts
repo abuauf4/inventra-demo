@@ -15,9 +15,9 @@ export async function GET(request: NextRequest) {
     const customers = await db.customer.findMany({
       where: {
         OR: [
-          { code: { contains: q } },
-          { name: { contains: q } },
-          { phone: { contains: q } },
+          { code: { contains: q, mode: 'insensitive' } },
+          { name: { contains: q, mode: 'insensitive' } },
+          { phone: { contains: q, mode: 'insensitive' } },
         ]
       },
       take: 5,
@@ -32,8 +32,8 @@ export async function GET(request: NextRequest) {
     const suppliers = await db.supplier.findMany({
       where: {
         OR: [
-          { code: { contains: q } },
-          { name: { contains: q } },
+          { code: { contains: q, mode: 'insensitive' } },
+          { name: { contains: q, mode: 'insensitive' } },
         ]
       },
       take: 5,
@@ -48,8 +48,8 @@ export async function GET(request: NextRequest) {
     const products = await db.product.findMany({
       where: {
         OR: [
-          { sku: { contains: q } },
-          { name: { contains: q } },
+          { sku: { contains: q, mode: 'insensitive' } },
+          { name: { contains: q, mode: 'insensitive' } },
         ]
       },
       include: { category: true, variants: { where: { isActive: true }, take: 3 } },
@@ -65,8 +65,8 @@ export async function GET(request: NextRequest) {
     const variants = await db.productVariant.findMany({
       where: {
         OR: [
-          { sku: { contains: q } },
-          { name: { contains: q } },
+          { sku: { contains: q, mode: 'insensitive' } },
+          { name: { contains: q, mode: 'insensitive' } },
         ]
       },
       include: { product: { include: { category: true } } },
@@ -81,7 +81,7 @@ export async function GET(request: NextRequest) {
 
     // Search Purchases
     const purchases = await db.purchase.findMany({
-      where: { transNo: { contains: q } },
+      where: { transNo: { contains: q, mode: 'insensitive' } },
       include: { supplier: true },
       take: 5,
     })
@@ -93,7 +93,7 @@ export async function GET(request: NextRequest) {
 
     // Search Sales
     const sales = await db.sale.findMany({
-      where: { transNo: { contains: q } },
+      where: { transNo: { contains: q, mode: 'insensitive' } },
       include: { customer: true },
       take: 5,
     })
@@ -107,8 +107,8 @@ export async function GET(request: NextRequest) {
     const warehouses = await db.warehouse.findMany({
       where: {
         OR: [
-          { code: { contains: q } },
-          { name: { contains: q } },
+          { code: { contains: q, mode: 'insensitive' } },
+          { name: { contains: q, mode: 'insensitive' } },
         ]
       },
       take: 3,
