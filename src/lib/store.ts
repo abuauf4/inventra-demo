@@ -2,6 +2,7 @@ import { create } from 'zustand'
 
 export type AppPage =
   | 'dashboard'
+  | 'dashboard-analytics'
   | 'products'
   | 'categories'
   | 'suppliers'
