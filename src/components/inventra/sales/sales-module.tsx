@@ -59,7 +59,7 @@ function SalesModule() {
       if (search) params.set('search', search)
       if (filterStatus !== 'all') params.set('status', filterStatus)
       const [sRes, cRes, pRes] = await Promise.all([fetch(`/api/sales?${params}`), fetch('/api/customers'), fetch('/api/products')])
-      setSales((await sRes.json()).data); setCustomers((await cRes.json()).data); setProducts((await pRes.json()).data)
+      setSales((await sRes.json()).data ?? []); setCustomers((await cRes.json()).data ?? []); setProducts((await pRes.json()).data ?? [])
     } catch { toast.error('Gagal') }
     finally { setLoading(false) }
   }, [search, filterStatus])
@@ -132,7 +132,7 @@ function SalesModule() {
       if (v.sku.toLowerCase().includes(q)) return true
       if (v.productName.toLowerCase().includes(q)) return true
       if (v.name.toLowerCase().includes(q)) return true
-      try { const attrs = JSON.parse(v.attributes); return Object.values(attrs).some(val => String(val).toLowerCase().includes(q)) } catch { return false }
+      try { const attrs = JSON.parse(v.attributes); return Object.values(attrs ?? {}).some(val => String(val).toLowerCase().includes(q)) } catch { return false }
     }).slice(0, 10)
   }
 

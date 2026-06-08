@@ -36,7 +36,7 @@ function QuickSaleDialog() {
   useEffect(() => {
     if (quickActionOpen) {
       Promise.all([fetch('/api/customers').then(r => r.json()), fetch('/api/products').then(r => r.json())])
-        .then(([c, p]) => { setCustomers(c.data || []); setProducts(p.data || []) })
+        .then(([c, p]) => { setCustomers(c.data ?? []); setProducts(p.data ?? []) })
       setCustomerId(''); setVariantId(''); setQty('1'); setCustomerSearch(''); setVariantSearch('')
     }
   }, [quickActionOpen])
@@ -77,7 +77,7 @@ function QuickSaleDialog() {
     if (v.sku.toLowerCase().includes(q)) return true
     if (v.productName.toLowerCase().includes(q)) return true
     if (v.name.toLowerCase().includes(q)) return true
-    try { const attrs = JSON.parse(v.attributes); return Object.values(attrs).some(val => String(val).toLowerCase().includes(q)) } catch { return false }
+    try { const attrs = JSON.parse(v.attributes); return Object.values(attrs ?? {}).some(val => String(val).toLowerCase().includes(q)) } catch { return false }
   }).slice(0, 10)
 
   return (

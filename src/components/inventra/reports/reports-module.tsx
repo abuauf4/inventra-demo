@@ -34,7 +34,7 @@ function ReportsModule() {
       const params = new URLSearchParams()
       params.set('type', tab === 'stock' ? 'stock' : tab)
       if (tab !== 'stock') { params.set('period', period); if (dateFrom) params.set('dateFrom', dateFrom); if (dateTo) params.set('dateTo', dateTo) }
-      const res = await fetch(`/api/reports?${params}`); setData((await res.json()).data)
+      const res = await fetch(`/api/reports?${params}`); setData((await res.json()).data ?? null)
     } catch { toast.error('Gagal') }
     finally { setLoading(false) }
   }, [tab, period, dateFrom, dateTo])

@@ -169,21 +169,21 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
             <div className="flex items-center gap-2.5 px-1">
               <div
                 className={`w-9 h-9 rounded-xl bg-gradient-to-br ${
-                  roleColors[currentUser.role] || 'from-gray-400 to-gray-500'
+                  roleColors[currentUser.role ?? 'staff'] || 'from-gray-400 to-gray-500'
                 } flex items-center justify-center text-white text-sm font-bold shadow-sm shrink-0`}
               >
-                {currentUser.name.slice(0, 2).toUpperCase()}
+                {(currentUser.name ?? 'U').slice(0, 2).toUpperCase()}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-white truncate">
-                  {currentUser.name}
+                  {currentUser.name ?? 'User'}
                 </p>
                 <div className="flex items-center gap-1.5">
                   <span className="text-teal-400/50">
-                    {roleIcons[currentUser.role]}
+                    {roleIcons[currentUser.role ?? 'staff']}
                   </span>
                   <span className="text-[11px] text-teal-400/50 capitalize">
-                    {roleLabels[currentUser.role]}
+                    {roleLabels[currentUser.role ?? 'staff']}
                   </span>
                 </div>
               </div>

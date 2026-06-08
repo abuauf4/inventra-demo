@@ -46,7 +46,7 @@ function CategoriesModule() {
 
   const load = useCallback(async () => {
     setLoading(true)
-    try { const res = await fetch(`/api/categories?search=${encodeURIComponent(search)}`); setCategories((await res.json()).data) } catch { toast.error('Gagal memuat') }
+    try { const res = await fetch(`/api/categories?search=${encodeURIComponent(search)}`); setCategories((await res.json()).data ?? []) } catch { toast.error('Gagal memuat') }
     finally { setLoading(false) }
   }, [search])
   useEffect(() => { load() }, [load])

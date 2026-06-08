@@ -49,7 +49,7 @@ function SuppliersModule() {
 
   const load = useCallback(async () => {
     setLoading(true)
-    try { const res = await fetch(`/api/suppliers?search=${encodeURIComponent(search)}`); setSuppliers((await res.json()).data) } catch { toast.error('Gagal') }
+    try { const res = await fetch(`/api/suppliers?search=${encodeURIComponent(search)}`); setSuppliers((await res.json()).data ?? []) } catch { toast.error('Gagal') }
     finally { setLoading(false) }
   }, [search])
   useEffect(() => { load() }, [load])

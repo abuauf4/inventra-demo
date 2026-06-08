@@ -58,7 +58,7 @@ function PurchasesModule() {
       if (search) params.set('search', search)
       if (filterStatus !== 'all') params.set('status', filterStatus)
       const [pRes, sRes, prRes] = await Promise.all([fetch(`/api/purchases?${params}`), fetch('/api/suppliers'), fetch('/api/products')])
-      setPurchases((await pRes.json()).data); setSuppliers((await sRes.json()).data); setProducts((await prRes.json()).data)
+      setPurchases((await pRes.json()).data ?? []); setSuppliers((await sRes.json()).data ?? []); setProducts((await prRes.json()).data ?? [])
     } catch { toast.error('Gagal') }
     finally { setLoading(false) }
   }, [search, filterStatus])
@@ -134,7 +134,7 @@ function PurchasesModule() {
       if (v.sku.toLowerCase().includes(q)) return true
       if (v.productName.toLowerCase().includes(q)) return true
       if (v.name.toLowerCase().includes(q)) return true
-      try { const attrs = JSON.parse(v.attributes); return Object.values(attrs).some(val => String(val).toLowerCase().includes(q)) } catch { return false }
+      try { const attrs = JSON.parse(v.attributes); return Object.values(attrs ?? {}).some(val => String(val).toLowerCase().includes(q)) } catch { return false }
     }).slice(0, 10)
   }
 

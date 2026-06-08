@@ -43,7 +43,7 @@ function WarehousesModule() {
 
   const load = useCallback(async () => {
     setLoading(true)
-    try { const res = await fetch(`/api/warehouses?search=${encodeURIComponent(search)}`); setWarehouses((await res.json()).data) } catch { toast.error('Gagal') }
+    try { const res = await fetch(`/api/warehouses?search=${encodeURIComponent(search)}`); setWarehouses((await res.json()).data ?? []) } catch { toast.error('Gagal') }
     finally { setLoading(false) }
   }, [search])
   useEffect(() => { load() }, [load])

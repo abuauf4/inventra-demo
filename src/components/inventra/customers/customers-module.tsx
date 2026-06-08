@@ -49,7 +49,7 @@ function CustomersModule() {
 
   const load = useCallback(async () => {
     setLoading(true)
-    try { const res = await fetch(`/api/customers?search=${encodeURIComponent(search)}`); setCustomers((await res.json()).data) } catch { toast.error('Gagal') }
+    try { const res = await fetch(`/api/customers?search=${encodeURIComponent(search)}`); setCustomers((await res.json()).data ?? []) } catch { toast.error('Gagal') }
     finally { setLoading(false) }
   }, [search])
   useEffect(() => { load() }, [load])

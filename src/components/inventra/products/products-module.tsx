@@ -58,7 +58,7 @@ function ProductsModule() {
       if (filterCategory && filterCategory !== 'all') params.set('categoryId', filterCategory)
       if (filterLowStock) params.set('lowStock', 'true')
       const [pRes, cRes, sRes] = await Promise.all([fetch(`/api/products?${params}`), fetch('/api/categories'), fetch('/api/suppliers')])
-      setProducts((await pRes.json()).data); setCategories((await cRes.json()).data); setSuppliers((await sRes.json()).data)
+      setProducts((await pRes.json()).data ?? []); setCategories((await cRes.json()).data ?? []); setSuppliers((await sRes.json()).data ?? [])
     } catch { toast.error('Gagal') }
     finally { setLoading(false) }
   }, [search, filterCategory, filterLowStock])
@@ -154,12 +154,12 @@ function ProductsModule() {
                     <Button variant="ghost" size="icon" onClick={() => setDeleteConfirm(p.id)} className="text-red-500"><Trash2 className="w-4 h-4" /></Button>
                   </div>
                 </div>
-                {expandedProducts.has(p.id) && p.variants && p.variants.length > 0 && (
+                {expandedProducts.has(p.id) && (p.variants ?? []).length > 0 && (
                   <div className="mt-3 pt-3 border-t">
                     <Table><TableHeader><TableRow><TableHead>Varian</TableHead><TableHead>SKU</TableHead><TableHead>Atribut</TableHead><TableHead className="text-right">Harga Beli</TableHead><TableHead className="text-right">Harga Jual</TableHead><TableHead className="text-center">Stok</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
-                      <TableBody>{p.variants.map(v => {
+                      <TableBody>{(p.variants ?? []).map(v => {
                         const attrs = (() => { try { return JSON.parse(v.attributes) } catch { return {} } })()
-                        return <TableRow key={v.id}><TableCell className="font-medium">{v.name}</TableCell><TableCell className="font-mono text-xs">{v.sku}</TableCell><TableCell><div className="flex gap-1 flex-wrap">{Object.entries(attrs).map(([k, val]) => <Badge key={k} variant="outline" className="text-xs">{k}: {String(val)}</Badge>)}</div></TableCell>
+                        return <TableRow key={v.id}><TableCell className="font-medium">{v.name}</TableCell><TableCell className="font-mono text-xs">{v.sku}</TableCell><TableCell><div className="flex gap-1 flex-wrap">{Object.entries(attrs ?? {}).map(([k, val]) => <Badge key={k} variant="outline" className="text-xs">{k}: {String(val)}</Badge>)}</div></TableCell>
                           <TableCell className="text-right">{fmtRp(v.buyPrice)}</TableCell><TableCell className="text-right">{fmtRp(v.sellPrice)}</TableCell>
                           <TableCell className="text-center"><Badge variant={v.stock <= v.minStock ? (v.stock <= 0 ? 'destructive' : 'secondary') : 'default'} className={v.stock > v.minStock ? 'bg-emerald-100 text-emerald-700' : v.stock <= 0 ? '' : 'bg-amber-100 text-amber-700'}>{v.stock}</Badge></TableCell>
                           <TableCell><Badge variant={v.isActive ? 'default' : 'secondary'} className={v.isActive ? 'bg-emerald-100 text-emerald-700' : ''}>{v.isActive ? 'Aktif' : 'Nonaktif'}</Badge></TableCell>

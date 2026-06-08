@@ -30,7 +30,7 @@ function ActivityLogModule() {
       if (filterEntity !== 'all') params.set('entity', filterEntity)
       if (filterAction !== 'all') params.set('action', filterAction)
       const res = await fetch(`/api/activity-logs?${params}`)
-      setLogs((await res.json()).data)
+      setLogs((await res.json()).data ?? [])
     } catch { toast.error('Gagal') }
     finally { setLoading(false) }
   }, [filterEntity, filterAction])

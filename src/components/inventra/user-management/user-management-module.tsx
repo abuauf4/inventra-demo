@@ -50,7 +50,7 @@ function UserManagementModule() {
 
   const load = useCallback(async () => {
     setLoading(true)
-    try { const res = await fetch(`/api/users?search=${encodeURIComponent(search)}`); const data = await res.json(); setUsers(data.data.map((u: any) => { const { password, ...rest } = u; return rest })) } catch { toast.error('Gagal') }
+    try { const res = await fetch(`/api/users?search=${encodeURIComponent(search)}`); const data = await res.json(); setUsers((data.data ?? []).map((u: any) => { const { password, ...rest } = u; return rest })) } catch { toast.error('Gagal') }
     finally { setLoading(false) }
   }, [search])
   useEffect(() => { load() }, [load])

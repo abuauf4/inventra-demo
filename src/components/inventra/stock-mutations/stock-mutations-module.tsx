@@ -102,7 +102,7 @@ function StockMutationsModule() {
       if (v.name.toLowerCase().includes(q)) return true
       try {
         const attrs = JSON.parse(v.attributes)
-        return Object.values(attrs).some(val => String(val).toLowerCase().includes(q))
+        return Object.values(attrs ?? {}).some(val => String(val).toLowerCase().includes(q))
       } catch { return false }
     }).slice(0, 10)
   }
@@ -120,9 +120,9 @@ function StockMutationsModule() {
         fetch('/api/products'),
         fetch('/api/warehouses'),
       ])
-      setMutations((await mRes.json()).data)
-      setProducts((await prRes.json()).data)
-      setWarehouses((await whRes.json()).data)
+      setMutations((await mRes.json()).data ?? [])
+      setProducts((await prRes.json()).data ?? [])
+      setWarehouses((await whRes.json()).data ?? [])
     } catch { toast.error('Gagal memuat data') }
     finally { setLoading(false) }
   }, [filterType])
