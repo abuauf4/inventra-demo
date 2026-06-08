@@ -29,7 +29,20 @@ import UserManagementModule from '@/components/inventra/user-management/user-man
 import InboxModule from '@/components/inventra/inbox/inbox-module'
 
 export default function InventraApp() {
-  const { currentUser, activePage, sidebarOpen, setSidebarOpen, setSearchOpen, setQuickActionOpen } = useAppStore()
+  const {
+    currentUser,
+    activePage,
+    sidebarOpen,
+    setSidebarOpen,
+    setSearchOpen,
+    setQuickActionOpen,
+    theme,
+  } = useAppStore()
+
+  // Apply theme on mount and when it changes
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', theme === 'dark')
+  }, [theme])
 
   // Global keyboard shortcuts
   useEffect(() => {
@@ -51,26 +64,41 @@ export default function InventraApp() {
 
   const renderPage = () => {
     switch (activePage) {
-      case 'dashboard': return <WorkspaceHome />
-      case 'dashboard-analytics': return <ReportsModule />
-      case 'inbox': return <InboxModule />
-      case 'products': return <ProductsModule />
-      case 'categories': return <CategoriesModule />
-      case 'suppliers': return <SuppliersModule />
-      case 'customers': return <CustomersModule />
-      case 'purchases': return <PurchasesModule />
-      case 'sales': return <SalesModule />
-      case 'stock-mutations': return <StockMutationsModule />
-      case 'warehouses': return <WarehousesModule />
-      case 'activity-logs': return <ActivityLogModule />
-      case 'reports': return <ReportsModule />
-      case 'user-management': return <UserManagementModule />
-      default: return <WorkspaceHome />
+      case 'dashboard':
+        return <WorkspaceHome />
+      case 'dashboard-analytics':
+        return <ReportsModule />
+      case 'inbox':
+        return <InboxModule />
+      case 'products':
+        return <ProductsModule />
+      case 'categories':
+        return <CategoriesModule />
+      case 'suppliers':
+        return <SuppliersModule />
+      case 'customers':
+        return <CustomersModule />
+      case 'purchases':
+        return <PurchasesModule />
+      case 'sales':
+        return <SalesModule />
+      case 'stock-mutations':
+        return <StockMutationsModule />
+      case 'warehouses':
+        return <WarehousesModule />
+      case 'activity-logs':
+        return <ActivityLogModule />
+      case 'reports':
+        return <ReportsModule />
+      case 'user-management':
+        return <UserManagementModule />
+      default:
+        return <WorkspaceHome />
     }
   }
 
   return (
-    <div className="min-h-screen flex bg-gradient-to-br from-stone-50 to-stone-100/50">
+    <div className="min-h-screen flex bg-stone-50 dark:bg-stone-950">
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="flex-1 flex flex-col min-w-0">
         <Header />
@@ -80,10 +108,16 @@ export default function InventraApp() {
       <QuickSaleDialog />
       {/* Mobile Floating Action Buttons */}
       <div className="fixed bottom-6 right-6 flex flex-col gap-3 lg:hidden z-40">
-        <button onClick={() => setSearchOpen(true)} className="w-12 h-12 rounded-full bg-stone-900 text-white shadow-lg hover:shadow-xl transition-all flex items-center justify-center">
+        <button
+          onClick={() => setSearchOpen(true)}
+          className="w-12 h-12 rounded-full bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900 shadow-lg hover:shadow-xl transition-all flex items-center justify-center"
+        >
           <Search className="w-5 h-5" />
         </button>
-        <button onClick={() => setQuickActionOpen(true)} className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 text-white shadow-lg hover:shadow-xl transition-all flex items-center justify-center">
+        <button
+          onClick={() => setQuickActionOpen(true)}
+          className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 text-white shadow-lg hover:shadow-xl transition-all flex items-center justify-center"
+        >
           <ShoppingBag className="w-5 h-5" />
         </button>
       </div>

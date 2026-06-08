@@ -18,6 +18,7 @@ export type AppPage =
   | 'inbox'
 
 export type UserRole = 'owner' | 'admin' | 'staff' | 'warehouse'
+export type ThemeMode = 'light' | 'dark'
 
 interface CurrentUser {
   id: string
@@ -53,11 +54,14 @@ interface AppState {
   setQuickActionOpen: (open: boolean) => void
   activeWarehouse: string
   setActiveWarehouse: (warehouse: string) => void
+  theme: ThemeMode
+  setTheme: (theme: ThemeMode) => void
+  toggleTheme: () => void
 }
 
 export const useAppStore = create<AppState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       activePage: 'dashboard',
       setActivePage: (page) => set({ activePage: page }),
       sidebarOpen: true,
@@ -81,12 +85,24 @@ export const useAppStore = create<AppState>()(
       setQuickActionOpen: (open) => set({ quickActionOpen: open }),
       activeWarehouse: 'Gudang Utama',
       setActiveWarehouse: (warehouse) => set({ activeWarehouse: warehouse }),
+      theme: 'light',
+      setTheme: (theme) => {
+        if (typeof document !== 'undefined') {
+          document.documentElement.classList.toggle('dark', theme === 'dark')
+        }
+        set({ theme })
+      },
+      toggleTheme: () => {
+        const newTheme = get().theme === 'light' ? 'dark' : 'light'
+        get().setTheme(newTheme)
+      },
     }),
     {
       name: 'inventra-store',
       partialize: (state) => ({
         currentUser: state.currentUser,
         activeWarehouse: state.activeWarehouse,
+        theme: state.theme,
       }),
     }
   )
