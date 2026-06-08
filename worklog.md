@@ -74,3 +74,33 @@ Stage Summary:
 - "Mau ngerjain apa nih?" greeting captures the "bikin orang betah" philosophy
 - All functionality preserved — purely visual transformation
 - 8 files modified, 158 insertions, 154 deletions
+
+---
+Task ID: product-stabilization-sprint
+Agent: Main Agent (Super Z)
+Task: Sprint: Product Stabilization — Critical fixes & operational readiness
+
+Work Log:
+- Completed comprehensive audit of all 14 modules + 22 API routes
+- Identified 8 critical bugs and 10 high-priority improvements
+- Fixed Stock Report: data.products → data.variants (empty table bug)
+- Built full Stock Mutations CREATE system: POST API + UI with Transfer/Adjustment/In-Out tabs
+- Added variant include to stock-mutations API (variant name was always undefined)
+- Fixed WarehouseStock creation on product creation (warehouse-level tracking was broken)
+- Hashed all passwords with bcryptjs (was plain text)
+- Added warehouse role + isActive to User API and UI
+- Added variant edit UI to Products module (was only create/delete)
+- Added Tab/Enter navigation across all dialog forms (5 modules)
+- Added auto-focus on first field when dialog opens (all modules)
+- Created /api/warehouse-stock endpoint for real-time stock display
+- Re-seeded database with bcrypt-hashed passwords
+- Build passes, pushed to GitHub (commit 8ea7ddd)
+
+Stage Summary:
+- All 8 critical bugs fixed
+- Stock Mutations now fully functional (was read-only)
+- Passwords properly hashed with bcrypt
+- All CRUD dialogs have Tab/Enter navigation + auto-focus
+- Variant edit now works in Products module
+- Warehouse role fully supported in User Management
+- 19 files modified across API, UI, and seed
