@@ -20,8 +20,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 import { RefreshCw } from 'lucide-react'
 
-function ReportsModule() {
-  const [tab, setTab] = useState('sales')
+function ReportsModule({ defaultTab }: { defaultTab?: 'sales' | 'purchases' | 'stock' } = {}) {
+  const [tab, setTab] = useState(defaultTab ?? 'sales')
   const [period, setPeriod] = useState('monthly')
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')

@@ -2,19 +2,50 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
 export type AppPage =
+  // Home
   | 'dashboard'
-  | 'dashboard-analytics'
+  // Data Master
+  | 'customers'
+  | 'suppliers'
   | 'products'
   | 'categories'
-  | 'suppliers'
-  | 'customers'
+  | 'warehouses'
+  // Distribusi
   | 'purchases'
   | 'sales'
+  | 'sales-order'
+  | 'purchase-order'
+  | 'sales-return'
+  | 'purchase-return'
+  // Inventory
   | 'stock-mutations'
-  | 'warehouses'
-  | 'activity-logs'
-  | 'reports'
+  | 'warehouse-transfer'
+  | 'stock-opname'
+  | 'stock-adjustment'
+  // Finance
+  | 'invoice'
+  | 'receivable'
+  | 'payment'
+  | 'cash'
+  // Accounting
+  | 'journal'
+  | 'ledger'
+  | 'balance-sheet'
+  | 'profit-loss'
+  // Report
+  | 'report-sales'
+  | 'report-purchases'
+  | 'report-stock'
+  | 'report-customer'
+  | 'report-supplier'
+  // Pengaturan
   | 'user-management'
+  | 'branch'
+  | 'branding'
+  | 'doc-numbering'
+  // Legacy (kept for backwards compat with persisted store)
+  | 'dashboard-analytics'
+  | 'activity-logs'
   | 'inbox'
 
 export type UserRole = 'owner' | 'admin' | 'staff' | 'warehouse'

@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 import { useAppStore } from '@/lib/store'
-import { Search, ShoppingBag } from 'lucide-react'
+import { Search, ShoppingBag, Construction } from 'lucide-react'
 
 // Workspace
 import WorkspaceHome from '@/components/inventra/workspace/workspace-home'
@@ -21,12 +21,27 @@ import CustomersModule from '@/components/inventra/customers/customers-module'
 import ProductsModule from '@/components/inventra/products/products-module'
 import WarehousesModule from '@/components/inventra/warehouses/warehouses-module'
 import StockMutationsModule from '@/components/inventra/stock-mutations/stock-mutations-module'
-import ActivityLogModule from '@/components/inventra/activity-logs/activity-log-module'
 import PurchasesModule from '@/components/inventra/purchases/purchases-module'
 import SalesModule from '@/components/inventra/sales/sales-module'
 import ReportsModule from '@/components/inventra/reports/reports-module'
 import UserManagementModule from '@/components/inventra/user-management/user-management-module'
-import InboxModule from '@/components/inventra/inbox/inbox-module'
+
+// ===================== COMING SOON PLACEHOLDER =====================
+function ComingSoonPage({ title }: { title: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
+      <div className="w-16 h-16 rounded-2xl bg-amber-100 dark:bg-amber-900/20 flex items-center justify-center mb-4">
+        <Construction className="w-8 h-8 text-amber-500" />
+      </div>
+      <h2 className="text-xl font-bold text-stone-800 dark:text-stone-200 mb-2">
+        {title}
+      </h2>
+      <p className="text-sm text-stone-500 dark:text-stone-400 max-w-md">
+        Fitur ini sedang dalam pengembangan dan akan tersedia di update mendatang.
+      </p>
+    </div>
+  )
+}
 
 export default function InventraApp() {
   const {
@@ -64,34 +79,97 @@ export default function InventraApp() {
 
   const renderPage = () => {
     switch (activePage) {
+      // Home
       case 'dashboard':
         return <WorkspaceHome />
-      case 'dashboard-analytics':
-        return <ReportsModule />
-      case 'inbox':
-        return <InboxModule />
+
+      // Data Master
+      case 'customers':
+        return <CustomersModule />
+      case 'suppliers':
+        return <SuppliersModule />
       case 'products':
         return <ProductsModule />
       case 'categories':
         return <CategoriesModule />
-      case 'suppliers':
-        return <SuppliersModule />
-      case 'customers':
-        return <CustomersModule />
+      case 'warehouses':
+        return <WarehousesModule />
+
+      // Distribusi
       case 'purchases':
         return <PurchasesModule />
       case 'sales':
         return <SalesModule />
+      case 'sales-order':
+        return <ComingSoonPage title="Sales Order" />
+      case 'purchase-order':
+        return <ComingSoonPage title="Purchase Order" />
+      case 'sales-return':
+        return <ComingSoonPage title="Retur Penjualan" />
+      case 'purchase-return':
+        return <ComingSoonPage title="Retur Pembelian" />
+
+      // Inventory
       case 'stock-mutations':
         return <StockMutationsModule />
-      case 'warehouses':
-        return <WarehousesModule />
-      case 'activity-logs':
-        return <ActivityLogModule />
-      case 'reports':
-        return <ReportsModule />
+      case 'warehouse-transfer':
+        return <ComingSoonPage title="Transfer Gudang" />
+      case 'stock-opname':
+        return <ComingSoonPage title="Stock Opname" />
+      case 'stock-adjustment':
+        return <ComingSoonPage title="Penyesuaian Stok" />
+
+      // Finance
+      case 'invoice':
+        return <ComingSoonPage title="Invoice" />
+      case 'receivable':
+        return <ComingSoonPage title="Piutang" />
+      case 'payment':
+        return <ComingSoonPage title="Pelunasan" />
+      case 'cash':
+        return <ComingSoonPage title="Kas" />
+
+      // Accounting
+      case 'journal':
+        return <ComingSoonPage title="Jurnal" />
+      case 'ledger':
+        return <ComingSoonPage title="Buku Besar" />
+      case 'balance-sheet':
+        return <ComingSoonPage title="Neraca" />
+      case 'profit-loss':
+        return <ComingSoonPage title="Laba Rugi" />
+
+      // Report
+      case 'report-sales':
+        return <ReportsModule defaultTab="sales" />
+      case 'report-purchases':
+        return <ReportsModule defaultTab="purchases" />
+      case 'report-stock':
+        return <ReportsModule defaultTab="stock" />
+      case 'report-customer':
+        return <ComingSoonPage title="Report Customer" />
+      case 'report-supplier':
+        return <ComingSoonPage title="Report Supplier" />
+
+      // Pengaturan
       case 'user-management':
         return <UserManagementModule />
+      case 'branch':
+        return <ComingSoonPage title="Cabang" />
+      case 'branding':
+        return <ComingSoonPage title="Branding" />
+      case 'doc-numbering':
+        return <ComingSoonPage title="Nomor Dokumen" />
+
+      // Legacy redirects (old page keys that may persist in localStorage)
+      case 'dashboard-analytics':
+      case 'reports':
+        return <ReportsModule />
+      case 'activity-logs':
+        return <ComingSoonPage title="Activity Log" />
+      case 'inbox':
+        return <ComingSoonPage title="Inbox" />
+
       default:
         return <WorkspaceHome />
     }

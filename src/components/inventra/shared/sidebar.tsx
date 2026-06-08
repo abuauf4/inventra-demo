@@ -5,9 +5,23 @@ import { roleColors } from './constants'
 
 import {
   Package, FolderOpen, Truck, Users, ShoppingCart, ShoppingBag,
-  ArrowLeftRight, FileBarChart, UserCog, Activity, X,
-  Warehouse as WarehouseIcon, Inbox as InboxIcon, Home,
-  LayoutDashboard, Briefcase, PenLine, Sun, Moon, LogOut,
+  ArrowLeftRight, FileBarChart, UserCog, X,
+  Warehouse as WarehouseIcon, Home,
+  Briefcase, PenLine, Sun, Moon, LogOut,
+  // Data Master icons
+  LayoutGrid,
+  // Distribusi future icons
+  ClipboardList, RotateCcw,
+  // Inventory future icons
+  ArrowRightLeft, ClipboardCheck, Sliders,
+  // Finance icons
+  Receipt, CreditCard, Wallet, Banknote,
+  // Accounting icons
+  BookOpen, BookMarked, Scale, TrendingUp,
+  // Report icons
+  BarChart3, UserCircle, Truck as TruckReport,
+  // Settings icons
+  Building2, Palette, FileText,
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -29,56 +43,101 @@ const roleLabels: Record<string, string> = {
   warehouse: 'Gudang',
 }
 
-// ===================== MENU SECTIONS =====================
-const menuSections = [
+// ===================== MENU ITEM TYPE =====================
+interface MenuItem {
+  key: AppPage
+  label: string
+  icon: React.ReactNode
+  /** If true, item is disabled and shows "Soon" badge */
+  soon?: boolean
+}
+
+interface MenuSection {
+  label: string | null
+  items: MenuItem[]
+}
+
+// ===================== MENU SECTIONS — FINAL STRUCTURE =====================
+// Structure based on alur kerja (workflow), not modul teknis
+const menuSections: MenuSection[] = [
   {
     label: null,
     items: [
       { key: 'dashboard' as AppPage, label: 'Home', icon: <Home className="w-4 h-4" /> },
-      { key: 'inbox' as AppPage, label: 'Inbox', icon: <InboxIcon className="w-4 h-4" /> },
     ],
   },
   {
-    label: 'Analisa',
+    label: 'Data Master',
     items: [
-      { key: 'dashboard-analytics' as AppPage, label: 'Dashboard', icon: <LayoutDashboard className="w-4 h-4" /> },
-      { key: 'reports' as AppPage, label: 'Laporan', icon: <FileBarChart className="w-4 h-4" /> },
-    ],
-  },
-  {
-    label: 'Transaksi',
-    items: [
+      { key: 'customers' as AppPage, label: 'Customer', icon: <Users className="w-4 h-4" /> },
+      { key: 'suppliers' as AppPage, label: 'Supplier', icon: <Truck className="w-4 h-4" /> },
       { key: 'products' as AppPage, label: 'Produk', icon: <Package className="w-4 h-4" /> },
+      { key: 'categories' as AppPage, label: 'Kategori', icon: <FolderOpen className="w-4 h-4" /> },
+      { key: 'warehouses' as AppPage, label: 'Gudang', icon: <WarehouseIcon className="w-4 h-4" /> },
+    ],
+  },
+  {
+    label: 'Distribusi',
+    items: [
       { key: 'purchases' as AppPage, label: 'Pembelian', icon: <ShoppingCart className="w-4 h-4" /> },
       { key: 'sales' as AppPage, label: 'Penjualan', icon: <ShoppingBag className="w-4 h-4" /> },
+      { key: 'sales-order' as AppPage, label: 'Sales Order', icon: <ClipboardList className="w-4 h-4" />, soon: true },
+      { key: 'purchase-order' as AppPage, label: 'Purchase Order', icon: <ClipboardList className="w-4 h-4" />, soon: true },
+      { key: 'sales-return' as AppPage, label: 'Retur Penjualan', icon: <RotateCcw className="w-4 h-4" />, soon: true },
+      { key: 'purchase-return' as AppPage, label: 'Retur Pembelian', icon: <RotateCcw className="w-4 h-4" />, soon: true },
     ],
   },
   {
     label: 'Inventory',
     items: [
       { key: 'stock-mutations' as AppPage, label: 'Mutasi Stok', icon: <ArrowLeftRight className="w-4 h-4" /> },
-      { key: 'warehouses' as AppPage, label: 'Gudang', icon: <WarehouseIcon className="w-4 h-4" /> },
+      { key: 'warehouse-transfer' as AppPage, label: 'Transfer Gudang', icon: <ArrowRightLeft className="w-4 h-4" />, soon: true },
+      { key: 'stock-opname' as AppPage, label: 'Stock Opname', icon: <ClipboardCheck className="w-4 h-4" />, soon: true },
+      { key: 'stock-adjustment' as AppPage, label: 'Penyesuaian Stok', icon: <Sliders className="w-4 h-4" />, soon: true },
     ],
   },
   {
-    label: 'Master',
+    label: 'Finance',
     items: [
-      { key: 'categories' as AppPage, label: 'Kategori', icon: <FolderOpen className="w-4 h-4" /> },
-      { key: 'suppliers' as AppPage, label: 'Supplier', icon: <Truck className="w-4 h-4" /> },
-      { key: 'customers' as AppPage, label: 'Customer', icon: <Users className="w-4 h-4" /> },
+      { key: 'invoice' as AppPage, label: 'Invoice', icon: <Receipt className="w-4 h-4" />, soon: true },
+      { key: 'receivable' as AppPage, label: 'Piutang', icon: <CreditCard className="w-4 h-4" />, soon: true },
+      { key: 'payment' as AppPage, label: 'Pelunasan', icon: <Wallet className="w-4 h-4" />, soon: true },
+      { key: 'cash' as AppPage, label: 'Kas', icon: <Banknote className="w-4 h-4" />, soon: true },
     ],
   },
   {
-    label: 'System',
+    label: 'Accounting',
     items: [
-      { key: 'activity-logs' as AppPage, label: 'Activity Log', icon: <Activity className="w-4 h-4" /> },
-      { key: 'user-management' as AppPage, label: 'User Management', icon: <UserCog className="w-4 h-4" /> },
+      { key: 'journal' as AppPage, label: 'Jurnal', icon: <BookOpen className="w-4 h-4" />, soon: true },
+      { key: 'ledger' as AppPage, label: 'Buku Besar', icon: <BookMarked className="w-4 h-4" />, soon: true },
+      { key: 'balance-sheet' as AppPage, label: 'Neraca', icon: <Scale className="w-4 h-4" />, soon: true },
+      { key: 'profit-loss' as AppPage, label: 'Laba Rugi', icon: <TrendingUp className="w-4 h-4" />, soon: true },
+    ],
+  },
+  {
+    label: 'Report',
+    items: [
+      { key: 'report-sales' as AppPage, label: 'Penjualan', icon: <BarChart3 className="w-4 h-4" /> },
+      { key: 'report-purchases' as AppPage, label: 'Pembelian', icon: <BarChart3 className="w-4 h-4" /> },
+      { key: 'report-stock' as AppPage, label: 'Stok', icon: <BarChart3 className="w-4 h-4" /> },
+      { key: 'report-customer' as AppPage, label: 'Customer', icon: <UserCircle className="w-4 h-4" />, soon: true },
+      { key: 'report-supplier' as AppPage, label: 'Supplier', icon: <TruckReport className="w-4 h-4" />, soon: true },
+    ],
+  },
+  {
+    label: 'Pengaturan',
+    items: [
+      { key: 'user-management' as AppPage, label: 'User', icon: <UserCog className="w-4 h-4" /> },
+      { key: 'branch' as AppPage, label: 'Cabang', icon: <Building2 className="w-4 h-4" />, soon: true },
+      { key: 'branding' as AppPage, label: 'Branding', icon: <Palette className="w-4 h-4" />, soon: true },
+      { key: 'doc-numbering' as AppPage, label: 'Nomor Dokumen', icon: <FileText className="w-4 h-4" />, soon: true },
     ],
   },
 ]
 
 // Export menuSections for use in Header and other components
 export { menuSections }
+export type { MenuItem, MenuSection }
 
 function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { activePage, setActivePage, currentUser, theme, toggleTheme, setCurrentUser } = useAppStore()
@@ -126,39 +185,57 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
         {/* ===== Navigation — always dark teal ===== */}
         <ScrollArea className="flex-1">
           <nav className="p-2 space-y-0.5">
-            {menuSections.map((section, si) => (
-              <div key={si}>
-                {section.label && (
-                  <p className="px-3 pt-5 pb-1.5 text-[10px] font-semibold text-teal-500/40 uppercase tracking-widest">
-                    {section.label}
-                  </p>
-                )}
-                {section.items.map((item) => (
-                  <button
-                    key={item.key}
-                    onClick={() => {
-                      setActivePage(item.key)
-                      onClose()
-                    }}
-                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium transition-all ${
-                      activePage === item.key
-                        ? 'bg-white/[0.08] text-amber-400 border-l-2 border-amber-500 pl-[10px]'
-                        : 'text-teal-200/50 hover:bg-white/[0.04] hover:text-teal-100/80'
-                    }`}
-                  >
-                    <span className={activePage === item.key ? 'text-amber-500' : 'text-teal-400/40'}>
-                      {item.icon}
-                    </span>
-                    {item.label}
-                    {item.key === 'inbox' && (
-                      <span className="ml-auto w-5 h-5 rounded-full bg-amber-500 text-white text-[10px] flex items-center justify-center font-bold">
-                        4
+            {menuSections.map((section, si) => {
+              // Check if section has any enabled items
+              const hasEnabledItems = section.items.some((item) => !item.soon)
+
+              return (
+                <div key={si}>
+                  {section.label && (
+                    <p className={`px-3 pt-5 pb-1.5 text-[10px] font-semibold uppercase tracking-widest ${
+                      hasEnabledItems
+                        ? 'text-teal-500/40'
+                        : 'text-teal-500/20'
+                    }`}>
+                      {section.label}
+                    </p>
+                  )}
+                  {section.items.map((item) => (
+                    <button
+                      key={item.key}
+                      onClick={() => {
+                        if (item.soon) return // Disabled items are not clickable
+                        setActivePage(item.key)
+                        onClose()
+                      }}
+                      className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium transition-all ${
+                        item.soon
+                          ? 'text-teal-200/20 cursor-not-allowed'
+                          : activePage === item.key
+                            ? 'bg-white/[0.08] text-amber-400 border-l-2 border-amber-500 pl-[10px]'
+                            : 'text-teal-200/50 hover:bg-white/[0.04] hover:text-teal-100/80'
+                      }`}
+                    >
+                      <span className={
+                        item.soon
+                          ? 'text-teal-400/15'
+                          : activePage === item.key
+                            ? 'text-amber-500'
+                            : 'text-teal-400/40'
+                      }>
+                        {item.icon}
                       </span>
-                    )}
-                  </button>
-                ))}
-              </div>
-            ))}
+                      <span className="flex-1 text-left">{item.label}</span>
+                      {item.soon && (
+                        <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-teal-400/10 text-teal-400/30 uppercase tracking-wider">
+                          Soon
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )
+            })}
           </nav>
         </ScrollArea>
 

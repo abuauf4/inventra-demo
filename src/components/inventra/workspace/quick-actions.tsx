@@ -14,7 +14,7 @@ export default function QuickActionCenter({ role }: QuickActionCenterProps) {
     { label: 'Penjualan Baru', desc: 'Buat transaksi penjualan', icon: <ShoppingBag className="w-5 h-5" />, shortcut: 'Alt+S', color: 'from-emerald-500 to-teal-500', action: () => setQuickActionOpen(true) },
     { label: 'Pembelian Baru', desc: 'Buat purchase order', icon: <ShoppingCart className="w-5 h-5" />, shortcut: 'Alt+P', color: 'from-blue-500 to-indigo-500', action: () => setActivePage('purchases') },
     { label: 'Cari Data', desc: 'Cari apapun secara instan', icon: <Search className="w-5 h-5" />, shortcut: '\u2318K', color: 'from-violet-500 to-purple-500', action: () => setSearchOpen(true) },
-    { label: 'Laporan', desc: 'Lihat ringkasan bisnis', icon: <BarChart3 className="w-5 h-5" />, shortcut: null, color: 'from-amber-500 to-orange-500', action: () => setActivePage('reports') },
+    { label: 'Laporan', desc: 'Lihat ringkasan bisnis', icon: <BarChart3 className="w-5 h-5" />, shortcut: null, color: 'from-amber-500 to-orange-500', action: () => setActivePage('report-sales') },
   ]
   const staffActions = [
     { label: 'Buat Penjualan', desc: 'Catat penjualan baru', icon: <ShoppingBag className="w-5 h-5" />, shortcut: 'Alt+S', color: 'from-emerald-500 to-teal-500', action: () => setQuickActionOpen(true) },
