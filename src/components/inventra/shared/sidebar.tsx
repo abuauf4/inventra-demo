@@ -1,15 +1,16 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { useAppStore, type AppPage } from '@/lib/store'
 import { roleColors } from './constants'
 
 import {
   Package, FolderOpen, Truck, Users, ShoppingCart, ShoppingBag,
-  ArrowLeftRight, FileBarChart, UserCog, X,
-  Warehouse as WarehouseIcon, Home,
-  Briefcase, PenLine, Sun, Moon, LogOut,
+  ArrowLeftRight, FileBarChart, UserCog, Activity, X,
+  Warehouse as WarehouseIcon, Inbox as InboxIcon, Home,
+  LayoutDashboard, Briefcase, PenLine, Sun, Moon, LogOut,
+  ChevronDown,
   // Data Master icons
-  LayoutGrid,
   // Distribusi future icons
   ClipboardList, RotateCcw,
   // Inventory future icons
@@ -48,7 +49,6 @@ interface MenuItem {
   key: AppPage
   label: string
   icon: React.ReactNode
-  /** If true, item is disabled and shows "Soon" badge */
   soon?: boolean
 }
 
@@ -58,7 +58,6 @@ interface MenuSection {
 }
 
 // ===================== MENU SECTIONS — FINAL STRUCTURE =====================
-// Structure based on alur kerja (workflow), not modul teknis
 const menuSections: MenuSection[] = [
   {
     label: null,
@@ -142,6 +141,30 @@ export type { MenuItem, MenuSection }
 function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { activePage, setActivePage, currentUser, theme, toggleTheme, setCurrentUser } = useAppStore()
 
+  // Track which sections are expanded — auto-expand section containing active page
+  const [expanded, setExpanded] = useState<Record<string, boolean>>(() => {
+    const initial: Record<string, boolean> = {}
+    menuSections.forEach((section, i) => {
+      if (section.label && section.items.some((item) => item.key === activePage)) {
+        initial[i] = true
+      }
+    })
+    return initial
+  })
+
+  // Auto-expand section when activePage changes
+  useEffect(() => {
+    menuSections.forEach((section, i) => {
+      if (section.label && section.items.some((item) => item.key === activePage)) {
+        setExpanded((prev) => (prev[i] ? prev : { ...prev, [i]: true }))
+      }
+    })
+  }, [activePage])
+
+  const toggleSection = (index: string) => {
+    setExpanded((prev) => ({ ...prev, [index]: !prev[index] }))
+  }
+
   return (
     <>
       {/* Mobile overlay */}
@@ -157,7 +180,7 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
           open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
       >
-        {/* ===== Brand Area — always dark teal ===== */}
+        {/* ===== Brand Area ===== */}
         <div className="p-4 border-b border-white/[0.06]">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl flex items-center justify-center shadow-sm shadow-amber-500/20">
@@ -182,66 +205,117 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
           </div>
         </div>
 
-        {/* ===== Navigation — always dark teal ===== */}
+        {/* ===== Navigation — Collapsible Sections ===== */}
         <ScrollArea className="flex-1">
           <nav className="p-2 space-y-0.5">
             {menuSections.map((section, si) => {
-              // Check if section has any enabled items
+              const isGroup = section.label !== null
+              const isExpanded = expanded[si] ?? false
+              const hasActive = section.items.some((item) => item.key === activePage && !item.soon)
               const hasEnabledItems = section.items.some((item) => !item.soon)
 
-              return (
-                <div key={si}>
-                  {section.label && (
-                    <p className={`px-3 pt-5 pb-1.5 text-[10px] font-semibold uppercase tracking-widest ${
-                      hasEnabledItems
-                        ? 'text-teal-500/40'
-                        : 'text-teal-500/20'
-                    }`}>
-                      {section.label}
-                    </p>
-                  )}
-                  {section.items.map((item) => (
-                    <button
-                      key={item.key}
-                      onClick={() => {
-                        if (item.soon) return // Disabled items are not clickable
-                        setActivePage(item.key)
-                        onClose()
-                      }}
-                      className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium transition-all ${
-                        item.soon
-                          ? 'text-teal-200/20 cursor-not-allowed'
-                          : activePage === item.key
+              // Ungrouped items (Home) — always visible
+              if (!isGroup) {
+                return (
+                  <div key={si}>
+                    {section.items.map((item) => (
+                      <button
+                        key={item.key}
+                        onClick={() => {
+                          setActivePage(item.key)
+                          onClose()
+                        }}
+                        className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium transition-all ${
+                          activePage === item.key
                             ? 'bg-white/[0.08] text-amber-400 border-l-2 border-amber-500 pl-[10px]'
                             : 'text-teal-200/50 hover:bg-white/[0.04] hover:text-teal-100/80'
-                      }`}
-                    >
-                      <span className={
-                        item.soon
-                          ? 'text-teal-400/15'
-                          : activePage === item.key
-                            ? 'text-amber-500'
-                            : 'text-teal-400/40'
-                      }>
-                        {item.icon}
-                      </span>
-                      <span className="flex-1 text-left">{item.label}</span>
-                      {item.soon && (
-                        <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-teal-400/10 text-teal-400/30 uppercase tracking-wider">
-                          Soon
+                        }`}
+                      >
+                        <span className={activePage === item.key ? 'text-amber-500' : 'text-teal-400/40'}>
+                          {item.icon}
                         </span>
-                      )}
-                    </button>
-                  ))}
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                )
+              }
+
+              // Grouped items — collapsible
+              return (
+                <div key={si}>
+                  {/* Section header — clickable to toggle */}
+                  <button
+                    onClick={() => toggleSection(String(si))}
+                    className={`w-full flex items-center gap-2 px-3 pt-4 pb-1.5 text-[10px] font-semibold uppercase tracking-widest transition-colors ${
+                      hasActive
+                        ? 'text-teal-500/70'
+                        : hasEnabledItems
+                          ? 'text-teal-500/40'
+                          : 'text-teal-500/20'
+                    } hover:text-teal-400/60`}
+                  >
+                    <ChevronDown
+                      className={`w-3 h-3 transition-transform duration-200 ${
+                        isExpanded ? 'rotate-0' : '-rotate-90'
+                      }`}
+                    />
+                    <span className="flex-1 text-left">{section.label}</span>
+                    {!isExpanded && (
+                      <span className="text-[9px] text-teal-500/25 font-normal">
+                        {section.items.filter((i) => !i.soon).length}
+                      </span>
+                    )}
+                  </button>
+
+                  {/* Section items — collapsible with animation */}
+                  <div
+                    className={`overflow-hidden transition-all duration-200 ${
+                      isExpanded ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'
+                    }`}
+                  >
+                    {section.items.map((item) => (
+                      <button
+                        key={item.key}
+                        onClick={() => {
+                          if (item.soon) return
+                          setActivePage(item.key)
+                          onClose()
+                        }}
+                        className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium transition-all ${
+                          item.soon
+                            ? 'text-teal-200/20 cursor-not-allowed'
+                            : activePage === item.key
+                              ? 'bg-white/[0.08] text-amber-400 border-l-2 border-amber-500 pl-[10px]'
+                              : 'text-teal-200/50 hover:bg-white/[0.04] hover:text-teal-100/80'
+                        }`}
+                      >
+                        <span className={
+                          item.soon
+                            ? 'text-teal-400/15'
+                            : activePage === item.key
+                              ? 'text-amber-500'
+                              : 'text-teal-400/40'
+                        }>
+                          {item.icon}
+                        </span>
+                        <span className="flex-1 text-left">{item.label}</span>
+                        {item.soon && (
+                          <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-teal-400/10 text-teal-400/30 uppercase tracking-wider">
+                            Soon
+                          </span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )
             })}
           </nav>
         </ScrollArea>
 
-        {/* ===== Bottom: User + Theme + Logout — always dark ===== */}
+        {/* ===== Bottom: User + Theme + Logout ===== */}
         <div className="border-t border-white/[0.06] p-3 space-y-2">
-          {/* User */}
           {currentUser && (
             <div className="flex items-center gap-2.5 px-1">
               <div
@@ -267,7 +341,6 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
             </div>
           )}
 
-          {/* Theme + Logout row */}
           <div className="flex items-center gap-1">
             <button
               onClick={toggleTheme}
