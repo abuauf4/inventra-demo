@@ -82,7 +82,7 @@ export async function GET(request: NextRequest) {
     // Search Purchases
     const purchases = await db.purchase.findMany({
       where: { transNo: { contains: q, mode: 'insensitive' } },
-      include: { supplier: true },
+      include: { supplier: { select: { name: true } } },
       take: 5,
     })
     purchases.forEach(p => results.push({
@@ -94,7 +94,7 @@ export async function GET(request: NextRequest) {
     // Search Sales
     const sales = await db.sale.findMany({
       where: { transNo: { contains: q, mode: 'insensitive' } },
-      include: { customer: true },
+      include: { customer: { select: { name: true } } },
       take: 5,
     })
     sales.forEach(s => results.push({

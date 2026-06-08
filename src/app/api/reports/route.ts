@@ -107,8 +107,9 @@ export async function GET(request: NextRequest) {
 
         const sales = await db.sale.findMany({
           where,
+          take: 200,
           include: {
-            customer: true,
+            customer: { select: { id: true, name: true, code: true } },
             items: {
               include: {
                 variant: {
@@ -149,8 +150,9 @@ export async function GET(request: NextRequest) {
 
         const purchases = await db.purchase.findMany({
           where,
+          take: 200,
           include: {
-            supplier: true,
+            supplier: { select: { id: true, name: true, code: true } },
             items: {
               include: {
                 variant: {
@@ -186,6 +188,7 @@ export async function GET(request: NextRequest) {
         // Use variant-level stock data
         const variants = await db.productVariant.findMany({
           where: { isActive: true },
+          take: 200,
           include: {
             product: {
               include: {

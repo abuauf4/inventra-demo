@@ -12,6 +12,7 @@ export async function GET(request: NextRequest) {
     const categoryId = searchParams.get('categoryId') || ''
     const supplierId = searchParams.get('supplierId') || ''
     const lowStock = searchParams.get('lowStock') === 'true'
+    const limit = parseInt(searchParams.get('limit') || '100')
 
     // Build where clause
     const where: Prisma.ProductWhereInput = {}
@@ -33,6 +34,7 @@ export async function GET(request: NextRequest) {
 
     const products = await db.product.findMany({
       where,
+      take: limit,
       include: {
         category: true,
         supplier: true,

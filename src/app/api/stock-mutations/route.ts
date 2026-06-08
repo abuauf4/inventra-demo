@@ -11,6 +11,7 @@ export async function GET(request: NextRequest) {
     const type = searchParams.get('type') || ''
     const dateFrom = searchParams.get('dateFrom') || ''
     const dateTo = searchParams.get('dateTo') || ''
+    const limit = parseInt(searchParams.get('limit') || '100')
 
     const where: Prisma.StockMutationWhereInput = {}
 
@@ -30,6 +31,7 @@ export async function GET(request: NextRequest) {
 
     const mutations = await db.stockMutation.findMany({
       where,
+      take: limit,
       include: {
         product: {
           select: { id: true, name: true, sku: true },

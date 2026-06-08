@@ -1,17 +1,19 @@
 import { db } from '@/lib/db'
 import { NextRequest, NextResponse } from 'next/server'
 
-// GET /api/dashboard - Role-based workspace data
+// GET /api/dashboard - Role-based workspace data (optimized with limits)
 export async function GET(request: NextRequest) {
   try {
-    const role = request.nextUrl.searchParams.get('role') || 'staff'
     const today = new Date()
     const todayStart = new Date(today)
     todayStart.setHours(0, 0, 0, 0)
     const todayEnd = new Date(today)
     todayEnd.setHours(23, 59, 59, 999)
 
-    // Common queries for all roles
+    const weekStart = new Date(today)
+    weekStart.setDate(weekStart.getDate() - 7)
+
+    // Core lightweight queries — counts & aggregates only, no full table scans
     const [
       totalProducts,
       totalCustomers,
@@ -20,24 +22,21 @@ export async function GET(request: NextRequest) {
       purchasesTodayAggregate,
       salesAllAggregate,
       purchasesAllAggregate,
-      variantsWithProducts,
+      allVariants,
       recentPurchases,
       recentSales,
-      recentActivityLogs,
       pendingPurchaseCount,
       pendingSaleCount,
-      warehouseCount,
       totalWarehouses,
+      stockInToday,
+      stockOutToday,
+      newCustomersThisWeek,
     ] = await Promise.all([
-      // Count active products
       db.product.count({
         where: { isActive: true, variants: { some: { isActive: true } } },
       }),
-      // Count customers
       db.customer.count(),
-      // Count suppliers
       db.supplier.count(),
-      // Sum of today's sales (COMPLETED + PAID)
       db.sale.aggregate({
         _sum: { total: true },
         _count: true,
@@ -46,7 +45,6 @@ export async function GET(request: NextRequest) {
           date: { gte: todayStart, lte: todayEnd },
         },
       }),
-      // Sum of today's purchases (RECEIVED)
       db.purchase.aggregate({
         _sum: { total: true },
         _count: true,
@@ -55,20 +53,24 @@ export async function GET(request: NextRequest) {
           date: { gte: todayStart, lte: todayEnd },
         },
       }),
-      // Sum of all sales (COMPLETED + PAID)
       db.sale.aggregate({
         _sum: { total: true },
         where: { status: { in: ['COMPLETED', 'PAID'] } },
       }),
-      // Sum of all purchases (RECEIVED)
       db.purchase.aggregate({
         _sum: { total: true },
         where: { status: 'RECEIVED' },
       }),
-      // All variants with product info for low stock check
+      // Fetch only active variants with product info (for low stock filter in JS)
+      // Limited to reduce payload — only need low stock ones
       db.productVariant.findMany({
         where: { isActive: true },
-        include: {
+        select: {
+          id: true,
+          name: true,
+          sku: true,
+          stock: true,
+          minStock: true,
           product: {
             select: {
               id: true,
@@ -78,8 +80,8 @@ export async function GET(request: NextRequest) {
             },
           },
         },
+        take: 100,
       }),
-      // Recent purchases
       db.purchase.findMany({
         take: 5,
         orderBy: { date: 'desc' },
@@ -92,7 +94,6 @@ export async function GET(request: NextRequest) {
           supplier: { select: { name: true } },
         },
       }),
-      // Recent sales
       db.sale.findMany({
         take: 5,
         orderBy: { date: 'desc' },
@@ -105,35 +106,27 @@ export async function GET(request: NextRequest) {
           customer: { select: { name: true, code: true } },
         },
       }),
-      // Recent activity logs
-      db.activityLog.findMany({
-        take: 10,
-        orderBy: { createdAt: 'desc' },
-        include: {
-          user: {
-            select: { id: true, name: true, username: true, role: true },
-          },
-        },
-      }),
-      // Pending purchase orders (DRAFT + APPROVED)
       db.purchase.count({
         where: { status: { in: ['DRAFT', 'APPROVED'] } },
       }),
-      // Pending sales orders (DRAFT + PAID)
       db.sale.count({
         where: { status: { in: ['DRAFT', 'PAID'] } },
       }),
-      // Warehouse stock count (for warehouse role)
-      db.warehouseStock.count({
-        where: { stock: { lte: 0 } },
-      }),
-      // Total warehouses
       db.warehouse.count({ where: { isActive: true } }),
+      db.stockMutation.count({
+        where: { type: 'IN', createdAt: { gte: todayStart, lte: todayEnd } },
+      }),
+      db.stockMutation.count({
+        where: { type: 'OUT', createdAt: { gte: todayStart, lte: todayEnd } },
+      }),
+      db.customer.count({ where: { createdAt: { gte: weekStart } } }),
     ])
 
-    // Filter low stock variants
-    const lowStockVariants = variantsWithProducts
+    // Filter low stock variants in JS, limit to top 10
+    const lowStockProducts = allVariants
       .filter((v) => v.stock <= v.minStock)
+      .sort((a, b) => a.stock - b.stock)
+      .slice(0, 10)
       .map((v) => ({
         variantId: v.id,
         variantName: v.name,
@@ -168,50 +161,28 @@ export async function GET(request: NextRequest) {
       })),
     ]
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-      .slice(0, 10)
+      .slice(0, 5)
 
-    // Stock in/out today (from activity logs or stock mutations)
-    const stockInToday = await db.stockMutation.count({
-      where: { type: 'IN', createdAt: { gte: todayStart, lte: todayEnd } },
-    })
-    const stockOutToday = await db.stockMutation.count({
-      where: { type: 'OUT', createdAt: { gte: todayStart, lte: todayEnd } },
-    })
-
-    // New customers this week
-    const weekStart = new Date(today)
-    weekStart.setDate(weekStart.getDate() - 7)
-    const newCustomersThisWeek = await db.customer.count({
-      where: { createdAt: { gte: weekStart } },
-    })
-
-    // Base data for all roles
     const baseData = {
       totalProducts,
       totalCustomers,
       totalSuppliers,
       totalWarehouses,
-      // Today's metrics
       salesToday: salesTodayAggregate._sum.total ?? 0,
       salesTodayCount: salesTodayAggregate._count,
       purchasesToday: purchasesTodayAggregate._sum.total ?? 0,
       purchasesTodayCount: purchasesTodayAggregate._count,
-      // All-time metrics
       totalSales: salesAllAggregate._sum.total ?? 0,
       totalPurchases: purchasesAllAggregate._sum.total ?? 0,
-      // Alerts
-      lowStockProducts: lowStockVariants,
-      lowStockCount: lowStockVariants.length,
+      lowStockProducts,
+      lowStockCount: lowStockProducts.length,
       pendingPurchaseCount,
       pendingSaleCount,
-      // Stock movement today
       stockInToday,
       stockOutToday,
-      // New customers
       newCustomersThisWeek,
-      // Lists
       recentTransactions,
-      recentActivityLogs,
+      recentActivityLogs: [] as any[], // Removed from dashboard to reduce load
     }
 
     return NextResponse.json({
