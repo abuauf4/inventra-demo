@@ -413,7 +413,7 @@ function StockMutationsModule() {
 
             {/* ===== TRANSFER Tab ===== */}
             <TabsContent value="transfer" className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <Label className="text-xs font-medium">Gudang Asal *</Label>
                   <Select value={fromWarehouseId} onValueChange={setFromWarehouseId}>
@@ -511,7 +511,7 @@ function StockMutationsModule() {
 
             {/* ===== IN/OUT Tab ===== */}
             <TabsContent value="inout" className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <Label className="text-xs font-medium">Tipe *</Label>
                   <Select value={inOutType} onValueChange={(v) => setInOutType(v as 'IN' | 'OUT')}>
