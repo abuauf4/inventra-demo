@@ -20,7 +20,7 @@ export const saleStatusMap: Record<string, { label: string; color: string }> = {
 
 // ===================== ROLE CONFIG =====================
 export const roleLabels: Record<string, string> = { owner: 'Owner', admin: 'Admin', staff: 'Staff', warehouse: 'Warehouse' }
-export const roleColors: Record<string, string> = { owner: 'from-amber-500 to-rose-500', admin: 'from-blue-500 to-violet-500', staff: 'from-emerald-500 to-teal-500', warehouse: 'from-orange-500 to-amber-500' }
+export const roleColors: Record<string, string> = { owner: 'from-amber-500 to-orange-600', admin: 'from-blue-500 to-cyan-500', staff: 'from-teal-500 to-emerald-500', warehouse: 'from-orange-500 to-amber-500' }
 
 // ===================== ROLE-BASED GREETINGS =====================
 export const roleGreetings: Record<string, { line1: string; line2: string }> = {

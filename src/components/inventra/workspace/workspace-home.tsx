@@ -2,8 +2,8 @@
 
 import React, { useState, useCallback, useEffect } from 'react'
 import {
-  RefreshCw, Sun, Moon, ShoppingBag, ShoppingCart, Package, Search,
-  AlertTriangle, ArrowRightLeft, ArrowRight, Bell, Sparkles,
+  RefreshCw, ShoppingBag, ShoppingCart, Package, Search,
+  AlertTriangle, ArrowRightLeft, ArrowRight, Bell,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAppStore } from '@/lib/store'
@@ -41,7 +41,7 @@ export default function WorkspaceHome() {
   if (loading || !data) {
     return (
       <div className="flex items-center justify-center h-64">
-        <RefreshCw className="w-5 h-5 animate-spin text-stone-300 dark:text-stone-600" />
+        <RefreshCw className="w-5 h-5 animate-spin text-amber-500" />
       </div>
     )
   }
@@ -59,36 +59,36 @@ export default function WorkspaceHome() {
     warehouse: 'Ada barang yang perlu diproses.',
   }
 
-  // Quick actions — compact, just 3 for each role
+  // Quick actions — amber/orange primary, blue secondary, teal tertiary
   const quickActions =
     role === 'warehouse'
       ? [
-          { label: 'Terima Barang', icon: <Package className="w-4 h-4" />, shortcut: null, color: 'from-emerald-500 to-teal-500', action: () => setActivePage('purchases') },
-          { label: 'Mutasi Stok', icon: <ArrowRightLeft className="w-4 h-4" />, shortcut: null, color: 'from-blue-500 to-indigo-500', action: () => setActivePage('stock-mutations') },
-          { label: 'Cari', icon: <Search className="w-4 h-4" />, shortcut: '⌘K', color: 'from-violet-500 to-purple-500', action: () => setSearchOpen(true) },
+          { label: 'Terima Barang', icon: <Package className="w-4 h-4" />, shortcut: null, color: 'from-amber-500 to-orange-600', action: () => setActivePage('purchases') },
+          { label: 'Mutasi Stok', icon: <ArrowRightLeft className="w-4 h-4" />, shortcut: null, color: 'from-blue-500 to-cyan-500', action: () => setActivePage('stock-mutations') },
+          { label: 'Cari', icon: <Search className="w-4 h-4" />, shortcut: '⌘K', color: 'from-teal-500 to-emerald-500', action: () => setSearchOpen(true) },
         ]
       : [
-          { label: 'Jual', icon: <ShoppingBag className="w-4 h-4" />, shortcut: 'Alt+S', color: 'from-emerald-500 to-teal-500', action: () => setQuickActionOpen(true) },
-          { label: 'Beli', icon: <ShoppingCart className="w-4 h-4" />, shortcut: null, color: 'from-blue-500 to-indigo-500', action: () => setActivePage('purchases') },
-          { label: 'Cari', icon: <Search className="w-4 h-4" />, shortcut: '⌘K', color: 'from-violet-500 to-purple-500', action: () => setSearchOpen(true) },
+          { label: 'Jual', icon: <ShoppingBag className="w-4 h-4" />, shortcut: 'Alt+S', color: 'from-amber-500 to-orange-600', action: () => setQuickActionOpen(true) },
+          { label: 'Beli', icon: <ShoppingCart className="w-4 h-4" />, shortcut: null, color: 'from-blue-500 to-cyan-500', action: () => setActivePage('purchases') },
+          { label: 'Cari', icon: <Search className="w-4 h-4" />, shortcut: '⌘K', color: 'from-teal-500 to-emerald-500', action: () => setSearchOpen(true) },
         ]
 
   return (
-    <div className="max-w-3xl mx-auto space-y-8">
-      {/* ===== Greeting — warm, calm, one breath ===== */}
-      <div className="space-y-1">
-        <p className="text-sm text-stone-400 dark:text-stone-500">
+    <div className="max-w-3xl mx-auto space-y-10">
+      {/* ===== Greeting — warm, calm, spacious ===== */}
+      <div className="space-y-2.5">
+        <p className="text-sm font-medium text-stone-400 dark:text-[#8b92a5]">
           {timeGreeting}
         </p>
-        <h1 className="text-2xl font-bold tracking-tight text-stone-900 dark:text-stone-100">
+        <h1 className="text-3xl font-bold tracking-tight text-stone-900 dark:text-white">
           Halo {userName} 👋
         </h1>
-        <p className="text-stone-500 dark:text-stone-400">
-          {roleTagline[role] || roleTagline.staff}
+        <p className="text-[15px] text-stone-500 dark:text-[#6b7490]">
+          Mau ngerjain apa nih?
         </p>
       </div>
 
-      {/* ===== Priority line — inline, not a section ===== */}
+      {/* ===== Priority line — amber/blue/teal tones ===== */}
       <div className="flex flex-wrap items-center gap-2">
         {lowStockCount > 0 && (
           <button
@@ -110,7 +110,7 @@ export default function WorkspaceHome() {
         {data.pendingSaleCount > 0 && (
           <button
             onClick={() => setActivePage('sales')}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-50 dark:bg-violet-950/30 text-violet-700 dark:text-violet-400 text-xs font-medium hover:bg-violet-100 dark:hover:bg-violet-950/50 transition-colors border border-violet-200/60 dark:border-violet-800/30"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-teal-50 dark:bg-teal-950/30 text-teal-700 dark:text-teal-400 text-xs font-medium hover:bg-teal-100 dark:hover:bg-teal-950/50 transition-colors border border-teal-200/60 dark:border-teal-800/30"
           >
             {data.pendingSaleCount} SO belum selesai
           </button>
@@ -122,13 +122,13 @@ export default function WorkspaceHome() {
         )}
       </div>
 
-      {/* ===== Quick Actions — compact row ===== */}
+      {/* ===== Quick Actions — amber/orange primary, blue secondary, teal tertiary ===== */}
       <div className="flex items-center gap-2">
         {quickActions.map((a, i) => (
           <button
             key={i}
             onClick={a.action}
-            className="group flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white dark:bg-stone-800/80 border border-stone-200/80 dark:border-stone-700/50 hover:border-stone-300 dark:hover:border-stone-600 shadow-sm hover:shadow transition-all text-sm font-medium text-stone-700 dark:text-stone-300"
+            className="group flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white dark:bg-[#1a1f2e]/80 border border-stone-200/80 dark:border-white/[0.06] hover:border-amber-300/60 dark:hover:border-amber-500/20 shadow-sm hover:shadow transition-all text-sm font-medium text-stone-700 dark:text-stone-300"
           >
             <div
               className={`w-7 h-7 rounded-lg bg-gradient-to-br ${a.color} flex items-center justify-center text-white group-hover:scale-105 transition-transform`}
@@ -137,7 +137,7 @@ export default function WorkspaceHome() {
             </div>
             {a.label}
             {a.shortcut && (
-              <kbd className="text-[10px] bg-stone-100 dark:bg-stone-700 px-1.5 py-0.5 rounded font-mono text-stone-400 dark:text-stone-500 border border-stone-200 dark:border-stone-600 ml-1">
+              <kbd className="text-[10px] bg-stone-100 dark:bg-white/[0.06] px-1.5 py-0.5 rounded font-mono text-stone-400 dark:text-stone-500 border border-stone-200 dark:border-white/[0.06] ml-1">
                 {a.shortcut}
               </kbd>
             )}
@@ -145,17 +145,17 @@ export default function WorkspaceHome() {
         ))}
       </div>
 
-      {/* ===== Low Stock — compact, only top 4 ===== */}
+      {/* ===== Low Stock — amber warning, only top 4 ===== */}
       {data.lowStockProducts?.length > 0 && (role === 'owner' || role === 'admin' || role === 'warehouse') && (
-        <div className="space-y-2">
+        <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <p className="text-xs font-semibold text-stone-400 dark:text-stone-500 uppercase tracking-wider">
+            <p className="text-xs font-semibold text-stone-400 dark:text-[#6b7490] uppercase tracking-wider">
               Perlu Restock
             </p>
             {lowStockCount > 4 && (
               <button
                 onClick={() => setActivePage('products')}
-                className="text-[11px] text-rose-500 hover:text-rose-600 font-medium"
+                className="text-[11px] text-amber-500 hover:text-amber-600 font-medium"
               >
                 +{lowStockCount - 4} lainnya
               </button>
@@ -166,15 +166,15 @@ export default function WorkspaceHome() {
               <button
                 key={p.variantId}
                 onClick={() => setActivePage('products')}
-                className={`flex items-center gap-2.5 p-3 rounded-xl bg-white dark:bg-stone-800/80 border hover:shadow-sm transition-shadow text-left ${
+                className={`flex items-center gap-2.5 p-3 rounded-xl bg-white dark:bg-[#1a1f2e]/80 border hover:shadow-sm transition-shadow text-left ${
                   p.stock <= 0
                     ? 'border-red-200 dark:border-red-800/40'
-                    : 'border-stone-200/80 dark:border-stone-700/50'
+                    : 'border-stone-200/80 dark:border-white/[0.06]'
                 }`}
               >
                 <div
                   className={`w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold ${
-                    p.stock <= 0 ? 'bg-red-400' : 'bg-amber-400'
+                    p.stock <= 0 ? 'bg-red-400' : 'bg-amber-500'
                   }`}
                 >
                   {p.stock}
@@ -193,22 +193,22 @@ export default function WorkspaceHome() {
         </div>
       )}
 
-      {/* ===== Bottom: Recent + Inbox — side by side ===== */}
+      {/* ===== Bottom: Recent + Inbox — side by side, clean cards ===== */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Recent Transactions */}
-        <div className="space-y-2">
+        <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <p className="text-xs font-semibold text-stone-400 dark:text-stone-500 uppercase tracking-wider">
+            <p className="text-xs font-semibold text-stone-400 dark:text-[#6b7490] uppercase tracking-wider">
               Transaksi Terakhir
             </p>
             <button
               onClick={() => setActivePage('sales')}
-              className="text-[11px] text-rose-500 hover:text-rose-600 font-medium flex items-center gap-0.5"
+              className="text-[11px] text-amber-500 hover:text-amber-600 font-medium flex items-center gap-0.5"
             >
               Semua <ArrowRight className="w-2.5 h-2.5" />
             </button>
           </div>
-          <div className="bg-white dark:bg-stone-800/80 rounded-xl border border-stone-200/80 dark:border-stone-700/50 divide-y divide-stone-100 dark:divide-stone-700/40">
+          <div className="bg-white dark:bg-[#1a1f2e]/80 rounded-xl border border-stone-200/80 dark:border-white/[0.06] divide-y divide-stone-100 dark:divide-white/[0.04]">
             {!data.recentTransactions?.length ? (
               <div className="p-5 text-center text-xs text-stone-400 dark:text-stone-500">
                 Belum ada transaksi
@@ -217,7 +217,7 @@ export default function WorkspaceHome() {
               data.recentTransactions.slice(0, 4).map((t, i) => (
                 <div
                   key={i}
-                  className="flex items-center gap-2.5 px-3.5 py-2.5 hover:bg-stone-50/50 dark:hover:bg-stone-700/20 transition-colors"
+                  className="flex items-center gap-2.5 px-3.5 py-2.5 hover:bg-stone-50/50 dark:hover:bg-white/[0.02] transition-colors"
                 >
                   <div
                     className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
@@ -253,19 +253,19 @@ export default function WorkspaceHome() {
         </div>
 
         {/* Inbox */}
-        <div className="space-y-2">
+        <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <p className="text-xs font-semibold text-stone-400 dark:text-stone-500 uppercase tracking-wider">
+            <p className="text-xs font-semibold text-stone-400 dark:text-[#6b7490] uppercase tracking-wider">
               Inbox
             </p>
             <button
               onClick={() => setActivePage('inbox')}
-              className="text-[11px] text-rose-500 hover:text-rose-600 font-medium flex items-center gap-0.5"
+              className="text-[11px] text-amber-500 hover:text-amber-600 font-medium flex items-center gap-0.5"
             >
               Buka <ArrowRight className="w-2.5 h-2.5" />
             </button>
           </div>
-          <div className="bg-white dark:bg-stone-800/80 rounded-xl border border-stone-200/80 dark:border-stone-700/50 divide-y divide-stone-100 dark:divide-stone-700/40">
+          <div className="bg-white dark:bg-[#1a1f2e]/80 rounded-xl border border-stone-200/80 dark:border-white/[0.06] divide-y divide-stone-100 dark:divide-white/[0.04]">
             {inboxItems.length === 0 ? (
               <div className="p-5 text-center text-xs text-stone-400 dark:text-stone-500">
                 Tidak ada pesan baru
@@ -274,7 +274,7 @@ export default function WorkspaceHome() {
               inboxItems.slice(0, 4).map((item: any) => (
                 <div
                   key={item.id}
-                  className="flex items-start gap-2.5 px-3.5 py-2.5 hover:bg-stone-50/50 dark:hover:bg-stone-700/20 transition-colors"
+                  className="flex items-start gap-2.5 px-3.5 py-2.5 hover:bg-stone-50/50 dark:hover:bg-white/[0.02] transition-colors"
                 >
                   <div
                     className={`w-7 h-7 rounded-lg flex items-center justify-center mt-0.5 shrink-0 ${
