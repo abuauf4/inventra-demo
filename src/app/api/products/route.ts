@@ -177,6 +177,24 @@ export async function POST(request: NextRequest) {
       },
     })
 
+    // Create WarehouseStock entries for variants with initial stock
+    if (product.variants) {
+      const warehouses = await db.warehouse.findMany({ where: { isActive: true }, orderBy: { createdAt: 'asc' } })
+      const defaultWarehouse = warehouses[0]
+      
+      for (const variant of product.variants) {
+        if (variant.stock > 0 && defaultWarehouse) {
+          await db.warehouseStock.create({
+            data: {
+              warehouseId: defaultWarehouse.id,
+              productVariantId: variant.id,
+              stock: variant.stock,
+            },
+          })
+        }
+      }
+    }
+
     // Activity log
     await createActivityLog({
       action: 'CREATE',

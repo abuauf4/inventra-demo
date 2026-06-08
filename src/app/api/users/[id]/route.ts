@@ -1,7 +1,8 @@
 import { db } from '@/lib/db'
 import { NextRequest, NextResponse } from 'next/server'
+import bcrypt from 'bcryptjs'
 
-const VALID_ROLES = ['owner', 'admin', 'staff']
+const VALID_ROLES = ['owner', 'admin', 'staff', 'warehouse']
 
 // PUT /api/users/[id] - Update user by id
 export async function PUT(
@@ -54,7 +55,7 @@ export async function PUT(
     // Validate role if provided
     if (role && !VALID_ROLES.includes(role)) {
       return NextResponse.json(
-        { success: false, message: 'Role harus salah satu dari: owner, admin, staff' },
+        { success: false, message: 'Role harus salah satu dari: owner, admin, staff, warehouse' },
         { status: 400 }
       )
     }
@@ -64,7 +65,7 @@ export async function PUT(
     if (name !== undefined) updateData.name = name
     if (username !== undefined) updateData.username = username
     if (email !== undefined) updateData.email = email || null
-    if (password !== undefined) updateData.password = password
+    if (password !== undefined) updateData.password = await bcrypt.hash(password, 10)
     if (role !== undefined) updateData.role = role
     if (isActive !== undefined) updateData.isActive = isActive
 

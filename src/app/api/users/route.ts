@@ -1,7 +1,8 @@
 import { db } from '@/lib/db'
 import { NextRequest, NextResponse } from 'next/server'
+import bcrypt from 'bcryptjs'
 
-const VALID_ROLES = ['owner', 'admin', 'staff']
+const VALID_ROLES = ['owner', 'admin', 'staff', 'warehouse']
 
 // GET /api/users - List all users (exclude password)
 export async function GET(request: NextRequest) {
@@ -62,7 +63,7 @@ export async function POST(request: NextRequest) {
 
     if (!VALID_ROLES.includes(role)) {
       return NextResponse.json(
-        { success: false, message: 'Role harus salah satu dari: owner, admin, staff' },
+        { success: false, message: 'Role harus salah satu dari: owner, admin, staff, warehouse' },
         { status: 400 }
       )
     }
@@ -92,13 +93,16 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const hashedPassword = await bcrypt.hash(password, 10)
+
     const user = await db.user.create({
       data: {
         name,
         username,
         email: email || null,
-        password, // Plain text for V1
+        password: hashedPassword,
         role,
+        isActive: true,
       },
       select: {
         id: true,

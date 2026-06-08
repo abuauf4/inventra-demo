@@ -50,7 +50,7 @@ function ReportsModule() {
             {period === 'custom' && <><Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="w-40" /><Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="w-40" /></>}
             <Button onClick={load} variant="outline"><RefreshCw className="w-4 h-4 mr-2" />Refresh</Button>
           </div>
-          {loading ? <div className="flex justify-center py-8"><RefreshCw className="w-6 h-6 animate-spin text-rose-500" /></div> : (
+          {loading ? <div className="flex justify-center py-8"><RefreshCw className="w-6 h-6 animate-spin text-amber-500" /></div> : (
             <Card className="border-0 shadow-sm"><CardHeader><CardTitle>Laporan Penjualan</CardTitle></CardHeader><CardContent>
               {data?.grouped?.length > 0 ? <><div className="mb-4"><span className="text-muted-foreground">Total: </span><span className="text-xl font-bold">{fmtRp(data.grandTotal || 0)}</span></div><Table><TableHeader><TableRow><TableHead>Periode</TableHead><TableHead className="text-center">Jumlah</TableHead><TableHead className="text-right">Total</TableHead></TableRow></TableHeader><TableBody>{data.grouped.map((item: any, i: number) => <TableRow key={i}><TableCell>{item.period}</TableCell><TableCell className="text-center">{item.count}</TableCell><TableCell className="text-right font-medium">{fmtRp(item.totalAmount)}</TableCell></TableRow>)}</TableBody></Table></> : <p className="text-center text-muted-foreground py-8">Tidak ada data</p>}
             </CardContent></Card>
@@ -62,22 +62,22 @@ function ReportsModule() {
             {period === 'custom' && <><Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="w-40" /><Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="w-40" /></>}
             <Button onClick={load} variant="outline"><RefreshCw className="w-4 h-4 mr-2" />Refresh</Button>
           </div>
-          {loading ? <div className="flex justify-center py-8"><RefreshCw className="w-6 h-6 animate-spin text-rose-500" /></div> : (
+          {loading ? <div className="flex justify-center py-8"><RefreshCw className="w-6 h-6 animate-spin text-amber-500" /></div> : (
             <Card className="border-0 shadow-sm"><CardHeader><CardTitle>Laporan Pembelian</CardTitle></CardHeader><CardContent>
               {data?.grouped?.length > 0 ? <><div className="mb-4"><span className="text-muted-foreground">Total: </span><span className="text-xl font-bold">{fmtRp(data.grandTotal || 0)}</span></div><Table><TableHeader><TableRow><TableHead>Periode</TableHead><TableHead className="text-center">Jumlah</TableHead><TableHead className="text-right">Total</TableHead></TableRow></TableHeader><TableBody>{data.grouped.map((item: any, i: number) => <TableRow key={i}><TableCell>{item.period}</TableCell><TableCell className="text-center">{item.count}</TableCell><TableCell className="text-right font-medium">{fmtRp(item.totalAmount)}</TableCell></TableRow>)}</TableBody></Table></> : <p className="text-center text-muted-foreground py-8">Tidak ada data</p>}
             </CardContent></Card>
           )}
         </TabsContent>
         <TabsContent value="stock" className="space-y-4">
-          {loading ? <div className="flex justify-center py-8"><RefreshCw className="w-6 h-6 animate-spin text-rose-500" /></div> : (
+          {loading ? <div className="flex justify-center py-8"><RefreshCw className="w-6 h-6 animate-spin text-amber-500" /></div> : (
             <><div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <Card className="border-0 shadow-sm"><CardContent className="p-4"><p className="text-sm text-muted-foreground">Total Varian</p><p className="text-2xl font-bold">{fmt(data?.totalProducts || 0)}</p></CardContent></Card>
+              <Card className="border-0 shadow-sm"><CardContent className="p-4"><p className="text-sm text-muted-foreground">Total Varian</p><p className="text-2xl font-bold">{fmt(data?.totalVariants || 0)}</p></CardContent></Card>
               <Card className="border-0 shadow-sm"><CardContent className="p-4"><p className="text-sm text-muted-foreground">Stok Menipis</p><p className="text-2xl font-bold text-amber-600">{fmt(data?.lowStockCount || 0)}</p></CardContent></Card>
               <Card className="border-0 shadow-sm"><CardContent className="p-4"><p className="text-sm text-muted-foreground">Nilai Persediaan</p><p className="text-2xl font-bold">{fmtRp(data?.totalInventoryValue || 0)}</p></CardContent></Card>
             </div>
             <Card className="border-0 shadow-sm"><CardHeader><CardTitle>Laporan Stok (Per Varian)</CardTitle></CardHeader><CardContent>
-              {data?.products?.length > 0 ? <div className="overflow-x-auto"><Table><TableHeader><TableRow><TableHead>Produk</TableHead><TableHead>Varian</TableHead><TableHead className="text-center">Stok</TableHead><TableHead className="text-center">Min</TableHead><TableHead className="text-right">Nilai</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
-                <TableBody>{data.products.map((p: any) => <TableRow key={p.id}><TableCell className="font-medium">{p.name || p.productName}</TableCell><TableCell>{p.variantName || '-'}</TableCell><TableCell className="text-center">{p.stock}</TableCell><TableCell className="text-center">{p.minStock}</TableCell><TableCell className="text-right">{fmtRp(p.stockValue)}</TableCell>
+              {data?.variants?.length > 0 ? <div className="overflow-x-auto"><Table><TableHeader><TableRow><TableHead>Produk</TableHead><TableHead>Varian</TableHead><TableHead className="text-center">Stok</TableHead><TableHead className="text-center">Min</TableHead><TableHead className="text-right">Nilai</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
+                <TableBody>{data.variants.map((p: any) => <TableRow key={p.id}><TableCell className="font-medium">{p.name || p.productName}</TableCell><TableCell>{p.variantName || '-'}</TableCell><TableCell className="text-center">{p.stock}</TableCell><TableCell className="text-center">{p.minStock}</TableCell><TableCell className="text-right">{fmtRp(p.stockValue)}</TableCell>
                   <TableCell><Badge variant={p.stock <= p.minStock ? (p.stock <= 0 ? 'destructive' : 'secondary') : 'default'} className={p.stock > p.minStock ? 'bg-emerald-100 text-emerald-700' : p.stock <= 0 ? '' : 'bg-amber-100 text-amber-700'}>{p.stock <= 0 ? 'Habis' : p.stock <= p.minStock ? 'Menipis' : 'Aman'}</Badge></TableCell>
                 </TableRow>)}</TableBody></Table></div> : <p className="text-center text-muted-foreground py-8">Tidak ada data</p>}
             </CardContent></Card></>

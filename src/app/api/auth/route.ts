@@ -1,5 +1,6 @@
 import { db } from '@/lib/db'
 import { NextRequest, NextResponse } from 'next/server'
+import bcrypt from 'bcryptjs'
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,7 +18,23 @@ export async function POST(request: NextRequest) {
       where: { username },
     })
 
-    if (!user || user.password !== password) {
+    if (!user) {
+      return NextResponse.json(
+        { success: false, message: 'Username atau password salah' },
+        { status: 401 }
+      )
+    }
+
+    // Try bcrypt first, fallback to plain text for legacy data
+    let isValid = false
+    try {
+      isValid = await bcrypt.compare(password, user.password)
+    } catch {
+      // Password might be plain text (legacy)
+      isValid = user.password === password
+    }
+
+    if (!isValid) {
       return NextResponse.json(
         { success: false, message: 'Username atau password salah' },
         { status: 401 }

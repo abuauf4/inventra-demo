@@ -30,8 +30,11 @@ export interface Purchase {
 export interface Sale {
   id: string; transNo: string; customerId?: string; date: string; total: number; status: string; notes?: string; customer?: Customer; items: SaleItem[]; createdAt: string
 }
+export interface StockMutationVariant extends ProductVariant {
+  product?: { id: string; name: string }
+}
 export interface StockMutation {
-  id: string; variantId?: string; productId?: string; warehouseId?: string; type: string; qty: number; note?: string; variant?: ProductVariant; product?: Product; warehouse?: Warehouse; createdAt: string
+  id: string; variantId?: string; productId?: string; warehouseId?: string; type: string; qty: number; note?: string; variant?: StockMutationVariant; product?: Product; warehouse?: Warehouse; createdAt: string
 }
 export interface ActivityLog {
   id: string; userId: string; action: string; entity: string; entityId?: string; entityCode?: string; details: string; previousData?: string; newData?: string; user?: { id: string; name: string; username: string; role: string }; createdAt: string

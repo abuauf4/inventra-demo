@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client'
+import bcrypt from 'bcryptjs'
 
 const db = new PrismaClient()
 
@@ -19,7 +20,7 @@ async function main() {
   const owner = await db.user.upsert({
     where: { username: 'Bagas' },
     update: { name: 'Abu Aufa', role: 'owner' },
-    create: { username: 'Bagas', password: '122333', name: 'Abu Aufa', role: 'owner' },
+    create: { username: 'Bagas', password: await bcrypt.hash('122333', 10), name: 'Abu Aufa', role: 'owner' },
   })
   console.log('✅ Owner:', owner.name)
 
@@ -27,7 +28,7 @@ async function main() {
   const staff = await db.user.upsert({
     where: { username: 'Bagas2' },
     update: {},
-    create: { username: 'Bagas2', password: '122333', name: 'Bagas', role: 'staff' },
+    create: { username: 'Bagas2', password: await bcrypt.hash('122333', 10), name: 'Bagas', role: 'staff' },
   })
   console.log('✅ Staff:', staff.name)
 
@@ -35,7 +36,7 @@ async function main() {
   const whUser = await db.user.upsert({
     where: { username: 'Rizki' },
     update: {},
-    create: { username: 'Rizki', password: '122333', name: 'Rizki', role: 'warehouse' },
+    create: { username: 'Rizki', password: await bcrypt.hash('122333', 10), name: 'Rizki', role: 'warehouse' },
   })
   console.log('✅ Warehouse:', whUser.name)
 
