@@ -289,3 +289,29 @@
 .page-enter {
   animation: fade-up 0.4s cubic-bezier(0.4, 0, 0.2, 1) both;
 }
+
+/* ===== MOBILE RESPONSIVE ===== */
+@media (max-width: 640px) {
+  /* Prevent text overflow in table cells on mobile */
+  [data-slot="table-cell"] {
+    white-space: nowrap;
+    font-size: 0.8rem;
+  }
+
+  /* Ensure tables have minimum width for readability */
+  table {
+    min-width: 540px;
+  }
+
+  /* Tighter card spacing on mobile */
+  .card-living:hover {
+    transform: none;
+  }
+
+  /* Make dialog content take more screen on mobile */
+  [role="dialog"] {
+    max-height: 90dvh !important;
+    width: 95vw !important;
+    max-width: 95vw !important;
+  }
+}

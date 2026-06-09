@@ -111,13 +111,13 @@ export default function WorkspaceHome() {
         </div>
       )}
 
-      {/* ===== Quick Actions — compact row ===== */}
-      <div className="shrink-0 flex items-center gap-3 mb-6">
+      {/* ===== Quick Actions — compact row, wraps on mobile ===== */}
+      <div className="shrink-0 flex flex-wrap items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
         {quickActions.map((a, i) => (
           <button
             key={i}
             onClick={a.action}
-            className="card-living group flex items-center gap-2.5 px-5 py-3 rounded-xl bg-white/60 dark:bg-[#1a1f2e]/60 backdrop-blur-sm border border-stone-200/40 dark:border-white/[0.04] shadow-sm text-sm font-medium text-stone-700 dark:text-stone-300"
+            className="card-living group flex items-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl bg-white/60 dark:bg-[#1a1f2e]/60 backdrop-blur-sm border border-stone-200/40 dark:border-white/[0.04] shadow-sm text-sm font-medium text-stone-700 dark:text-stone-300"
           >
             <div
               className={`w-7 h-7 rounded-lg ${a.color} flex items-center justify-center text-white group-hover:scale-110 transition-transform duration-300 ease-out shadow-sm`}
@@ -150,7 +150,7 @@ export default function WorkspaceHome() {
               </button>
             )}
           </div>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
             {(data.lowStockProducts ?? []).slice(0, 4).map((p) => (
               <button
                 key={p.variantId}
@@ -183,7 +183,7 @@ export default function WorkspaceHome() {
       )}
 
       {/* ===== Bottom: Recent + Inbox — takes remaining space, scrollable ===== */}
-      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Recent Transactions */}
         <div className="flex flex-col min-h-0">
           <div className="flex items-center justify-between shrink-0 mb-3">

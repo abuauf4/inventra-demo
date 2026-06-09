@@ -225,7 +225,7 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
   const isSectionActive = (section: MenuSection) =>
     section.items.some((item) => item.key === activePage && !item.soon)
 
-  const w = sidebarCollapsed ? 'w-[68px]' : 'w-[260px]'
+  const w = sidebarCollapsed ? 'w-[280px] lg:w-[68px]' : 'w-[260px]'
 
   return (
     <>
@@ -249,7 +249,7 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
         </div>
 
         {/* ===== Profile Area — FIXED, tidak ikut scroll ===== */}
-        <div className={`relative shrink-0 pt-5 pb-3 transition-all duration-[220ms] ${sidebarCollapsed ? 'px-2' : 'px-5'}`}>
+        <div className={`relative shrink-0 pt-5 pb-3 transition-all duration-[220ms] ${sidebarCollapsed ? 'px-2 lg:px-2 px-5' : 'px-5'}`}>
           <div className="flex flex-col items-center">
             {/* Avatar — centered */}
             <div className="relative shrink-0">
@@ -257,7 +257,7 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
                 className={`bg-gradient-to-br ${
                   roleColors[currentUser?.role ?? 'staff'] || 'from-gray-400 to-gray-500'
                 } flex items-center justify-center text-white font-bold ring-2 ring-white/[0.08] shadow-lg transition-all duration-[220ms] ${
-                  sidebarCollapsed ? 'w-9 h-9 rounded-lg text-xs' : 'w-12 h-12 rounded-full text-sm'
+                  sidebarCollapsed ? 'w-9 h-9 rounded-lg text-xs lg:w-9 lg:h-9 lg:rounded-lg w-12 h-12 rounded-full' : 'w-12 h-12 rounded-full text-sm'
                 }`}
               >
                 {(currentUser?.name ?? 'U').slice(0, 2).toUpperCase()}
@@ -268,22 +268,20 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
               }`} />
             </div>
 
-            {/* Name + role below avatar — hidden when collapsed */}
-            {!sidebarCollapsed && (
-              <div className="mt-2.5 text-center">
-                <h2 className="font-semibold text-[14px] text-white/85 truncate leading-tight">
-                  {currentUser?.name ?? 'User'}
-                </h2>
-                <div className="flex items-center justify-center gap-1.5 mt-1">
-                  <span className="text-amber-400/60">
-                    {roleIcons[currentUser?.role ?? 'staff']}
-                  </span>
-                  <span className="text-[11px] text-white/35 capitalize">
-                    {roleLabels[currentUser?.role ?? 'staff']}
-                  </span>
-                </div>
+            {/* Name + role below avatar — on mobile always show, on desktop hide when collapsed */}
+            <div className={`mt-2.5 text-center ${sidebarCollapsed ? 'lg:hidden' : ''}`}>
+              <h2 className="font-semibold text-[14px] text-white/85 truncate leading-tight">
+                {currentUser?.name ?? 'User'}
+              </h2>
+              <div className="flex items-center justify-center gap-1.5 mt-1">
+                <span className="text-amber-400/60">
+                  {roleIcons[currentUser?.role ?? 'staff']}
+                </span>
+                <span className="text-[11px] text-white/35 capitalize">
+                  {roleLabels[currentUser?.role ?? 'staff']}
+                </span>
               </div>
-            )}
+            </div>
           </div>
 
           {/* Mobile close */}
@@ -302,7 +300,7 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
 
         {/* ===== Home — FIXED, tidak ikut scroll ===== */}
         <div className="relative shrink-0 py-1">
-          <nav className={sidebarCollapsed ? 'px-1.5' : 'px-3'}>
+          <nav className={sidebarCollapsed ? 'px-1.5 lg:px-1.5 px-3' : 'px-3'}>
             {menuSections[0].items.map((item) => {
               const isActive = activePage === item.key
               return (
@@ -314,7 +312,7 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
                     }}
                     className={`group w-full flex items-center rounded-xl text-[13px] font-medium transition-all duration-200 ease-out relative ${
                       sidebarCollapsed
-                        ? 'justify-center px-0 py-2.5'
+                        ? 'justify-center lg:justify-center justify-start px-3.5 py-2.5 gap-3'
                         : 'gap-3 px-3.5 py-2.5'
                     } ${
                       isActive
@@ -328,14 +326,12 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
                     <span className={`transition-colors duration-200 shrink-0 ${isActive ? 'text-amber-400' : 'text-white/30 group-hover:text-white/55'}`}>
                       {item.icon}
                     </span>
-                    {!sidebarCollapsed && (
-                      <>
-                        {item.label}
-                        {isActive && (
-                          <Circle className="ml-auto w-1.5 h-1.5 fill-amber-400/60 text-amber-400/60 sidebar-active-bar" />
-                        )}
-                      </>
-                    )}
+                    <span className={`${sidebarCollapsed ? 'lg:hidden' : ''}`}>
+                      {item.label}
+                      {isActive && (
+                        <Circle className="ml-auto w-1.5 h-1.5 fill-amber-400/60 text-amber-400/60 sidebar-active-bar inline" />
+                      )}
+                    </span>
                   </button>
                 </TooltipWrap>
               )
@@ -348,9 +344,9 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
 
         {/* ===== Category Menu Sections — ONLY THIS PART SCROLLS ===== */}
         <div className="relative flex-1 overflow-y-auto overscroll-contain -webkit-overflow-scrolling-touch min-h-0">
+          {/* COLLAPSED view — desktop only (hidden on mobile) */}
           {sidebarCollapsed ? (
-            // ====== COLLAPSED: Category icons only ======
-            <nav className="px-1.5 space-y-0.5 py-1">
+            <nav className="hidden lg:block px-1.5 space-y-0.5 py-1">
               {menuSections.slice(1).map((section, origSi) => {
                 const si = origSi + 1 // offset for actual index
                 // Hide "Pengaturan" section for non-owners
@@ -387,9 +383,9 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
                 )
               })}
             </nav>
-          ) : (
-            // ====== EXPANDED: Full menu with collapsible categories ======
-            <nav className="px-3 space-y-0.5 py-1">
+          ) : null}
+          {/* EXPANDED view — always visible on mobile, conditionally on desktop */}
+          <nav className={`px-3 space-y-0.5 py-1 ${sidebarCollapsed ? 'lg:hidden' : ''}`}>
               {menuSections.slice(1).map((section, origSi) => {
                 const si = origSi + 1 // offset for actual index
                 // Hide "Pengaturan" section for non-owners
@@ -472,38 +468,29 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
                 )
               })}
             </nav>
-          )}
         </div>
 
         {/* ===== Footer — FIXED at bottom: Brand + Collapse ===== */}
         <div className="relative shrink-0 border-t border-white/[0.04]">
           {/* Brand / Inventra */}
-          <div className={`transition-all duration-[220ms] ${sidebarCollapsed ? 'px-2 py-2' : 'px-5 py-2.5'}`}>
-            {!sidebarCollapsed ? (
-              <div className="flex items-center gap-2.5">
-                <div className="sidebar-brand-icon w-6 h-6 bg-gradient-to-br from-amber-400 via-orange-500 to-amber-600 rounded-md flex items-center justify-center shadow-lg shadow-amber-500/20 shrink-0">
-                  <Package className="w-3 h-3 text-white" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <span className="font-bold text-[11px] text-white/50 tracking-tight">
-                    Inventra
-                  </span>
-                  <span className="text-[8px] text-white/15 ml-1">
-                    by Nauka
-                  </span>
-                </div>
+          <div className={`transition-all duration-[220ms] ${sidebarCollapsed ? 'px-2 lg:px-2 px-5 py-2.5' : 'px-5 py-2.5'}`}>
+            <div className="flex items-center gap-2.5">
+              <div className="sidebar-brand-icon w-6 h-6 bg-gradient-to-br from-amber-400 via-orange-500 to-amber-600 rounded-md flex items-center justify-center shadow-lg shadow-amber-500/20 shrink-0">
+                <Package className="w-3 h-3 text-white" />
               </div>
-            ) : (
-              <div className="flex justify-center">
-                <div className="sidebar-brand-icon w-6 h-6 bg-gradient-to-br from-amber-400 via-orange-500 to-amber-600 rounded-md flex items-center justify-center shadow-lg shadow-amber-500/20">
-                  <Package className="w-3 h-3 text-white" />
-                </div>
+              <div className={`flex-1 min-w-0 ${sidebarCollapsed ? 'lg:hidden' : ''}`}>
+                <span className="font-bold text-[11px] text-white/50 tracking-tight">
+                  Inventra
+                </span>
+                <span className="text-[8px] text-white/15 ml-1">
+                  by Nauka
+                </span>
               </div>
-            )}
+            </div>
           </div>
 
-          {/* Collapse toggle */}
-          <div className="px-2 pb-2">
+          {/* Collapse toggle — desktop only */}
+          <div className="px-2 pb-2 hidden lg:block">
             <button
               onClick={toggleSidebarCollapsed}
               className="group w-full flex items-center justify-center gap-2 px-2 py-1.5 rounded-xl text-white/20 hover:bg-white/[0.04] hover:text-white/40 transition-all duration-200 ease-out"

@@ -272,7 +272,7 @@ function StockMutationsModule() {
   return (
     <div className="flex flex-col h-full">
       {/* Header with filter + add button */}
-      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between shrink-0">
+      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-start sm:items-center justify-between shrink-0">
         <div className="flex gap-3 items-center">
           <Select value={filterType} onValueChange={setFilterType}>
             <SelectTrigger className="w-44">
@@ -304,6 +304,7 @@ function StockMutationsModule() {
       ) : (
         <Card className="border-0 shadow-sm">
           <CardContent className="p-0">
+            <div className="overflow-x-auto -mx-3 sm:mx-0">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -338,6 +339,7 @@ function StockMutationsModule() {
                 ))}
               </TableBody>
             </Table>
+            </div>
           </CardContent>
         </Card>
       )}
