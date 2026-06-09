@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 import { useAppStore } from '@/lib/store'
-import { Search, ShoppingBag, Construction } from 'lucide-react'
+import { Search, Construction } from 'lucide-react'
 
 // Workspace
 import WorkspaceHome from '@/components/inventra/workspace/workspace-home'
@@ -190,15 +190,6 @@ export default function InventraApp() {
       <GlobalSearch />
       {/* Mobile Bottom Navigation */}
       <MobileBottomNav />
-      {/* Mobile Floating Action — Jual Cepat only, positioned above bottom nav */}
-      <div className="fixed bottom-[72px] right-4 lg:hidden z-40">
-        <button
-          onClick={() => { setActivePage('sales'); setOpenSalesForm(true) }}
-          className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-400 to-amber-500 text-white shadow-lg shadow-amber-500/30 hover:shadow-xl hover:scale-105 active:scale-95 transition-all duration-300 flex items-center justify-center"
-        >
-          <ShoppingBag className="w-5 h-5" />
-        </button>
-      </div>
     </div>
   )
 }
