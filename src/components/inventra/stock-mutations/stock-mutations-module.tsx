@@ -296,7 +296,7 @@ function StockMutationsModule() {
       </div>
 
       {/* Table */}
-      <div className="flex-1 min-h-0 overflow-y-auto mt-6">
+      <div className="flex-1 min-h-0 overflow-y-auto mt-5">
       {loading ? (
         <div className="flex justify-center py-8">
           <RefreshCw className="w-6 h-6 animate-spin text-amber-500" />

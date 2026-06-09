@@ -420,7 +420,7 @@ function ReportsModule({ defaultTab }: { defaultTab?: 'sales' | 'purchases' | 's
         </TabsList>
 
         {/* ==================== SALES REPORT ==================== */}
-        <TabsContent value="sales" className="flex flex-col h-full mt-6">
+        <TabsContent value="sales" className="flex flex-col h-full mt-5">
           <div className="flex flex-col sm:flex-row gap-4 flex-wrap items-end shrink-0">
             <Select value={period} onValueChange={setPeriod}><SelectTrigger className="w-40"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="daily">Harian</SelectItem><SelectItem value="weekly">Mingguan</SelectItem><SelectItem value="monthly">Bulanan</SelectItem><SelectItem value="custom">Custom</SelectItem></SelectContent></Select>
             <div className="flex items-center gap-2">
@@ -461,11 +461,11 @@ function ReportsModule({ defaultTab }: { defaultTab?: 'sales' | 'purchases' | 's
             </div>
           )}
 
-          <div className="flex-1 min-h-0 overflow-y-auto space-y-6">
+          <div className="flex-1 min-h-0 overflow-y-auto space-y-5">
           {loading ? <div className="flex justify-center py-8"><RefreshCw className="w-5 h-5 animate-spin text-stone-300" /></div> : (
             <>
               {/* Summary Cards */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-5">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <Card className="border shadow-sm bg-white"><CardContent className="p-5 flex items-center gap-4">
                   <div className="w-9 h-9 rounded-lg bg-emerald-50 flex items-center justify-center"><TrendingUp className="w-4 h-4 text-emerald-600" /></div>
                   <div><p className="text-xs text-muted-foreground">Pendapatan</p><p className="text-lg font-bold text-emerald-700">{fmtRp(data?.revenue || 0)}</p><p className="text-[10px] text-muted-foreground">COMPLETED + PAID</p></div>
@@ -490,7 +490,7 @@ function ReportsModule({ defaultTab }: { defaultTab?: 'sales' | 'purchases' | 's
               </CardContent></Card>
 
               {/* Top Products + Top Customers */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <Card className="border shadow-sm bg-white"><CardHeader><CardTitle className="flex items-center gap-2"><Trophy className="w-4 h-4 text-amber-500" />Produk Terlaris (Pendapatan)</CardTitle></CardHeader><CardContent>
                   {data?.topProductsByRevenue?.length > 0 ? <Table><TableHeader><TableRow><TableHead>Produk</TableHead><TableHead className="text-center">Qty</TableHead><TableHead className="text-right">Pendapatan</TableHead><TableHead className="text-right">Profit</TableHead></TableRow></TableHeader>
                     <TableBody>{data.topProductsByRevenue.map((p: any, i: number) => <TableRow key={i}><TableCell><div className="font-medium">{p.name}</div><div className="text-xs text-muted-foreground font-mono">{p.sku}</div></TableCell><TableCell className="text-center">{p.qty}</TableCell><TableCell className="text-right font-medium">{fmtRp(p.revenue)}</TableCell><TableCell className="text-right text-teal-600">{fmtRp(p.revenue - p.cost)}</TableCell></TableRow>)}</TableBody></Table> : <p className="text-center text-muted-foreground py-4">Tidak ada data</p>}
@@ -506,7 +506,7 @@ function ReportsModule({ defaultTab }: { defaultTab?: 'sales' | 'purchases' | 's
         </TabsContent>
 
         {/* ==================== PURCHASES REPORT ==================== */}
-        <TabsContent value="purchases" className="flex flex-col h-full mt-6">
+        <TabsContent value="purchases" className="flex flex-col h-full mt-5">
           <div className="flex flex-col sm:flex-row gap-4 flex-wrap items-end shrink-0">
             <Select value={period} onValueChange={setPeriod}><SelectTrigger className="w-40"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="daily">Harian</SelectItem><SelectItem value="weekly">Mingguan</SelectItem><SelectItem value="monthly">Bulanan</SelectItem><SelectItem value="custom">Custom</SelectItem></SelectContent></Select>
             <div className="flex items-center gap-2">
@@ -547,11 +547,11 @@ function ReportsModule({ defaultTab }: { defaultTab?: 'sales' | 'purchases' | 's
             </div>
           )}
 
-          <div className="flex-1 min-h-0 overflow-y-auto space-y-6">
+          <div className="flex-1 min-h-0 overflow-y-auto space-y-5">
           {loading ? <div className="flex justify-center py-8"><RefreshCw className="w-6 h-6 animate-spin text-stone-300" /></div> : (
             <>
               {/* Summary Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <Card className="border shadow-sm bg-white"><CardContent className="p-5 flex items-center gap-4">
                   <div className="w-10 h-10 rounded-xl bg-rose-100 flex items-center justify-center"><ShoppingCart className="w-5 h-5 text-rose-600" /></div>
                   <div><p className="text-xs text-muted-foreground">Total Biaya (Diterima)</p><p className="text-lg font-bold text-rose-700">{fmtRp(data?.cost || 0)}</p><p className="text-[10px] text-muted-foreground">Status RECEIVED saja</p></div>
@@ -572,7 +572,7 @@ function ReportsModule({ defaultTab }: { defaultTab?: 'sales' | 'purchases' | 's
               </CardContent></Card>
 
               {/* Top Products + Top Suppliers */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <Card className="border shadow-sm bg-white"><CardHeader><CardTitle className="flex items-center gap-2"><Trophy className="w-4 h-4 text-amber-500" />Produk Termahal (Biaya)</CardTitle></CardHeader><CardContent>
                   {data?.topProductsByCost?.length > 0 ? <Table><TableHeader><TableRow><TableHead>Produk</TableHead><TableHead className="text-center">Qty</TableHead><TableHead className="text-right">Total Biaya</TableHead></TableRow></TableHeader>
                     <TableBody>{data.topProductsByCost.map((p: any, i: number) => <TableRow key={i}><TableCell><div className="font-medium">{p.name}</div><div className="text-xs text-muted-foreground font-mono">{p.sku}</div></TableCell><TableCell className="text-center">{p.qty}</TableCell><TableCell className="text-right font-medium">{fmtRp(p.cost)}</TableCell></TableRow>)}</TableBody></Table> : <p className="text-center text-muted-foreground py-4">Tidak ada data</p>}
@@ -588,7 +588,7 @@ function ReportsModule({ defaultTab }: { defaultTab?: 'sales' | 'purchases' | 's
         </TabsContent>
 
         {/* ==================== STOCK REPORT ==================== */}
-        <TabsContent value="stock" className="flex flex-col h-full mt-6">
+        <TabsContent value="stock" className="flex flex-col h-full mt-5">
           {/* Stock Filters + Date Range */}
           <div className="flex flex-col sm:flex-row gap-4 flex-wrap items-end shrink-0">
             <div className="flex items-center gap-2">
@@ -647,10 +647,10 @@ function ReportsModule({ defaultTab }: { defaultTab?: 'sales' | 'purchases' | 's
             </div>
           )}
 
-          <div className="flex-1 min-h-0 overflow-y-auto space-y-6">
+          <div className="flex-1 min-h-0 overflow-y-auto space-y-5">
           {loading ? <div className="flex justify-center py-8"><RefreshCw className="w-6 h-6 animate-spin text-stone-300" /></div> : (
             <>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <Card className="border shadow-sm bg-white"><CardContent className="p-5 flex items-center gap-4">
                   <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center"><Package className="w-5 h-5 text-amber-600" /></div>
                   <div><p className="text-xs text-muted-foreground">Total Varian</p><p className="text-lg font-bold">{fmt(data?.totalVariants || 0)}</p></div>
@@ -676,7 +676,7 @@ function ReportsModule({ defaultTab }: { defaultTab?: 'sales' | 'purchases' | 's
         </TabsContent>
 
         {/* ==================== STOCK MUTATIONS REPORT ==================== */}
-        <TabsContent value="stock-mutations" className="flex flex-col h-full mt-6">
+        <TabsContent value="stock-mutations" className="flex flex-col h-full mt-5">
           <div className="flex flex-col sm:flex-row gap-4 flex-wrap items-end shrink-0">
             <div className="flex items-center gap-2">
               <div>
@@ -699,11 +699,11 @@ function ReportsModule({ defaultTab }: { defaultTab?: 'sales' | 'purchases' | 's
             </div>
           )}
 
-          <div className="flex-1 min-h-0 overflow-y-auto space-y-6">
+          <div className="flex-1 min-h-0 overflow-y-auto space-y-5">
           {loading ? <div className="flex justify-center py-8"><RefreshCw className="w-6 h-6 animate-spin text-stone-300" /></div> : (
             <>
               {/* Summary Cards by Type */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-5">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <Card className="border shadow-sm bg-white"><CardContent className="p-5 flex items-center gap-4">
                   <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center"><ArrowDownCircle className="w-5 h-5 text-emerald-600" /></div>
                   <div><p className="text-xs text-muted-foreground">Stok Masuk (IN)</p><p className="text-lg font-bold text-emerald-700">{fmt(data?.byType?.IN?.count || 0)} transaksi</p><p className="text-[10px] text-muted-foreground">Total: {fmt(data?.byType?.IN?.totalQty || 0)} unit</p></div>

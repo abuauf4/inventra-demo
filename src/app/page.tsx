@@ -181,7 +181,7 @@ export default function InventraApp() {
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
         <Header />
-        <main key={activePage} className="flex-1 min-h-0 overflow-hidden p-5 sm:p-8 lg:p-10 pb-24 lg:pb-10 transition-colors duration-500">{renderPage()}</main>
+        <main key={activePage} className="flex-1 min-h-0 overflow-hidden p-5 sm:p-6 lg:p-8 transition-colors duration-500">{renderPage()}</main>
       </div>
       <GlobalSearch />
       {/* Mobile Floating Action Buttons */}

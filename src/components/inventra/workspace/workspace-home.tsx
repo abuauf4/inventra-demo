@@ -66,9 +66,9 @@ export default function WorkspaceHome() {
         ]
 
   return (
-    <div className="max-w-3xl mx-auto space-y-10 page-enter overflow-y-auto h-full">
-      {/* ===== Greeting — the breath in ===== */}
-      <div className="space-y-1.5">
+    <div className="flex flex-col h-full page-enter">
+      {/* ===== Greeting — compact, top-fixed ===== */}
+      <div className="shrink-0 space-y-1 mb-4">
         <p className="text-sm text-stone-400 transition-colors duration-500">
           {timeGreeting}
         </p>
@@ -80,9 +80,9 @@ export default function WorkspaceHome() {
         </p>
       </div>
 
-      {/* ===== Priority alerts — the heartbeat ===== */}
+      {/* ===== Priority alerts — compact row ===== */}
       {(lowStockCount > 0 || (data.pendingPurchaseCount ?? 0) > 0 || (data.pendingSaleCount ?? 0) > 0) && (
-        <div className="flex flex-wrap items-center gap-2.5">
+        <div className="shrink-0 flex flex-wrap items-center gap-2.5 mb-5">
           {lowStockCount > 0 && (
             <button
               onClick={() => setActivePage('products')}
@@ -111,8 +111,8 @@ export default function WorkspaceHome() {
         </div>
       )}
 
-      {/* ===== Quick Actions — the movement ===== */}
-      <div className="flex items-center gap-3">
+      {/* ===== Quick Actions — compact row ===== */}
+      <div className="shrink-0 flex items-center gap-3 mb-6">
         {quickActions.map((a, i) => (
           <button
             key={i}
@@ -134,10 +134,10 @@ export default function WorkspaceHome() {
         ))}
       </div>
 
-      {/* ===== Low Stock — the urgency ===== */}
+      {/* ===== Low Stock — compact grid, shrink-0 ===== */}
       {(data.lowStockProducts ?? []).length > 0 && (role === 'owner' || role === 'admin' || role === 'warehouse') && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
+        <div className="shrink-0 mb-6">
+          <div className="flex items-center justify-between mb-3">
             <p className="text-xs font-semibold text-stone-400 uppercase tracking-wider">
               Perlu Restock
             </p>
@@ -150,19 +150,19 @@ export default function WorkspaceHome() {
               </button>
             )}
           </div>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             {(data.lowStockProducts ?? []).slice(0, 4).map((p) => (
               <button
                 key={p.variantId}
                 onClick={() => setActivePage('products')}
-                className={`card-living flex items-center gap-2.5 p-4 rounded-xl bg-white/60 border text-left dark:bg-[#1a1f2e]/60 backdrop-blur-sm ${
+                className={`card-living flex items-center gap-2.5 p-3.5 rounded-xl bg-white/60 border text-left dark:bg-[#1a1f2e]/60 backdrop-blur-sm ${
                   p.stock <= 0
                     ? 'border-red-200/40 dark:border-red-800/25'
                     : 'border-stone-200/40 dark:border-white/[0.04]'
                 }`}
               >
                 <div
-                  className={`w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold shadow-sm ${
+                  className={`w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold shadow-sm shrink-0 ${
                     p.stock <= 0 ? 'bg-gradient-to-br from-red-400 to-red-500' : 'bg-gradient-to-br from-amber-400 to-amber-500'
                   }`}
                 >
@@ -182,11 +182,11 @@ export default function WorkspaceHome() {
         </div>
       )}
 
-      {/* ===== Bottom: Recent + Inbox — the stories ===== */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* ===== Bottom: Recent + Inbox — takes remaining space, scrollable ===== */}
+      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Transactions */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
+        <div className="flex flex-col min-h-0">
+          <div className="flex items-center justify-between shrink-0 mb-3">
             <p className="text-xs font-semibold text-stone-400 uppercase tracking-wider">
               Transaksi Terakhir
             </p>
@@ -197,13 +197,13 @@ export default function WorkspaceHome() {
               Semua <ArrowRight className="w-2.5 h-2.5" />
             </button>
           </div>
-          <div className="card-living bg-white/60 dark:bg-[#1a1f2e]/60 rounded-xl border border-stone-200/40 dark:border-white/[0.04] divide-y divide-stone-100/50 dark:divide-white/[0.03] backdrop-blur-sm overflow-hidden">
+          <div className="card-living bg-white/60 dark:bg-[#1a1f2e]/60 rounded-xl border border-stone-200/40 dark:border-white/[0.04] divide-y divide-stone-100/50 dark:divide-white/[0.03] backdrop-blur-sm overflow-hidden flex-1 min-h-0 overflow-y-auto">
             {!(data.recentTransactions ?? []).length ? (
               <div className="p-5 text-center text-xs text-stone-400">
                 Belum ada transaksi
               </div>
             ) : (
-              (data.recentTransactions ?? []).slice(0, 4).map((t, i) => (
+              (data.recentTransactions ?? []).slice(0, 5).map((t, i) => (
                 <div
                   key={i}
                   className="flex items-center gap-2.5 px-3.5 py-2.5 hover:bg-stone-50/40 transition-all duration-300 ease-out dark:hover:bg-white/[0.02]"
@@ -242,8 +242,8 @@ export default function WorkspaceHome() {
         </div>
 
         {/* Inbox */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
+        <div className="flex flex-col min-h-0">
+          <div className="flex items-center justify-between shrink-0 mb-3">
             <p className="text-xs font-semibold text-stone-400 uppercase tracking-wider">
               Inbox
             </p>
@@ -254,13 +254,13 @@ export default function WorkspaceHome() {
               Buka <ArrowRight className="w-2.5 h-2.5" />
             </button>
           </div>
-          <div className="card-living bg-white/60 dark:bg-[#1a1f2e]/60 rounded-xl border border-stone-200/40 dark:border-white/[0.04] divide-y divide-stone-100/50 dark:divide-white/[0.03] backdrop-blur-sm overflow-hidden">
+          <div className="card-living bg-white/60 dark:bg-[#1a1f2e]/60 rounded-xl border border-stone-200/40 dark:border-white/[0.04] divide-y divide-stone-100/50 dark:divide-white/[0.03] backdrop-blur-sm overflow-hidden flex-1 min-h-0 overflow-y-auto">
             {inboxItems.length === 0 ? (
               <div className="p-5 text-center text-xs text-stone-400">
                 Tidak ada pesan baru
               </div>
             ) : (
-              inboxItems.slice(0, 4).map((item: any) => (
+              inboxItems.slice(0, 5).map((item: any) => (
                 <div
                   key={item.id}
                   className="flex items-start gap-2.5 px-3.5 py-2.5 hover:bg-stone-50/40 transition-all duration-300 ease-out dark:hover:bg-white/[0.02]"
