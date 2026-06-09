@@ -45,8 +45,8 @@
 
 /* ===== LIGHT MODE — warm neutral tones ===== */
 :root {
-  --radius: 0.625rem;
-  --background: oklch(0.97 0.003 60);
+  --radius: 0.75rem;
+  --background: oklch(0.975 0.003 60);
   --foreground: oklch(0.18 0.02 60);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.18 0.02 60);
@@ -61,8 +61,8 @@
   --accent: oklch(0.93 0.006 60);
   --accent-foreground: oklch(0.20 0.02 60);
   --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.90 0.005 60);
-  --input: oklch(0.92 0.004 60);
+  --border: oklch(0.915 0.004 60);
+  --input: oklch(0.93 0.003 60);
   --ring: oklch(0.55 0.18 50);
   --chart-1: oklch(0.65 0.18 50);
   --chart-2: oklch(0.60 0.15 250);
@@ -130,7 +130,7 @@
 
   /* Smoother focus rings */
   :focus-visible {
-    transition: box-shadow 0.2s ease-out, outline-color 0.2s ease-out;
+    transition: box-shadow 0.25s ease-out, outline-color 0.25s ease-out;
   }
 
   /* Custom scrollbar for webkit — thin & subtle */

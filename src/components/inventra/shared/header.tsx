@@ -31,12 +31,12 @@ function Header() {
   const unread = notifications.filter((n) => !n.read).length
 
   return (
-    <header className="sticky top-0 z-30 bg-white/80 dark:bg-[#0f1117]/80 backdrop-blur-xl border-b border-stone-200/50 dark:border-white/[0.05] px-4 lg:px-6 h-14 flex items-center gap-3 transition-colors duration-300">
+    <header className="sticky top-0 z-30 bg-white/70 dark:bg-[#0f1117]/70 backdrop-blur-2xl border-b border-stone-200/40 dark:border-white/[0.04] px-4 lg:px-6 h-14 flex items-center gap-3 transition-colors duration-300">
       {/* Mobile menu */}
       <Button
         variant="ghost"
         size="icon"
-        className="lg:hidden text-stone-400 hover:text-stone-600 transition-colors duration-200"
+        className="lg:hidden text-stone-400 hover:text-stone-600 transition-colors duration-200 rounded-xl"
         onClick={() => setSidebarOpen(!sidebarOpen)}
       >
         <Menu className="w-5 h-5" />
@@ -52,11 +52,11 @@ function Header() {
       {/* Search trigger */}
       <button
         onClick={() => setSearchOpen(true)}
-        className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-stone-50 hover:bg-stone-100 text-sm text-stone-400 transition-all duration-200 ease-out border border-stone-200/50 dark:bg-white/[0.03] dark:hover:bg-white/[0.06] dark:border-white/[0.05] min-w-[180px]"
+        className="hidden sm:flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-stone-50/80 hover:bg-stone-100/80 text-sm text-stone-400 transition-all duration-200 ease-out border border-stone-200/40 dark:bg-white/[0.03] dark:hover:bg-white/[0.05] dark:border-white/[0.04] min-w-[180px]"
       >
         <Search className="w-3.5 h-3.5" />
         <span className="text-stone-400 dark:text-stone-500">Cari...</span>
-        <kbd className="ml-auto text-[10px] bg-white dark:bg-white/[0.05] px-1.5 py-0.5 rounded-md border border-stone-200/60 dark:border-white/[0.06] font-mono text-stone-300 dark:text-stone-500">
+        <kbd className="ml-auto text-[10px] bg-white/80 dark:bg-white/[0.04] px-1.5 py-0.5 rounded-lg border border-stone-200/50 dark:border-white/[0.05] font-mono text-stone-300 dark:text-stone-600">
           Ctrl+K
         </kbd>
       </button>
@@ -65,7 +65,7 @@ function Header() {
       <Button
         variant="ghost"
         size="sm"
-        className="hidden sm:flex text-amber-600 dark:text-amber-400 hover:text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-950/20 gap-1.5 text-xs font-medium transition-all duration-200 ease-out rounded-xl"
+        className="hidden sm:flex text-amber-600 dark:text-amber-400 hover:text-amber-700 hover:bg-amber-50/80 dark:hover:bg-amber-950/20 gap-1.5 text-xs font-medium transition-all duration-200 ease-out rounded-xl"
         onClick={() => setQuickActionOpen(true)}
       >
         <ShoppingBag className="w-4 h-4" />

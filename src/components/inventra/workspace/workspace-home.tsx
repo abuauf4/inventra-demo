@@ -66,7 +66,7 @@ export default function WorkspaceHome() {
         ]
 
   return (
-    <div className="max-w-3xl mx-auto space-y-8">
+    <div className="max-w-3xl mx-auto space-y-8 animate-in fade-in duration-300">
       {/* ===== Greeting ===== */}
       <div className="space-y-1.5">
         <p className="text-sm text-stone-400">
@@ -117,16 +117,16 @@ export default function WorkspaceHome() {
           <button
             key={i}
             onClick={a.action}
-            className="group flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/80 dark:bg-[#1a1f2e]/80 border border-stone-200/60 dark:border-white/[0.06] hover:border-stone-300/80 dark:hover:border-white/[0.10] shadow-sm hover:shadow-md transition-all duration-200 ease-out text-sm font-medium text-stone-700 dark:text-stone-300"
+            className="group flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/70 dark:bg-[#1a1f2e]/70 backdrop-blur-sm border border-stone-200/50 dark:border-white/[0.05] hover:border-stone-300/70 dark:hover:border-white/[0.08] shadow-sm hover:shadow-md transition-all duration-200 ease-out text-sm font-medium text-stone-700 dark:text-stone-300"
           >
             <div
-              className={`w-7 h-7 rounded-lg ${a.color} flex items-center justify-center text-white group-hover:scale-110 transition-transform duration-200 ease-out`}
+              className={`w-7 h-7 rounded-lg ${a.color} flex items-center justify-center text-white group-hover:scale-105 transition-transform duration-200 ease-out shadow-sm`}
             >
               {a.icon}
             </div>
             {a.label}
             {a.shortcut && (
-              <kbd className="text-[10px] bg-stone-100 px-1.5 py-0.5 rounded font-mono text-stone-400 border border-stone-200 ml-1 dark:bg-white/[0.06] dark:border-white/[0.06] dark:text-stone-500">
+              <kbd className="text-[10px] bg-stone-100/80 px-1.5 py-0.5 rounded-md font-mono text-stone-400 border border-stone-200/50 ml-1 dark:bg-white/[0.04] dark:border-white/[0.04] dark:text-stone-600">
                 {a.shortcut}
               </kbd>
             )}
@@ -155,10 +155,10 @@ export default function WorkspaceHome() {
               <button
                 key={p.variantId}
                 onClick={() => setActivePage('products')}
-                className={`flex items-center gap-2.5 p-3 rounded-xl bg-white/80 border hover:shadow-md transition-all duration-200 ease-out text-left dark:bg-[#1a1f2e]/80 backdrop-blur-sm ${
+                className={`flex items-center gap-2.5 p-3 rounded-xl bg-white/70 border hover:shadow-md transition-all duration-200 ease-out text-left dark:bg-[#1a1f2e]/70 backdrop-blur-sm ${
                   p.stock <= 0
-                    ? 'border-red-200/80 dark:border-red-800/40'
-                    : 'border-stone-200/80 dark:border-white/[0.06]'
+                    ? 'border-red-200/60 dark:border-red-800/30'
+                    : 'border-stone-200/60 dark:border-white/[0.05]'
                 }`}
               >
                 <div
@@ -197,7 +197,7 @@ export default function WorkspaceHome() {
               Semua <ArrowRight className="w-2.5 h-2.5" />
             </button>
           </div>
-          <div className="bg-white/80 dark:bg-[#1a1f2e]/80 rounded-xl border border-stone-200/60 dark:border-white/[0.06] divide-y divide-stone-100/80 dark:divide-white/[0.04] backdrop-blur-sm">
+          <div className="bg-white/70 dark:bg-[#1a1f2e]/70 rounded-xl border border-stone-200/50 dark:border-white/[0.05] divide-y divide-stone-100/60 dark:divide-white/[0.03] backdrop-blur-sm">
             {!(data.recentTransactions ?? []).length ? (
               <div className="p-5 text-center text-xs text-stone-400">
                 Belum ada transaksi
@@ -206,7 +206,7 @@ export default function WorkspaceHome() {
               (data.recentTransactions ?? []).slice(0, 4).map((t, i) => (
                 <div
                   key={i}
-                  className="flex items-center gap-2.5 px-3.5 py-2.5 hover:bg-stone-50/80 transition-colors duration-150 ease-out dark:hover:bg-white/[0.02]"
+                  className="flex items-center gap-2.5 px-3.5 py-2.5 hover:bg-stone-50/60 transition-colors duration-200 ease-out dark:hover:bg-white/[0.02]"
                 >
                   <div
                     className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
@@ -254,7 +254,7 @@ export default function WorkspaceHome() {
               Buka <ArrowRight className="w-2.5 h-2.5" />
             </button>
           </div>
-          <div className="bg-white/80 dark:bg-[#1a1f2e]/80 rounded-xl border border-stone-200/60 dark:border-white/[0.06] divide-y divide-stone-100/80 dark:divide-white/[0.04] backdrop-blur-sm">
+          <div className="bg-white/70 dark:bg-[#1a1f2e]/70 rounded-xl border border-stone-200/50 dark:border-white/[0.05] divide-y divide-stone-100/60 dark:divide-white/[0.03] backdrop-blur-sm">
             {inboxItems.length === 0 ? (
               <div className="p-5 text-center text-xs text-stone-400">
                 Tidak ada pesan baru
@@ -263,7 +263,7 @@ export default function WorkspaceHome() {
               inboxItems.slice(0, 4).map((item: any) => (
                 <div
                   key={item.id}
-                  className="flex items-start gap-2.5 px-3.5 py-2.5 hover:bg-stone-50/80 transition-colors duration-150 ease-out dark:hover:bg-white/[0.02]"
+                  className="flex items-start gap-2.5 px-3.5 py-2.5 hover:bg-stone-50/60 transition-colors duration-200 ease-out dark:hover:bg-white/[0.02]"
                 >
                   <div
                     className={`w-7 h-7 rounded-lg flex items-center justify-center mt-0.5 shrink-0 ${
