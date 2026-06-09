@@ -50,6 +50,7 @@ export default function InventraApp() {
     setSidebarOpen,
     setSearchOpen,
     setActivePage,
+    setOpenSalesForm,
     theme,
   } = useAppStore()
 
@@ -68,11 +69,12 @@ export default function InventraApp() {
       if (e.altKey && e.key === 's') {
         e.preventDefault()
         setActivePage('sales')
+        setOpenSalesForm(true)
       }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [setSearchOpen, setActivePage])
+  }, [setSearchOpen, setActivePage, setOpenSalesForm])
 
   if (!currentUser) return <LoginScreen />
 
@@ -191,7 +193,7 @@ export default function InventraApp() {
           <Search className="w-5 h-5" />
         </button>
         <button
-          onClick={() => setActivePage('sales')}
+          onClick={() => { setActivePage('sales'); setOpenSalesForm(true) }}
           className="w-11 h-11 rounded-full bg-gradient-to-br from-amber-400 to-amber-500 text-white shadow-lg shadow-amber-500/30 hover:shadow-xl hover:scale-105 hover:from-amber-500 hover:to-amber-600 transition-all duration-300 flex items-center justify-center"
         >
           <ShoppingBag className="w-5 h-5" />

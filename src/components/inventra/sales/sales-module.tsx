@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { toast } from 'sonner'
+import { useAppStore } from '@/lib/store'
 import { Sale, SaleItem, Product, ProductVariant, Customer } from '@/components/inventra/shared/types'
 import { fmtDate, fmtRp } from '@/components/inventra/shared/constants'
 import { StatusBadge } from '@/components/inventra/shared/status-badge'
@@ -48,6 +49,7 @@ const parseVariantAttrs = (attrs: string): string => {
 }
 
 function SalesModule() {
+  const { openSalesForm, setOpenSalesForm } = useAppStore()
   const [sales, setSales] = useState<Sale[]>([])
   const [customers, setCustomers] = useState<Customer[]>([])
   const [products, setProducts] = useState<Product[]>([])
@@ -79,6 +81,15 @@ function SalesModule() {
     finally { setLoading(false) }
   }, [search, filterStatus])
   useEffect(() => { load() }, [load])
+
+  // Auto-open "Tambah Penjualan" dialog when coming from Jual Cepat
+  useEffect(() => {
+    if (openSalesForm) {
+      resetForm()
+      setDialogOpen(true)
+      setOpenSalesForm(false)
+    }
+  }, [openSalesForm])
 
   // Auto-focus customer input when dialog opens
   useEffect(() => {

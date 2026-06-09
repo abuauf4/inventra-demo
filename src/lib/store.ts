@@ -86,6 +86,8 @@ interface AppState {
   setSearchOpen: (open: boolean) => void
   quickActionOpen: boolean
   setQuickActionOpen: (open: boolean) => void
+  openSalesForm: boolean
+  setOpenSalesForm: (open: boolean) => void
   activeWarehouse: string
   setActiveWarehouse: (warehouse: string) => void
   theme: ThemeMode
@@ -120,6 +122,8 @@ export const useAppStore = create<AppState>()(
       setSearchOpen: (open) => set({ searchOpen: open }),
       quickActionOpen: false,
       setQuickActionOpen: (open) => set({ quickActionOpen: open }),
+      openSalesForm: false,
+      setOpenSalesForm: (open) => set({ openSalesForm: open }),
       activeWarehouse: 'Gudang Utama',
       setActiveWarehouse: (warehouse) => set({ activeWarehouse: warehouse }),
       theme: 'light',
