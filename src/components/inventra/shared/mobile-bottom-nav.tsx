@@ -5,7 +5,7 @@ import { useAppStore, type AppPage } from '@/lib/store'
 import { menuSections } from './sidebar'
 import { roleIcons, roleLabels } from './constants'
 import {
-  Home, Search, ShoppingBag, Inbox as InboxIcon, Menu,
+  Home, Search, Inbox as InboxIcon, Menu,
   X, ChevronRight, Lock, Package,
 } from 'lucide-react'
 
@@ -207,7 +207,7 @@ function MobileMenuSheet({ open, onClose }: { open: boolean; onClose: () => void
 
 // ─── Bottom Navigation Bar ─────────────────────────────────────────
 function MobileBottomNav() {
-  const { activePage, setActivePage, setSearchOpen, setOpenSalesForm } = useAppStore()
+  const { activePage, setActivePage, setSearchOpen } = useAppStore()
   const [menuOpen, setMenuOpen] = useState(false)
 
   const isHome = activePage === 'dashboard'
@@ -237,23 +237,10 @@ function MobileBottomNav() {
             </span>
           </button>
 
-          {/* ⚡ Quick Action */}
-          <button
-            onClick={() => { setActivePage('sales'); setOpenSalesForm(true) }}
-            className="flex flex-col items-center justify-center gap-0.5 flex-1 py-1 rounded-lg transition-all duration-200 text-stone-400 dark:text-stone-500 active:text-amber-600"
-          >
-            <div className="w-9 h-9 -mt-3 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white shadow-lg shadow-amber-500/25 active:scale-95 transition-transform duration-150">
-              <ShoppingBag className="w-4 h-4" />
-            </div>
-            <span className="text-[10px] font-medium leading-tight -mt-0.5">
-              Jual
-            </span>
-          </button>
-
           {/* 🔍 Search */}
           <button
             onClick={() => setSearchOpen(true)}
-            className="flex flex-col items-center justify-center gap-0.5 flex-1 py-1 rounded-lg transition-all duration-200 text-stone-400 dark:text-stone-500 active:text-stone-600"
+            className={`flex flex-col items-center justify-center gap-0.5 flex-1 py-1 rounded-lg transition-all duration-200 text-stone-400 dark:text-stone-500 active:text-stone-600`}
           >
             <Search className="w-5 h-5" />
             <span className="text-[10px] font-medium leading-tight">

@@ -13,6 +13,7 @@ import Sidebar from '@/components/inventra/shared/sidebar'
 import Header from '@/components/inventra/shared/header'
 import GlobalSearch from '@/components/inventra/shared/global-search'
 import MobileBottomNav from '@/components/inventra/shared/mobile-bottom-nav'
+import SpeedDialFAB from '@/components/inventra/shared/speed-dial-fab'
 
 // Business Modules
 import CategoriesModule from '@/components/inventra/categories/categories-module'
@@ -190,6 +191,8 @@ export default function InventraApp() {
       <GlobalSearch />
       {/* Mobile Bottom Navigation */}
       <MobileBottomNav />
+      {/* Mobile Speed Dial FAB */}
+      <SpeedDialFAB />
     </div>
   )
 }
