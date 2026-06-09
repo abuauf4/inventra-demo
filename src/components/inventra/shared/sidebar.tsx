@@ -248,10 +248,10 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
           <div className="sidebar-ambient-orb absolute top-1/2 -left-32 w-80 h-80 rounded-full bg-blue-500/[0.03] blur-3xl" style={{ animationDelay: '3s' }} />
         </div>
 
-        {/* ===== Profile Area — FIXED at top ===== */}
+        {/* ===== Profile Area — FIXED, tidak ikut scroll ===== */}
         <div className={`relative shrink-0 pt-5 pb-3 transition-all duration-[220ms] ${sidebarCollapsed ? 'px-2' : 'px-5'}`}>
           <div className="flex flex-col items-center">
-            {/* Avatar — bigger, centered */}
+            {/* Avatar — centered */}
             <div className="relative shrink-0">
               <div
                 className={`bg-gradient-to-br ${
@@ -297,75 +297,64 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
           </Button>
         </div>
 
-        {/* ===== Brand line — FIXED ===== */}
-        <div className={`relative shrink-0 ${sidebarCollapsed ? 'px-2 pb-3' : 'px-5 pb-3'}`}>
-          {!sidebarCollapsed ? (
-            <div className="flex items-center gap-2.5">
-              <div className="sidebar-brand-icon w-7 h-7 bg-gradient-to-br from-amber-400 via-orange-500 to-amber-600 rounded-lg flex items-center justify-center shadow-lg shadow-amber-500/20 shrink-0">
-                <Package className="w-3.5 h-3.5 text-white" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <span className="font-bold text-[12px] text-white/60 tracking-tight">
-                  Inventra
-                </span>
-                <span className="text-[9px] text-white/20 ml-1">
-                  by Nauka
-                </span>
-              </div>
-            </div>
-          ) : (
-            <div className="flex justify-center">
-              <div className="sidebar-brand-icon w-8 h-8 bg-gradient-to-br from-amber-400 via-orange-500 to-amber-600 rounded-lg flex items-center justify-center shadow-lg shadow-amber-500/20">
-                <Package className="w-4 h-4 text-white" />
-              </div>
-            </div>
-          )}
+        {/* Divider below profile */}
+        <div className="shrink-0 border-t border-white/[0.04] mx-3" />
+
+        {/* ===== Home — FIXED, tidak ikut scroll ===== */}
+        <div className="relative shrink-0 py-1">
+          <nav className={sidebarCollapsed ? 'px-1.5' : 'px-3'}>
+            {menuSections[0].items.map((item) => {
+              const isActive = activePage === item.key
+              return (
+                <TooltipWrap key={item.key} label={item.label} collapsed={sidebarCollapsed}>
+                  <button
+                    onClick={() => {
+                      setActivePage(item.key)
+                      onClose()
+                    }}
+                    className={`group w-full flex items-center rounded-xl text-[13px] font-medium transition-all duration-200 ease-out relative ${
+                      sidebarCollapsed
+                        ? 'justify-center px-0 py-2.5'
+                        : 'gap-3 px-3.5 py-2.5'
+                    } ${
+                      isActive
+                        ? 'bg-gradient-to-r from-amber-500/20 via-amber-500/10 to-transparent text-amber-300'
+                        : 'text-white/50 hover:bg-white/[0.04] hover:text-white/75'
+                    }`}
+                  >
+                    {isActive && (
+                      <span className="sidebar-active-bar absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-gradient-to-b from-amber-300 to-amber-500 rounded-r-full shadow-lg shadow-amber-400/40" />
+                    )}
+                    <span className={`transition-colors duration-200 shrink-0 ${isActive ? 'text-amber-400' : 'text-white/30 group-hover:text-white/55'}`}>
+                      {item.icon}
+                    </span>
+                    {!sidebarCollapsed && (
+                      <>
+                        {item.label}
+                        {isActive && (
+                          <Circle className="ml-auto w-1.5 h-1.5 fill-amber-400/60 text-amber-400/60 sidebar-active-bar" />
+                        )}
+                      </>
+                    )}
+                  </button>
+                </TooltipWrap>
+              )
+            })}
+          </nav>
         </div>
 
-        {/* Divider */}
+        {/* Divider below Home */}
         <div className="shrink-0 border-t border-white/[0.04] mx-3 mb-1" />
 
-        {/* ===== Navigation — SCROLLABLE (only this section scrolls) ===== */}
-        <div className="relative flex-1 overflow-y-auto overscroll-contain -webkit-overflow-scrolling-touch pb-2 min-h-0">
+        {/* ===== Category Menu Sections — ONLY THIS PART SCROLLS ===== */}
+        <div className="relative flex-1 overflow-y-auto overscroll-contain -webkit-overflow-scrolling-touch min-h-0">
           {sidebarCollapsed ? (
-            // ====== COLLAPSED: Category icons only, not individual menu items ======
-            <nav className="px-1.5 space-y-0.5">
-              {menuSections.map((section, si) => {
+            // ====== COLLAPSED: Category icons only ======
+            <nav className="px-1.5 space-y-0.5 py-1">
+              {menuSections.slice(1).map((section, origSi) => {
+                const si = origSi + 1 // offset for actual index
                 // Hide "Pengaturan" section for non-owners
                 if (section.label === 'Pengaturan' && currentUser?.role !== 'owner') return null
-
-                // Ungrouped items (Home) — show directly as icon
-                if (!section.label) {
-                  return (
-                    <div key={si}>
-                      {section.items.map((item) => {
-                        const isActive = activePage === item.key
-                        return (
-                          <TooltipWrap key={item.key} label={item.label} collapsed={sidebarCollapsed}>
-                            <button
-                              onClick={() => {
-                                setActivePage(item.key)
-                                onClose()
-                              }}
-                              className={`group w-full flex items-center justify-center rounded-xl text-[13px] font-medium transition-all duration-200 ease-out relative px-0 py-2.5 ${
-                                isActive
-                                  ? 'bg-gradient-to-r from-amber-500/20 via-amber-500/10 to-transparent text-amber-300'
-                                  : 'text-white/50 hover:bg-white/[0.04] hover:text-white/75'
-                              }`}
-                            >
-                              {isActive && (
-                                <span className="sidebar-active-bar absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-gradient-to-b from-amber-300 to-amber-500 rounded-r-full shadow-lg shadow-amber-400/40" />
-                              )}
-                              <span className={`transition-colors duration-200 shrink-0 ${isActive ? 'text-amber-400' : 'text-white/30 group-hover:text-white/55'}`}>
-                                {item.icon}
-                              </span>
-                            </button>
-                          </TooltipWrap>
-                        )
-                      })}
-                    </div>
-                  )
-                }
 
                 // Grouped — show ONE category icon per section
                 const sectionActive = isSectionActive(section)
@@ -375,7 +364,6 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
                       onMouseEnter={(e) => handleCatEnter(si, e)}
                       onMouseLeave={handleCatLeave}
                       onClick={() => {
-                        // On click, navigate to first non-soon item in section
                         const firstActive = section.items.find((item) => !item.soon)
                         if (firstActive) {
                           setActivePage(firstActive.key)
@@ -400,59 +388,19 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
               })}
             </nav>
           ) : (
-            // ====== EXPANDED: Full menu with categories ======
-            <nav className="px-3 space-y-0.5">
-              {menuSections.map((section, si) => {
+            // ====== EXPANDED: Full menu with collapsible categories ======
+            <nav className="px-3 space-y-0.5 py-1">
+              {menuSections.slice(1).map((section, origSi) => {
+                const si = origSi + 1 // offset for actual index
                 // Hide "Pengaturan" section for non-owners
                 if (section.label === 'Pengaturan' && currentUser?.role !== 'owner') return null
 
-                const isGroup = section.label !== null
                 const isExpanded = expanded[si] ?? false
                 const hasActive = section.items.some((item) => item.key === activePage && !item.soon)
 
-                // Ungrouped items (Home)
-                if (!isGroup) {
-                  return (
-                    <div key={si}>
-                      {section.items.map((item) => {
-                        const isActive = activePage === item.key
-                        return (
-                          <TooltipWrap key={item.key} label={item.label} collapsed={sidebarCollapsed}>
-                            <button
-                              onClick={() => {
-                                setActivePage(item.key)
-                                onClose()
-                              }}
-                              className={`group w-full flex items-center rounded-xl text-[13px] font-medium transition-all duration-200 ease-out relative gap-3 px-3.5 py-2.5 ${
-                                isActive
-                                  ? 'bg-gradient-to-r from-amber-500/20 via-amber-500/10 to-transparent text-amber-300'
-                                  : 'text-white/50 hover:bg-white/[0.04] hover:text-white/75'
-                              }`}
-                            >
-                              {isActive && (
-                                <span className="sidebar-active-bar absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-gradient-to-b from-amber-300 to-amber-500 rounded-r-full shadow-lg shadow-amber-400/40" />
-                              )}
-                              <span className={`transition-colors duration-200 shrink-0 ${isActive ? 'text-amber-400' : 'text-white/30 group-hover:text-white/55'}`}>
-                                {item.icon}
-                              </span>
-                              <>
-                                {item.label}
-                                {isActive && (
-                                  <Circle className="ml-auto w-1.5 h-1.5 fill-amber-400/60 text-amber-400/60 sidebar-active-bar" />
-                                )}
-                              </>
-                            </button>
-                          </TooltipWrap>
-                        )
-                      })}
-                    </div>
-                  )
-                }
-
-                // Grouped sections
                 return (
                   <div key={si} className="mt-0.5">
-                    {/* Section header — increased contrast: text-white/25 → text-white/35 */}
+                    {/* Section header */}
                     <button
                       onClick={() => toggleSection(String(si))}
                       className={`w-full flex items-center gap-2 px-3.5 pt-2.5 pb-1 text-[10px] font-semibold uppercase tracking-[0.14em] transition-colors duration-200 ${
@@ -470,7 +418,7 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
                       )}
                     </button>
 
-                    {/* Section items */}
+                    {/* Section items — this container scrolls if overflow */}
                     <div
                       className={`overflow-hidden transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] ${
                         isExpanded ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'
@@ -527,22 +475,50 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
           )}
         </div>
 
-        {/* ===== Bottom — FIXED at bottom ===== */}
-        <div className="relative shrink-0 border-t border-white/[0.04] p-2">
-          <button
-            onClick={toggleSidebarCollapsed}
-            className="group w-full flex items-center justify-center gap-2 px-2 py-2 rounded-xl text-white/25 hover:bg-white/[0.04] hover:text-white/50 transition-all duration-200 ease-out"
-            title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          >
-            {sidebarCollapsed ? (
-              <PanelLeft className="w-[16px] h-[16px]" />
+        {/* ===== Footer — FIXED at bottom: Brand + Collapse ===== */}
+        <div className="relative shrink-0 border-t border-white/[0.04]">
+          {/* Brand / Inventra */}
+          <div className={`transition-all duration-[220ms] ${sidebarCollapsed ? 'px-2 py-2' : 'px-5 py-2.5'}`}>
+            {!sidebarCollapsed ? (
+              <div className="flex items-center gap-2.5">
+                <div className="sidebar-brand-icon w-6 h-6 bg-gradient-to-br from-amber-400 via-orange-500 to-amber-600 rounded-md flex items-center justify-center shadow-lg shadow-amber-500/20 shrink-0">
+                  <Package className="w-3 h-3 text-white" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <span className="font-bold text-[11px] text-white/50 tracking-tight">
+                    Inventra
+                  </span>
+                  <span className="text-[8px] text-white/15 ml-1">
+                    by Nauka
+                  </span>
+                </div>
+              </div>
             ) : (
-              <>
-                <PanelLeftClose className="w-[16px] h-[16px]" />
-                <span className="text-[11px]">Collapse</span>
-              </>
+              <div className="flex justify-center">
+                <div className="sidebar-brand-icon w-6 h-6 bg-gradient-to-br from-amber-400 via-orange-500 to-amber-600 rounded-md flex items-center justify-center shadow-lg shadow-amber-500/20">
+                  <Package className="w-3 h-3 text-white" />
+                </div>
+              </div>
             )}
-          </button>
+          </div>
+
+          {/* Collapse toggle */}
+          <div className="px-2 pb-2">
+            <button
+              onClick={toggleSidebarCollapsed}
+              className="group w-full flex items-center justify-center gap-2 px-2 py-1.5 rounded-xl text-white/20 hover:bg-white/[0.04] hover:text-white/40 transition-all duration-200 ease-out"
+              title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            >
+              {sidebarCollapsed ? (
+                <PanelLeft className="w-[14px] h-[14px]" />
+              ) : (
+                <>
+                  <PanelLeftClose className="w-[14px] h-[14px]" />
+                  <span className="text-[10px]">Collapse</span>
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </aside>
 
