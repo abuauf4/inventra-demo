@@ -21,7 +21,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { ScrollArea } from '@/components/ui/scroll-area'
+
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { toast } from 'sonner'
 
@@ -250,7 +250,7 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
         </div>
 
         {/* ===== Navigation — Collapsible Sections ===== */}
-        <ScrollArea className="flex-1">
+        <div className="flex-1 overflow-y-auto overscroll-contain -webkit-overflow-scrolling-touch">
           <nav className="p-2 space-y-0.5">
             {menuSections.map((section, si) => {
               // Hide "Pengaturan" section for non-owners
@@ -349,7 +349,7 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
               )
             })}
           </nav>
-        </ScrollArea>
+        </div>
 
         {/* ===== Bottom: User + Theme + Logout ===== */}
         <div className="border-t border-white/[0.06] p-3 space-y-2">
