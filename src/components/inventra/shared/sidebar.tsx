@@ -211,37 +211,37 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
 
   return (
     <>
-      {/* Mobile overlay */}
+      {/* Mobile overlay — softer fade */}
       {open && (
         <div
-          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 lg:hidden"
+          className="fixed inset-0 bg-black/30 backdrop-blur-md z-40 lg:hidden transition-opacity duration-300"
           onClick={onClose}
         />
       )}
 
       <aside
-        className={`fixed lg:static inset-y-0 left-0 z-50 w-[250px] bg-[#1e2538] transform transition-transform duration-200 flex flex-col ${
+        className={`fixed lg:static inset-y-0 left-0 z-50 w-[260px] bg-gradient-to-b from-[#1a2035] via-[#1e2538] to-[#161b2e] transform transition-transform duration-300 ease-out flex flex-col shadow-xl lg:shadow-none ${
           open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
       >
         {/* ===== Brand Area ===== */}
-        <div className="px-4 py-4 border-b border-white/[0.06]">
+        <div className="px-5 py-5 border-b border-white/[0.05]">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-gradient-to-br from-amber-500 to-orange-600 rounded-lg flex items-center justify-center">
-              <Package className="w-4 h-4 text-white" />
+            <div className="w-9 h-9 bg-gradient-to-br from-amber-400 via-orange-500 to-amber-600 rounded-xl flex items-center justify-center shadow-lg shadow-amber-500/20">
+              <Package className="w-4.5 h-4.5 text-white" />
             </div>
             <div className="flex-1 min-w-0">
-              <h1 className="font-bold text-[13px] text-white/90 tracking-tight">
-                NAUKA INVENTRA
+              <h1 className="font-bold text-[14px] text-white/90 tracking-tight">
+                Inventra
               </h1>
-              <p className="text-[10px] text-white/50 truncate">
-                Sistem Operasional Bisnis
+              <p className="text-[10px] text-white/40 truncate">
+                by Nauka · Bisnis UMKM
               </p>
             </div>
             <Button
               variant="ghost"
               size="icon"
-              className="lg:hidden w-7 h-7 text-white/50 hover:text-white hover:bg-white/10"
+              className="lg:hidden w-7 h-7 text-white/50 hover:text-white hover:bg-white/10 transition-colors duration-200"
               onClick={onClose}
             >
               <X className="w-4 h-4" />
@@ -250,8 +250,8 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
         </div>
 
         {/* ===== Navigation — Collapsible Sections ===== */}
-        <div className="flex-1 overflow-y-auto overscroll-contain -webkit-overflow-scrolling-touch">
-          <nav className="p-2 space-y-0.5">
+        <div className="flex-1 overflow-y-auto overscroll-contain -webkit-overflow-scrolling-touch py-2">
+          <nav className="px-3 space-y-0.5">
             {menuSections.map((section, si) => {
               // Hide "Pengaturan" section for non-owners
               if (section.label === 'Pengaturan' && currentUser?.role !== 'owner') return null
@@ -264,41 +264,47 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
               if (!isGroup) {
                 return (
                   <div key={si}>
-                    {section.items.map((item) => (
-                      <button
-                        key={item.key}
-                        onClick={() => {
-                          setActivePage(item.key)
-                          onClose()
-                        }}
-                        className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium transition-all ${
-                          activePage === item.key
-                            ? 'bg-amber-500/10 text-amber-400'
-                            : 'text-white/55 hover:bg-white/[0.04] hover:text-white/75'
-                        }`}
-                      >
-                        <span className={activePage === item.key ? 'text-amber-500' : 'text-white/40'}>
-                          {item.icon}
-                        </span>
-                        {item.label}
-                      </button>
-                    ))}
+                    {section.items.map((item) => {
+                      const isActive = activePage === item.key
+                      return (
+                        <button
+                          key={item.key}
+                          onClick={() => {
+                            setActivePage(item.key)
+                            onClose()
+                          }}
+                          className={`group w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200 ease-out ${
+                            isActive
+                              ? 'bg-amber-500/[0.12] text-amber-400 shadow-sm shadow-amber-500/5'
+                              : 'text-white/55 hover:bg-white/[0.05] hover:text-white/80'
+                          }`}
+                        >
+                          <span className={`transition-colors duration-200 ${isActive ? 'text-amber-400' : 'text-white/40 group-hover:text-white/60'}`}>
+                            {item.icon}
+                          </span>
+                          {item.label}
+                          {isActive && (
+                            <span className="ml-auto w-1.5 h-1.5 rounded-full bg-amber-400 shadow-sm shadow-amber-400/50" />
+                          )}
+                        </button>
+                      )
+                    })}
                   </div>
                 )
               }
 
               // Grouped items — collapsible
               return (
-                <div key={si}>
+                <div key={si} className="mt-1">
                   {/* Section header — clickable to toggle */}
                   <button
                     onClick={() => toggleSection(String(si))}
-                    className={`w-full flex items-center gap-2 px-3 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-widest transition-colors ${
-                      hasActive ? 'text-white/50' : 'text-white/35'
+                    className={`w-full flex items-center gap-2 px-3 pt-3 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] transition-colors duration-200 ${
+                      hasActive ? 'text-white/50' : 'text-white/30'
                     } hover:text-white/50`}
                   >
                     <ChevronDown
-                      className={`w-3 h-3 transition-transform duration-200 ${
+                      className={`w-3 h-3 transition-transform duration-300 ease-out ${
                         isExpanded ? 'rotate-0' : '-rotate-90'
                       }`}
                     />
@@ -307,43 +313,49 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
 
                   {/* Section items — collapsible */}
                   <div
-                    className={`overflow-hidden transition-all duration-200 ${
-                      isExpanded ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'
+                    className={`overflow-hidden transition-all duration-300 ease-out ${
+                      isExpanded ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'
                     }`}
                   >
-                    {section.items.map((item) => (
-                      <button
-                        key={item.key}
-                        onClick={() => {
-                          if (item.soon) return
-                          setActivePage(item.key)
-                          onClose()
-                        }}
-                        className={`w-full flex items-center gap-2.5 px-3 py-[7px] rounded-lg text-[13px] font-medium transition-all ${
-                          item.soon
-                            ? 'text-white/30 cursor-not-allowed'
-                            : activePage === item.key
-                              ? 'bg-amber-500/10 text-amber-400'
-                              : 'text-white/55 hover:bg-white/[0.04] hover:text-white/75'
-                        }`}
-                      >
-                        <span className={
-                          item.soon
-                            ? 'text-white/25'
-                            : activePage === item.key
-                              ? 'text-amber-500'
-                              : 'text-white/40'
-                        }>
-                          {item.icon}
-                        </span>
-                        <span className="flex-1 text-left">{item.label}</span>
-                        {item.soon && (
-                          <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-white/[0.06] text-white/35 uppercase tracking-wider">
-                            Soon
+                    {section.items.map((item) => {
+                      const isActive = activePage === item.key && !item.soon
+                      return (
+                        <button
+                          key={item.key}
+                          onClick={() => {
+                            if (item.soon) return
+                            setActivePage(item.key)
+                            onClose()
+                          }}
+                          className={`group w-full flex items-center gap-3 px-3 py-[7px] rounded-xl text-[13px] font-medium transition-all duration-200 ease-out ${
+                            item.soon
+                              ? 'text-white/25 cursor-not-allowed'
+                              : isActive
+                                ? 'bg-amber-500/[0.12] text-amber-400 shadow-sm shadow-amber-500/5'
+                                : 'text-white/55 hover:bg-white/[0.05] hover:text-white/80'
+                          }`}
+                        >
+                          <span className={`transition-colors duration-200 ${
+                            item.soon
+                              ? 'text-white/20'
+                              : isActive
+                                ? 'text-amber-400'
+                                : 'text-white/35 group-hover:text-white/60'
+                          }`}>
+                            {item.icon}
                           </span>
-                        )}
-                      </button>
-                    ))}
+                          <span className="flex-1 text-left">{item.label}</span>
+                          {isActive && (
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shadow-sm shadow-amber-400/50" />
+                          )}
+                          {item.soon && (
+                            <span className="text-[9px] font-semibold px-2 py-0.5 rounded-md bg-white/[0.04] text-white/30 uppercase tracking-wider">
+                              Soon
+                            </span>
+                          )}
+                        </button>
+                      )
+                    })}
                   </div>
                 </div>
               )
@@ -352,13 +364,13 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
         </div>
 
         {/* ===== Bottom: User + Theme + Logout ===== */}
-        <div className="border-t border-white/[0.06] p-3 space-y-2">
+        <div className="border-t border-white/[0.05] p-3 space-y-2">
           {currentUser && (
-            <div className="flex items-center gap-2.5 px-1">
+            <div className="flex items-center gap-3 px-2 py-1.5 rounded-xl hover:bg-white/[0.03] transition-colors duration-200">
               <div
-                className={`w-8 h-8 rounded-lg bg-gradient-to-br ${
+                className={`w-8 h-8 rounded-xl bg-gradient-to-br ${
                   roleColors[currentUser.role ?? 'staff'] || 'from-gray-400 to-gray-500'
-                } flex items-center justify-center text-white text-xs font-bold shrink-0`}
+                } flex items-center justify-center text-white text-xs font-bold shrink-0 shadow-sm`}
               >
                 {(currentUser.name ?? 'U').slice(0, 2).toUpperCase()}
               </div>
@@ -367,10 +379,10 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
                   {currentUser.name ?? 'User'}
                 </p>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-white/45">
+                  <span className="text-white/40">
                     {roleIcons[currentUser.role ?? 'staff']}
                   </span>
-                  <span className="text-[11px] text-white/45 capitalize">
+                  <span className="text-[11px] text-white/40 capitalize">
                     {roleLabels[currentUser.role ?? 'staff']}
                   </span>
                 </div>
@@ -378,10 +390,10 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
             </div>
           )}
 
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1.5 px-1">
             <button
               onClick={toggleTheme}
-              className="flex-1 flex items-center gap-2 px-3 py-1.5 rounded-lg text-[12px] text-white/50 hover:bg-white/[0.04] hover:text-white/70 transition-all"
+              className="flex-1 flex items-center gap-2 px-3 py-2 rounded-xl text-[12px] text-white/45 hover:bg-white/[0.04] hover:text-white/70 transition-all duration-200 ease-out"
             >
               {theme === 'light' ? (
                 <Moon className="w-3.5 h-3.5" />
@@ -392,7 +404,7 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
             </button>
             <button
               onClick={() => setChangePasswordOpen(true)}
-              className="flex items-center justify-center w-8 h-8 rounded-lg text-white/35 hover:bg-amber-500/10 hover:text-amber-400 transition-all"
+              className="flex items-center justify-center w-8 h-8 rounded-xl text-white/30 hover:bg-amber-500/10 hover:text-amber-400 transition-all duration-200 ease-out"
               title="Ganti Password"
             >
               <KeyRound className="w-3.5 h-3.5" />
@@ -402,7 +414,7 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
                 setCurrentUser(null)
                 toast.success('Berhasil logout')
               }}
-              className="flex items-center justify-center w-8 h-8 rounded-lg text-white/35 hover:bg-red-500/10 hover:text-red-400 transition-all"
+              className="flex items-center justify-center w-8 h-8 rounded-xl text-white/30 hover:bg-red-500/10 hover:text-red-400 transition-all duration-200 ease-out"
               title="Logout"
             >
               <LogOut className="w-3.5 h-3.5" />

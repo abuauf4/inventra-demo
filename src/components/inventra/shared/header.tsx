@@ -31,19 +31,19 @@ function Header() {
   const unread = notifications.filter((n) => !n.read).length
 
   return (
-    <header className="sticky top-0 z-30 bg-white/90 dark:bg-[#0f1117]/90 backdrop-blur-md border-b border-stone-200/60 dark:border-white/[0.06] px-4 lg:px-6 h-14 flex items-center gap-3">
+    <header className="sticky top-0 z-30 bg-white/80 dark:bg-[#0f1117]/80 backdrop-blur-xl border-b border-stone-200/50 dark:border-white/[0.05] px-4 lg:px-6 h-14 flex items-center gap-3 transition-colors duration-300">
       {/* Mobile menu */}
       <Button
         variant="ghost"
         size="icon"
-        className="lg:hidden text-stone-400"
+        className="lg:hidden text-stone-400 hover:text-stone-600 transition-colors duration-200"
         onClick={() => setSidebarOpen(!sidebarOpen)}
       >
         <Menu className="w-5 h-5" />
       </Button>
 
       {/* Page title */}
-      <h2 className="text-[15px] font-semibold text-stone-800 dark:text-stone-200">
+      <h2 className="text-[15px] font-semibold text-stone-800 dark:text-stone-200 tracking-tight">
         {label}
       </h2>
 
@@ -52,11 +52,11 @@ function Header() {
       {/* Search trigger */}
       <button
         onClick={() => setSearchOpen(true)}
-        className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-stone-50 hover:bg-stone-100 text-sm text-stone-400 transition-colors border border-stone-200/60 dark:bg-white/[0.04] dark:hover:bg-white/[0.08] dark:border-white/[0.06] min-w-[180px]"
+        className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-stone-50 hover:bg-stone-100 text-sm text-stone-400 transition-all duration-200 ease-out border border-stone-200/50 dark:bg-white/[0.03] dark:hover:bg-white/[0.06] dark:border-white/[0.05] min-w-[180px]"
       >
         <Search className="w-3.5 h-3.5" />
         <span className="text-stone-400 dark:text-stone-500">Cari...</span>
-        <kbd className="ml-auto text-[10px] bg-white dark:bg-white/[0.06] px-1.5 py-0.5 rounded border border-stone-200 dark:border-white/[0.06] font-mono text-stone-300 dark:text-stone-500">
+        <kbd className="ml-auto text-[10px] bg-white dark:bg-white/[0.05] px-1.5 py-0.5 rounded-md border border-stone-200/60 dark:border-white/[0.06] font-mono text-stone-300 dark:text-stone-500">
           Ctrl+K
         </kbd>
       </button>
@@ -65,7 +65,7 @@ function Header() {
       <Button
         variant="ghost"
         size="sm"
-        className="hidden sm:flex text-amber-600 dark:text-amber-400 hover:text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-950/30 gap-1.5 text-xs font-medium"
+        className="hidden sm:flex text-amber-600 dark:text-amber-400 hover:text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-950/20 gap-1.5 text-xs font-medium transition-all duration-200 ease-out rounded-xl"
         onClick={() => setQuickActionOpen(true)}
       >
         <ShoppingBag className="w-4 h-4" />
@@ -75,10 +75,10 @@ function Header() {
       {/* Notifications */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" className="relative">
+          <Button variant="ghost" size="icon" className="relative transition-colors duration-200 rounded-xl">
             <Bell className="w-4 h-4 text-stone-400 dark:text-stone-500" />
             {unread > 0 && (
-              <span className="absolute top-1 right-1 w-4 h-4 bg-amber-500 rounded-full text-[10px] text-white flex items-center justify-center font-bold">
+              <span className="absolute top-1 right-1 w-4 h-4 bg-amber-500 rounded-full text-[10px] text-white flex items-center justify-center font-bold shadow-sm shadow-amber-500/30">
                 {unread}
               </span>
             )}
@@ -112,7 +112,7 @@ function Header() {
       {/* More menu */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon">
+          <Button variant="ghost" size="icon" className="transition-colors duration-200 rounded-xl">
             <MoreVertical className="w-4 h-4 text-stone-400 dark:text-stone-500" />
           </Button>
         </DropdownMenuTrigger>
