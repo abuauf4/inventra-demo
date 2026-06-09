@@ -28,7 +28,7 @@ import UserManagementModule from '@/components/inventra/user-management/user-man
 // ===================== COMING SOON PLACEHOLDER =====================
 function ComingSoonPage({ title }: { title: string }) {
   return (
-    <div className="flex flex-col items-center justify-center min-h-[50vh] text-center">
+    <div className="flex flex-col items-center justify-center h-full text-center">
       <div className="w-14 h-14 rounded-2xl bg-stone-100 dark:bg-white/[0.05] flex items-center justify-center mb-4">
         <Construction className="w-7 h-7 text-stone-300 dark:text-stone-600" />
       </div>
@@ -177,11 +177,11 @@ export default function InventraApp() {
   }
 
   return (
-    <div className="min-h-screen flex bg-stone-50/80 dark:bg-[#0f1117] transition-colors duration-300">
+    <div className="h-screen overflow-hidden flex bg-stone-50/80 dark:bg-[#0f1117] transition-colors duration-300">
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
         <Header />
-        <main key={activePage} className="flex-1 p-4 sm:p-6 lg:p-8 pb-24 lg:pb-8 overflow-auto transition-colors duration-500">{renderPage()}</main>
+        <main key={activePage} className="flex-1 min-h-0 overflow-hidden p-4 sm:p-6 lg:p-8 pb-24 lg:pb-8 transition-colors duration-500">{renderPage()}</main>
       </div>
       <GlobalSearch />
       {/* Mobile Floating Action Buttons */}

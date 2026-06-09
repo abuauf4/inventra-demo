@@ -89,7 +89,7 @@ function Header() {
 
   return (
     <>
-      <header className="sticky top-0 z-30 bg-white/60 dark:bg-[#0f1117]/60 backdrop-blur-2xl border-b border-stone-200/30 dark:border-white/[0.03] px-4 lg:px-6 h-14 flex items-center gap-3 transition-all duration-300">
+      <header className="shrink-0 z-30 bg-white/60 dark:bg-[#0f1117]/60 backdrop-blur-2xl border-b border-stone-200/30 dark:border-white/[0.03] px-4 lg:px-6 h-14 flex items-center gap-3 transition-all duration-300">
         {/* Mobile menu */}
         <Button
           variant="ghost"

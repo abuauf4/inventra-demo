@@ -66,7 +66,7 @@ export default function WorkspaceHome() {
         ]
 
   return (
-    <div className="max-w-3xl mx-auto space-y-8 page-enter">
+    <div className="max-w-3xl mx-auto space-y-8 page-enter overflow-y-auto h-full">
       {/* ===== Greeting — the breath in ===== */}
       <div className="space-y-1.5">
         <p className="text-sm text-stone-400 transition-colors duration-500">

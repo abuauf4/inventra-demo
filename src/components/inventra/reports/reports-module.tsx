@@ -410,9 +410,9 @@ function ReportsModule({ defaultTab }: { defaultTab?: 'sales' | 'purchases' | 's
   }, [dateFrom, dateTo])
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col h-full">
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList>
+        <TabsList className="shrink-0">
           <TabsTrigger value="sales">Penjualan</TabsTrigger>
           <TabsTrigger value="purchases">Pembelian</TabsTrigger>
           <TabsTrigger value="stock">Stok</TabsTrigger>
@@ -420,8 +420,8 @@ function ReportsModule({ defaultTab }: { defaultTab?: 'sales' | 'purchases' | 's
         </TabsList>
 
         {/* ==================== SALES REPORT ==================== */}
-        <TabsContent value="sales" className="space-y-4">
-          <div className="flex flex-col sm:flex-row gap-3 flex-wrap items-end">
+        <TabsContent value="sales" className="flex flex-col h-full mt-4">
+          <div className="flex flex-col sm:flex-row gap-3 flex-wrap items-end shrink-0">
             <Select value={period} onValueChange={setPeriod}><SelectTrigger className="w-40"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="daily">Harian</SelectItem><SelectItem value="weekly">Mingguan</SelectItem><SelectItem value="monthly">Bulanan</SelectItem><SelectItem value="custom">Custom</SelectItem></SelectContent></Select>
             <div className="flex items-center gap-2">
               <div>
@@ -450,7 +450,7 @@ function ReportsModule({ defaultTab }: { defaultTab?: 'sales' | 'purchases' | 's
 
           {/* Active filter label */}
           {filterLabel && (
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-2 flex-wrap shrink-0">
               <Filter className="w-4 h-4 text-stone-400" />
               <span className="text-xs font-medium text-stone-600 bg-stone-100 px-2.5 py-0.5 rounded-full">{filterLabel}</span>
               {filterCustomerId && selectedCustomer && (
@@ -461,6 +461,7 @@ function ReportsModule({ defaultTab }: { defaultTab?: 'sales' | 'purchases' | 's
             </div>
           )}
 
+          <div className="flex-1 min-h-0 overflow-y-auto">
           {loading ? <div className="flex justify-center py-8"><RefreshCw className="w-5 h-5 animate-spin text-stone-300" /></div> : (
             <>
               {/* Summary Cards */}
@@ -501,11 +502,12 @@ function ReportsModule({ defaultTab }: { defaultTab?: 'sales' | 'purchases' | 's
               </div>
             </>
           )}
+          </div>
         </TabsContent>
 
         {/* ==================== PURCHASES REPORT ==================== */}
-        <TabsContent value="purchases" className="space-y-4">
-          <div className="flex flex-col sm:flex-row gap-3 flex-wrap items-end">
+        <TabsContent value="purchases" className="flex flex-col h-full mt-4">
+          <div className="flex flex-col sm:flex-row gap-3 flex-wrap items-end shrink-0">
             <Select value={period} onValueChange={setPeriod}><SelectTrigger className="w-40"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="daily">Harian</SelectItem><SelectItem value="weekly">Mingguan</SelectItem><SelectItem value="monthly">Bulanan</SelectItem><SelectItem value="custom">Custom</SelectItem></SelectContent></Select>
             <div className="flex items-center gap-2">
               <div>
@@ -534,7 +536,7 @@ function ReportsModule({ defaultTab }: { defaultTab?: 'sales' | 'purchases' | 's
 
           {/* Active filter label */}
           {filterLabel && (
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-2 flex-wrap shrink-0">
               <Filter className="w-4 h-4 text-stone-400" />
               <span className="text-xs font-medium text-stone-600 bg-stone-100 px-2.5 py-0.5 rounded-full">{filterLabel}</span>
               {filterSupplierId && selectedSupplier && (
@@ -545,6 +547,7 @@ function ReportsModule({ defaultTab }: { defaultTab?: 'sales' | 'purchases' | 's
             </div>
           )}
 
+          <div className="flex-1 min-h-0 overflow-y-auto">
           {loading ? <div className="flex justify-center py-8"><RefreshCw className="w-6 h-6 animate-spin text-stone-300" /></div> : (
             <>
               {/* Summary Cards */}
@@ -581,12 +584,13 @@ function ReportsModule({ defaultTab }: { defaultTab?: 'sales' | 'purchases' | 's
               </div>
             </>
           )}
+          </div>
         </TabsContent>
 
         {/* ==================== STOCK REPORT ==================== */}
-        <TabsContent value="stock" className="space-y-4">
+        <TabsContent value="stock" className="flex flex-col h-full mt-4">
           {/* Stock Filters + Date Range */}
-          <div className="flex flex-col sm:flex-row gap-3 flex-wrap items-end">
+          <div className="flex flex-col sm:flex-row gap-3 flex-wrap items-end shrink-0">
             <div className="flex items-center gap-2">
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">Dari Tanggal</label>
@@ -627,7 +631,7 @@ function ReportsModule({ defaultTab }: { defaultTab?: 'sales' | 'purchases' | 's
 
           {/* Active filter label */}
           {filterLabel && (
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-2 flex-wrap shrink-0">
               <Filter className="w-4 h-4 text-stone-400" />
               <span className="text-xs font-medium text-stone-600 bg-stone-100 px-2.5 py-0.5 rounded-full">{filterLabel}</span>
               {filterStockSupplierId && selectedStockSupplier && (
@@ -643,6 +647,7 @@ function ReportsModule({ defaultTab }: { defaultTab?: 'sales' | 'purchases' | 's
             </div>
           )}
 
+          <div className="flex-1 min-h-0 overflow-y-auto">
           {loading ? <div className="flex justify-center py-8"><RefreshCw className="w-6 h-6 animate-spin text-stone-300" /></div> : (
             <>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -667,11 +672,12 @@ function ReportsModule({ defaultTab }: { defaultTab?: 'sales' | 'purchases' | 's
               </CardContent></Card>
             </>
           )}
+          </div>
         </TabsContent>
 
         {/* ==================== STOCK MUTATIONS REPORT ==================== */}
-        <TabsContent value="stock-mutations" className="space-y-4">
-          <div className="flex flex-col sm:flex-row gap-3 flex-wrap items-end">
+        <TabsContent value="stock-mutations" className="flex flex-col h-full mt-4">
+          <div className="flex flex-col sm:flex-row gap-3 flex-wrap items-end shrink-0">
             <div className="flex items-center gap-2">
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">Dari Tanggal</label>
@@ -687,12 +693,13 @@ function ReportsModule({ defaultTab }: { defaultTab?: 'sales' | 'purchases' | 's
 
           {/* Active filter label */}
           {filterLabel && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 shrink-0">
               <Filter className="w-4 h-4 text-stone-400" />
               <span className="text-xs font-medium text-stone-600 bg-stone-100 px-2.5 py-0.5 rounded-full">{filterLabel}</span>
             </div>
           )}
 
+          <div className="flex-1 min-h-0 overflow-y-auto">
           {loading ? <div className="flex justify-center py-8"><RefreshCw className="w-6 h-6 animate-spin text-stone-300" /></div> : (
             <>
               {/* Summary Cards by Type */}
@@ -764,6 +771,7 @@ function ReportsModule({ defaultTab }: { defaultTab?: 'sales' | 'purchases' | 's
               </Card>
             </>
           )}
+          </div>
         </TabsContent>
       </Tabs>
     </div>

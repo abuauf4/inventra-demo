@@ -270,9 +270,9 @@ function StockMutationsModule() {
   const activeWarehouses = warehouses.filter(w => w.isActive)
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col h-full">
       {/* Header with filter + add button */}
-      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between shrink-0">
         <div className="flex gap-3 items-center">
           <Select value={filterType} onValueChange={setFilterType}>
             <SelectTrigger className="w-44">
@@ -296,6 +296,7 @@ function StockMutationsModule() {
       </div>
 
       {/* Table */}
+      <div className="flex-1 min-h-0 overflow-y-auto mt-4">
       {loading ? (
         <div className="flex justify-center py-8">
           <RefreshCw className="w-6 h-6 animate-spin text-amber-500" />
@@ -340,6 +341,7 @@ function StockMutationsModule() {
           </CardContent>
         </Card>
       )}
+      </div>
 
       {/* Create Mutation Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
