@@ -250,13 +250,9 @@
   }
 }
 
-/* ===== SIDEBAR LIVING STYLES ===== */
+/* ===== SIDEBAR STYLES ===== */
 .sidebar-brand-icon {
   animation: breathe 4s ease-in-out infinite;
-}
-
-.sidebar-active-glow {
-  animation: glow 3s ease-in-out infinite;
 }
 
 .sidebar-ambient-orb {
@@ -264,16 +260,12 @@
   pointer-events: none;
 }
 
-.sidebar-nav-item {
-  animation: slide-in-left 0.3s ease-out both;
+.sidebar-active-bar {
+  animation: subtle-pulse 3s ease-in-out infinite;
 }
 
 .sidebar-nav-item:hover {
-  transform: translateX(2px);
-}
-
-.sidebar-active-bar {
-  animation: subtle-pulse 3s ease-in-out infinite;
+  transform: translateX(1px);
 }
 
 /* ===== LIVING CARD STYLES ===== */

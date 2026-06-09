@@ -72,6 +72,9 @@ interface AppState {
   setActivePage: (page: AppPage) => void
   sidebarOpen: boolean
   setSidebarOpen: (open: boolean) => void
+  sidebarCollapsed: boolean
+  setSidebarCollapsed: (collapsed: boolean) => void
+  toggleSidebarCollapsed: () => void
   currentUser: CurrentUser | null
   setCurrentUser: (user: CurrentUser | null) => void
   notifications: Notification[]
@@ -97,6 +100,9 @@ export const useAppStore = create<AppState>()(
       setActivePage: (page) => set({ activePage: page }),
       sidebarOpen: true,
       setSidebarOpen: (open) => set({ sidebarOpen: open }),
+      sidebarCollapsed: false,
+      setSidebarCollapsed: (collapsed) => set({ sidebarCollapsed: collapsed }),
+      toggleSidebarCollapsed: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
       currentUser: null,
       setCurrentUser: (user) => set({ currentUser: user }),
       notifications: [],
@@ -134,6 +140,7 @@ export const useAppStore = create<AppState>()(
         currentUser: state.currentUser,
         activeWarehouse: state.activeWarehouse,
         theme: state.theme,
+        sidebarCollapsed: state.sidebarCollapsed,
       }),
     }
   )

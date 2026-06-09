@@ -6,25 +6,20 @@ import { roleColors } from './constants'
 
 import {
   Package, FolderOpen, Truck, Users, ShoppingCart, ShoppingBag,
-  ArrowLeftRight, FileBarChart, UserCog, Activity, X,
-  Warehouse as WarehouseIcon, Inbox as InboxIcon, Home,
-  LayoutDashboard, Briefcase, PenLine, Sun, Moon, LogOut,
-  ChevronRight, KeyRound,
+  ArrowLeftRight, UserCog, X,
+  Warehouse as WarehouseIcon, Home,
+  Briefcase, PenLine,
+  ChevronRight,
   ClipboardList, RotateCcw,
   ArrowRightLeft, ClipboardCheck, Sliders,
   Receipt, CreditCard, Wallet, Banknote,
   BookOpen, BookMarked, Scale, TrendingUp,
   BarChart3, UserCircle, Truck as TruckReport,
   Building2, Palette, FileText,
-  Lock, Circle,
+  Lock, Circle, PanelLeftClose, PanelLeft,
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { toast } from 'sonner'
 
 // ===================== ROLE ICONS =====================
 const roleIcons: Record<string, React.ReactNode> = {
@@ -135,56 +130,38 @@ const menuSections: MenuSection[] = [
 export { menuSections }
 export type { MenuItem, MenuSection }
 
+// ===================== TOOLTIP WRAPPER =====================
+function TooltipWrap({ label, children, collapsed }: { label: string; children: React.ReactNode; collapsed: boolean }) {
+  const [show, setShow] = useState(false)
+  const [pos, setPos] = useState({ x: 0, y: 0 })
+
+  if (!collapsed) return <>{children}</>
+
+  return (
+    <div
+      className="relative"
+      onMouseEnter={(e) => {
+        const rect = e.currentTarget.getBoundingClientRect()
+        setPos({ x: rect.right + 8, y: rect.top + rect.height / 2 })
+        setShow(true)
+      }}
+      onMouseLeave={() => setShow(false)}
+    >
+      {children}
+      {show && (
+        <div
+          className="fixed z-[100] px-2.5 py-1.5 text-[12px] font-medium text-white bg-[#1e293b] rounded-lg shadow-xl border border-white/[0.06] whitespace-nowrap pointer-events-none"
+          style={{ left: pos.x, top: pos.y, transform: 'translateY(-50%)' }}
+        >
+          {label}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { activePage, setActivePage, currentUser, theme, toggleTheme, setCurrentUser } = useAppStore()
-
-  // Change password state
-  const [changePasswordOpen, setChangePasswordOpen] = useState(false)
-  const [currentPw, setCurrentPw] = useState('')
-  const [newPw, setNewPw] = useState('')
-  const [confirmPw, setConfirmPw] = useState('')
-  const [savingPw, setSavingPw] = useState(false)
-
-  const handleChangePassword = async () => {
-    if (!currentPw || !newPw || !confirmPw) {
-      toast.error('Semua field wajib diisi')
-      return
-    }
-    if (newPw !== confirmPw) {
-      toast.error('Konfirmasi password tidak cocok')
-      return
-    }
-    if (newPw.length < 4) {
-      toast.error('Password baru minimal 4 karakter')
-      return
-    }
-    setSavingPw(true)
-    try {
-      const res = await fetch('/api/users/change-password', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: currentUser?.id,
-          currentPassword: currentPw,
-          newPassword: newPw,
-        }),
-      })
-      const data = await res.json()
-      if (!res.ok || !data.success) {
-        toast.error(data.message || 'Gagal mengubah password')
-        return
-      }
-      toast.success('Password berhasil diubah')
-      setChangePasswordOpen(false)
-      setCurrentPw('')
-      setNewPw('')
-      setConfirmPw('')
-    } catch {
-      toast.error('Gagal mengubah password')
-    } finally {
-      setSavingPw(false)
-    }
-  }
+  const { activePage, setActivePage, currentUser, sidebarCollapsed, toggleSidebarCollapsed } = useAppStore()
 
   // Track which sections are expanded
   const [expanded, setExpanded] = useState<Record<string, boolean>>(() => {
@@ -210,98 +187,110 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
     setExpanded((prev) => ({ ...prev, [index]: !prev[index] }))
   }
 
+  const w = sidebarCollapsed ? 'w-[68px]' : 'w-[260px]'
+
   return (
     <>
       {/* Mobile overlay */}
       {open && (
         <div
-          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 lg:hidden transition-opacity duration-500"
+          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 lg:hidden transition-opacity duration-300"
           onClick={onClose}
         />
       )}
 
       <aside
-        className={`fixed lg:static inset-y-0 left-0 z-50 w-[272px] bg-[#0e1525] transform transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] flex flex-col shadow-2xl lg:shadow-none overflow-hidden ${
+        className={`fixed lg:static inset-y-0 left-0 z-50 ${w} bg-[#0e1525] transform transition-all duration-[220ms] ease-[cubic-bezier(0.4,0,0.2,1)] flex flex-col shadow-2xl lg:shadow-none overflow-hidden group/sidebar ${
           open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
       >
-        {/* ===== Ambient Light Orbs — the breath ===== */}
+        {/* ===== Ambient Light Orbs ===== */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          {/* Primary warm orb — top right */}
-          <div
-            className="sidebar-ambient-orb absolute -top-20 -right-20 w-64 h-64 rounded-full bg-amber-500/[0.07] blur-3xl"
-          />
-          {/* Cool orb — middle left */}
-          <div
-            className="sidebar-ambient-orb absolute top-1/2 -left-32 w-80 h-80 rounded-full bg-blue-500/[0.04] blur-3xl"
-            style={{ animationDelay: '3s' }}
-          />
-          {/* Subtle bottom warm glow */}
-          <div
-            className="sidebar-ambient-orb absolute -bottom-16 right-8 w-48 h-48 rounded-full bg-amber-600/[0.05] blur-3xl"
-            style={{ animationDelay: '5s' }}
-          />
+          <div className="sidebar-ambient-orb absolute -top-20 -right-20 w-64 h-64 rounded-full bg-amber-500/[0.06] blur-3xl" />
+          <div className="sidebar-ambient-orb absolute top-1/2 -left-32 w-80 h-80 rounded-full bg-blue-500/[0.03] blur-3xl" style={{ animationDelay: '3s' }} />
         </div>
 
-        {/* ===== Profile Area — the face ===== */}
-        <div className="relative px-5 pt-6 pb-4">
-          <div className="flex items-center gap-3.5">
-            {/* Avatar — with breathing ring */}
+        {/* ===== Profile Area — centered vertical ===== */}
+        <div className={`relative pt-5 pb-3 transition-all duration-[220ms] ${sidebarCollapsed ? 'px-2' : 'px-5'}`}>
+          <div className={`flex flex-col items-center ${sidebarCollapsed ? '' : ''}`}>
+            {/* Avatar — bigger, centered */}
             <div className="relative shrink-0">
               <div
-                className={`w-10 h-10 rounded-full bg-gradient-to-br ${
+                className={`bg-gradient-to-br ${
                   roleColors[currentUser?.role ?? 'staff'] || 'from-gray-400 to-gray-500'
-                } flex items-center justify-center text-white text-sm font-bold ring-2 ring-white/[0.08] shadow-lg transition-shadow duration-500`}
+                } flex items-center justify-center text-white font-bold ring-2 ring-white/[0.08] shadow-lg transition-all duration-[220ms] ${
+                  sidebarCollapsed ? 'w-9 h-9 rounded-lg text-xs' : 'w-12 h-12 rounded-full text-sm'
+                }`}
               >
                 {(currentUser?.name ?? 'U').slice(0, 2).toUpperCase()}
               </div>
-              {/* Online indicator — breathing */}
-              <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-400 rounded-full ring-2 ring-[#0e1525] sidebar-active-bar" />
+              {/* Online dot */}
+              <span className={`absolute bg-emerald-400 rounded-full ring-2 ring-[#0e1525] sidebar-active-bar transition-all duration-[220ms] ${
+                sidebarCollapsed ? '-bottom-0.5 -right-0.5 w-2 h-2' : '-bottom-0.5 -right-0.5 w-3 h-3'
+              }`} />
             </div>
-            <div className="flex-1 min-w-0">
-              <h2 className="font-semibold text-[14px] text-white/85 truncate leading-tight">
-                {currentUser?.name ?? 'User'}
-              </h2>
-              <div className="flex items-center gap-1.5 mt-0.5">
-                <span className="text-amber-400/60">
-                  {roleIcons[currentUser?.role ?? 'staff']}
-                </span>
-                <span className="text-[11px] text-white/30 capitalize">
-                  {roleLabels[currentUser?.role ?? 'staff']}
-                </span>
+
+            {/* Name + role below avatar — hidden when collapsed */}
+            {!sidebarCollapsed && (
+              <div className="mt-2.5 text-center">
+                <h2 className="font-semibold text-[14px] text-white/85 truncate leading-tight">
+                  {currentUser?.name ?? 'User'}
+                </h2>
+                <div className="flex items-center justify-center gap-1.5 mt-1">
+                  <span className="text-amber-400/60">
+                    {roleIcons[currentUser?.role ?? 'staff']}
+                  </span>
+                  <span className="text-[11px] text-white/35 capitalize">
+                    {roleLabels[currentUser?.role ?? 'staff']}
+                  </span>
+                </div>
               </div>
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="lg:hidden w-8 h-8 text-white/30 hover:text-white hover:bg-white/10 transition-all duration-300 rounded-xl"
-              onClick={onClose}
-            >
-              <X className="w-4 h-4" />
-            </Button>
+            )}
           </div>
 
-          {/* Brand — with breathing icon */}
-          <div className="flex items-center gap-2.5 mt-5 pt-4 border-t border-white/[0.04]">
-            <div className="sidebar-brand-icon w-8 h-8 bg-gradient-to-br from-amber-400 via-orange-500 to-amber-600 rounded-xl flex items-center justify-center shadow-lg shadow-amber-500/25">
-              <Package className="w-4 h-4 text-white" />
+          {/* Mobile close */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="lg:hidden absolute top-3 right-3 w-7 h-7 text-white/30 hover:text-white hover:bg-white/10 transition-all duration-200 rounded-lg"
+            onClick={onClose}
+          >
+            <X className="w-4 h-4" />
+          </Button>
+        </div>
+
+        {/* ===== Brand line below profile ===== */}
+        {!sidebarCollapsed && (
+          <div className="relative px-5 pb-3 flex items-center gap-2.5">
+            <div className="sidebar-brand-icon w-7 h-7 bg-gradient-to-br from-amber-400 via-orange-500 to-amber-600 rounded-lg flex items-center justify-center shadow-lg shadow-amber-500/20 shrink-0">
+              <Package className="w-3.5 h-3.5 text-white" />
             </div>
             <div className="flex-1 min-w-0">
-              <span className="font-bold text-[13px] text-white/75 tracking-tight">
+              <span className="font-bold text-[12px] text-white/60 tracking-tight">
                 Inventra
               </span>
-              <span className="text-[10px] text-white/15 ml-1.5">
+              <span className="text-[9px] text-white/20 ml-1">
                 by Nauka
               </span>
             </div>
-            {/* Subtle version badge */}
-            <span className="text-[9px] text-white/10 font-mono">v1.1</span>
           </div>
-        </div>
+        )}
 
-        {/* ===== Navigation — the pulse ===== */}
-        <div className="relative flex-1 overflow-y-auto overscroll-contain -webkit-overflow-scrolling-touch px-3 pb-2">
-          <nav className="space-y-0.5">
+        {/* Collapsed brand icon */}
+        {sidebarCollapsed && (
+          <div className="relative px-2 pb-3 flex justify-center">
+            <div className="sidebar-brand-icon w-8 h-8 bg-gradient-to-br from-amber-400 via-orange-500 to-amber-600 rounded-lg flex items-center justify-center shadow-lg shadow-amber-500/20">
+              <Package className="w-4 h-4 text-white" />
+            </div>
+          </div>
+        )}
+
+        {/* Divider */}
+        <div className={`border-t border-white/[0.04] mx-3 mb-1`} />
+
+        {/* ===== Navigation ===== */}
+        <div className="relative flex-1 overflow-y-auto overscroll-contain -webkit-overflow-scrolling-touch pb-2">
+          <nav className={`space-y-0.5 ${sidebarCollapsed ? 'px-1.5' : 'px-3'}`}>
             {menuSections.map((section, si) => {
               // Hide "Pengaturan" section for non-owners
               if (section.label === 'Pengaturan' && currentUser?.role !== 'owner') return null
@@ -317,31 +306,38 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
                     {section.items.map((item) => {
                       const isActive = activePage === item.key
                       return (
-                        <button
-                          key={item.key}
-                          onClick={() => {
-                            setActivePage(item.key)
-                            onClose()
-                          }}
-                          className={`sidebar-nav-item group w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-300 ease-out relative ${
-                            isActive
-                              ? 'bg-gradient-to-r from-amber-500/20 via-amber-500/10 to-transparent text-amber-300'
-                              : 'text-white/45 hover:bg-white/[0.03] hover:text-white/70'
-                          }`}
-                          style={{ animationDelay: `${si * 30}ms` }}
-                        >
-                          {/* Active left accent — breathing */}
-                          {isActive && (
-                            <span className="sidebar-active-bar absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-gradient-to-b from-amber-300 to-amber-500 rounded-r-full shadow-lg shadow-amber-400/40" />
-                          )}
-                          <span className={`transition-all duration-300 ${isActive ? 'text-amber-400 drop-shadow-[0_0_6px_rgba(251,191,36,0.3)]' : 'text-white/25 group-hover:text-white/50'}`}>
-                            {item.icon}
-                          </span>
-                          {item.label}
-                          {isActive && (
-                            <Circle className="ml-auto w-1.5 h-1.5 fill-amber-400/60 text-amber-400/60 sidebar-active-bar" />
-                          )}
-                        </button>
+                        <TooltipWrap key={item.key} label={item.label} collapsed={sidebarCollapsed}>
+                          <button
+                            onClick={() => {
+                              setActivePage(item.key)
+                              onClose()
+                            }}
+                            className={`group w-full flex items-center rounded-xl text-[13px] font-medium transition-all duration-200 ease-out relative ${
+                              sidebarCollapsed
+                                ? 'justify-center px-0 py-2.5'
+                                : 'gap-3 px-3.5 py-2.5'
+                            } ${
+                              isActive
+                                ? 'bg-gradient-to-r from-amber-500/20 via-amber-500/10 to-transparent text-amber-300'
+                                : 'text-white/50 hover:bg-white/[0.04] hover:text-white/75'
+                            }`}
+                          >
+                            {isActive && (
+                              <span className="sidebar-active-bar absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-gradient-to-b from-amber-300 to-amber-500 rounded-r-full shadow-lg shadow-amber-400/40" />
+                            )}
+                            <span className={`transition-colors duration-200 shrink-0 ${isActive ? 'text-amber-400' : 'text-white/30 group-hover:text-white/55'}`}>
+                              {item.icon}
+                            </span>
+                            {!sidebarCollapsed && (
+                              <>
+                                {item.label}
+                                {isActive && (
+                                  <Circle className="ml-auto w-1.5 h-1.5 fill-amber-400/60 text-amber-400/60 sidebar-active-bar" />
+                                )}
+                              </>
+                            )}
+                          </button>
+                        </TooltipWrap>
                       )
                     })}
                   </div>
@@ -350,71 +346,85 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
 
               // Grouped sections
               return (
-                <div key={si} className="mt-1">
-                  {/* Section header */}
-                  <button
-                    onClick={() => toggleSection(String(si))}
-                    className={`w-full flex items-center gap-2 px-3.5 pt-3 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] transition-all duration-300 ${
-                      hasActive ? 'text-amber-400/40' : 'text-white/15'
-                    } hover:text-white/30`}
-                  >
-                    <ChevronRight
-                      className={`w-3 h-3 transition-transform duration-400 ease-out ${
-                        isExpanded ? 'rotate-90' : 'rotate-0'
-                      }`}
-                    />
-                    <span className="flex-1 text-left">{section.label}</span>
-                    {hasActive && (
-                      <span className="w-1 h-1 rounded-full bg-amber-400/50 sidebar-active-bar" />
-                    )}
-                  </button>
+                <div key={si} className="mt-0.5">
+                  {/* Section header — hidden when collapsed */}
+                  {!sidebarCollapsed && (
+                    <button
+                      onClick={() => toggleSection(String(si))}
+                      className={`w-full flex items-center gap-2 px-3.5 pt-2.5 pb-1 text-[10px] font-semibold uppercase tracking-[0.14em] transition-colors duration-200 ${
+                        hasActive ? 'text-amber-400/50' : 'text-white/25'
+                      } hover:text-white/40`}
+                    >
+                      <ChevronRight
+                        className={`w-3 h-3 transition-transform duration-200 ease-out ${
+                          isExpanded ? 'rotate-90' : 'rotate-0'
+                        }`}
+                      />
+                      <span className="flex-1 text-left">{section.label}</span>
+                      {hasActive && (
+                        <span className="w-1 h-1 rounded-full bg-amber-400/50 sidebar-active-bar" />
+                      )}
+                    </button>
+                  )}
+
+                  {/* Collapsed: thin divider line for section break */}
+                  {sidebarCollapsed && si > 0 && (
+                    <div className="mx-2 my-1.5 border-t border-white/[0.04]" />
+                  )}
 
                   {/* Section items */}
                   <div
-                    className={`overflow-hidden transition-all duration-400 ease-[cubic-bezier(0.4,0,0.2,1)] ${
-                      isExpanded ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'
+                    className={`overflow-hidden transition-all duration-200 ease-[cubic-bezier(0.4,0,0.2,1)] ${
+                      sidebarCollapsed || isExpanded ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'
                     }`}
                   >
-                    {section.items.map((item, ii) => {
+                    {section.items.map((item) => {
                       const isActive = activePage === item.key && !item.soon
                       return (
-                        <button
-                          key={item.key}
-                          onClick={() => {
-                            if (item.soon) return
-                            setActivePage(item.key)
-                            onClose()
-                          }}
-                          className={`sidebar-nav-item group w-full flex items-center gap-3 px-3.5 py-[7px] rounded-xl text-[13px] font-medium transition-all duration-300 ease-out relative ${
-                            item.soon
-                              ? 'text-white/15 cursor-not-allowed'
-                              : isActive
-                                ? 'bg-gradient-to-r from-amber-500/20 via-amber-500/10 to-transparent text-amber-300'
-                                : 'text-white/45 hover:bg-white/[0.03] hover:text-white/70'
-                          }`}
-                          style={{ animationDelay: `${(si * 30) + (ii * 20)}ms` }}
-                        >
-                          {/* Active left accent — breathing */}
-                          {isActive && (
-                            <span className="sidebar-active-bar absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-gradient-to-b from-amber-300 to-amber-500 rounded-r-full shadow-lg shadow-amber-400/40" />
-                          )}
-                          <span className={`transition-all duration-300 ${
-                            item.soon
-                              ? 'text-white/10'
-                              : isActive
-                                ? 'text-amber-400 drop-shadow-[0_0_6px_rgba(251,191,36,0.3)]'
-                                : 'text-white/20 group-hover:text-white/45'
-                          }`}>
-                            {item.icon}
-                          </span>
-                          <span className="flex-1 text-left">{item.label}</span>
-                          {item.soon && (
-                            <Lock className="w-3 h-3 text-white/[0.06]" />
-                          )}
-                          {isActive && !item.soon && (
-                            <Circle className="w-1.5 h-1.5 fill-amber-400/50 text-amber-400/50 sidebar-active-bar" />
-                          )}
-                        </button>
+                        <TooltipWrap key={item.key} label={item.label} collapsed={sidebarCollapsed}>
+                          <button
+                            onClick={() => {
+                              if (item.soon) return
+                              setActivePage(item.key)
+                              onClose()
+                            }}
+                            className={`group w-full flex items-center rounded-xl text-[13px] font-medium transition-all duration-200 ease-out relative ${
+                              sidebarCollapsed
+                                ? 'justify-center px-0 py-2'
+                                : 'gap-3 px-3.5 py-[7px]'
+                            } ${
+                              item.soon
+                                ? 'text-white/20 cursor-not-allowed'
+                                : isActive
+                                  ? 'bg-gradient-to-r from-amber-500/20 via-amber-500/10 to-transparent text-amber-300'
+                                  : 'text-white/50 hover:bg-white/[0.04] hover:text-white/75'
+                            }`}
+                          >
+                            {isActive && (
+                              <span className="sidebar-active-bar absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-gradient-to-b from-amber-300 to-amber-500 rounded-r-full shadow-lg shadow-amber-400/40" />
+                            )}
+                            <span className={`transition-colors duration-200 shrink-0 ${
+                              item.soon
+                                ? 'text-white/10'
+                                : isActive
+                                  ? 'text-amber-400'
+                                  : 'text-white/25 group-hover:text-white/50'
+                            }`}>
+                              {item.icon}
+                            </span>
+                            {!sidebarCollapsed && (
+                              <>
+                                <span className="flex-1 text-left">{item.label}</span>
+                                {item.soon && (
+                                  <Lock className="w-3 h-3 text-white/[0.08]" />
+                                )}
+                                {isActive && !item.soon && (
+                                  <Circle className="w-1.5 h-1.5 fill-amber-400/50 text-amber-400/50 sidebar-active-bar" />
+                                )}
+                              </>
+                            )}
+                          </button>
+                        </TooltipWrap>
                       )
                     })}
                   </div>
@@ -424,110 +434,24 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
           </nav>
         </div>
 
-        {/* ===== Bottom — the anchor ===== */}
-        <div className="relative border-t border-white/[0.04] px-3 py-3 space-y-1">
-          {/* Theme toggle */}
+        {/* ===== Bottom — collapse toggle only ===== */}
+        <div className="relative border-t border-white/[0.04] p-2">
           <button
-            onClick={toggleTheme}
-            className="group w-full flex items-center gap-3 px-3.5 py-2 rounded-xl text-[12px] text-white/25 hover:bg-white/[0.03] hover:text-white/50 transition-all duration-300 ease-out"
+            onClick={toggleSidebarCollapsed}
+            className="group w-full flex items-center justify-center gap-2 px-2 py-2 rounded-xl text-white/25 hover:bg-white/[0.04] hover:text-white/50 transition-all duration-200 ease-out"
+            title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
-            <span className="transition-transform duration-500 ease-out group-hover:rotate-12">
-              {theme === 'light' ? (
-                <Moon className="w-[16px] h-[16px]" />
-              ) : (
-                <Sun className="w-[16px] h-[16px]" />
-              )}
-            </span>
-            <span>{theme === 'light' ? 'Dark Mode' : 'Light Mode'}</span>
+            {sidebarCollapsed ? (
+              <PanelLeft className="w-[16px] h-[16px]" />
+            ) : (
+              <>
+                <PanelLeftClose className="w-[16px] h-[16px]" />
+                <span className="text-[11px]">Collapse</span>
+              </>
+            )}
           </button>
-
-          {/* Action buttons */}
-          <div className="flex items-center gap-1 px-1">
-            <button
-              onClick={() => setChangePasswordOpen(true)}
-              className="group flex-1 flex items-center gap-2 px-3 py-2 rounded-xl text-[12px] text-white/20 hover:bg-amber-500/[0.08] hover:text-amber-400/70 transition-all duration-300 ease-out"
-            >
-              <KeyRound className="w-[14px] h-[14px] transition-transform duration-300 group-hover:scale-110" />
-              <span>Password</span>
-            </button>
-            <button
-              onClick={() => {
-                setCurrentUser(null)
-                toast.success('Berhasil logout')
-              }}
-              className="group flex-1 flex items-center gap-2 px-3 py-2 rounded-xl text-[12px] text-white/20 hover:bg-red-500/[0.08] hover:text-red-400/70 transition-all duration-300 ease-out"
-            >
-              <LogOut className="w-[14px] h-[14px] transition-transform duration-300 group-hover:-translate-x-0.5" />
-              <span>Logout</span>
-            </button>
-          </div>
         </div>
       </aside>
-
-      {/* Change Password Dialog */}
-      <Dialog open={changePasswordOpen} onOpenChange={(open) => {
-        if (!open) { setCurrentPw(''); setNewPw(''); setConfirmPw('') }
-        setChangePasswordOpen(open)
-      }}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Ganti Password</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            <div className="space-y-2">
-              <Label>Password saat ini</Label>
-              <Input
-                type="password"
-                value={currentPw}
-                onChange={(e) => setCurrentPw(e.target.value)}
-                placeholder="Masukkan password saat ini"
-                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleChangePassword() } }}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Password baru</Label>
-              <Input
-                type="password"
-                value={newPw}
-                onChange={(e) => setNewPw(e.target.value)}
-                placeholder="Masukkan password baru (min. 4 karakter)"
-                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleChangePassword() } }}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Konfirmasi password baru</Label>
-              <Input
-                type="password"
-                value={confirmPw}
-                onChange={(e) => setConfirmPw(e.target.value)}
-                placeholder="Ulangi password baru"
-                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleChangePassword() } }}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setChangePasswordOpen(false)
-                setCurrentPw('')
-                setNewPw('')
-                setConfirmPw('')
-              }}
-              disabled={savingPw}
-            >
-              Batal
-            </Button>
-            <Button
-              className="bg-stone-900 hover:bg-stone-800 text-white"
-              onClick={handleChangePassword}
-              disabled={savingPw}
-            >
-              {savingPw ? 'Menyimpan...' : 'Simpan'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </>
   )
 }
