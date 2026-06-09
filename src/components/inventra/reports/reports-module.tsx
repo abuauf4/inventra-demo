@@ -411,7 +411,7 @@ function ReportsModule({ defaultTab }: { defaultTab?: 'sales' | 'purchases' | 's
 
   return (
     <div className="flex flex-col h-full">
-      <Tabs value={tab} onValueChange={setTab}>
+      <Tabs value={tab} onValueChange={setTab} className="flex flex-col flex-1 min-h-0">
         <TabsList className="shrink-0">
           <TabsTrigger value="sales">Penjualan</TabsTrigger>
           <TabsTrigger value="purchases">Pembelian</TabsTrigger>
@@ -420,7 +420,7 @@ function ReportsModule({ defaultTab }: { defaultTab?: 'sales' | 'purchases' | 's
         </TabsList>
 
         {/* ==================== SALES REPORT ==================== */}
-        <TabsContent value="sales" className="flex flex-col h-full mt-5">
+        <TabsContent value="sales" className="flex flex-col flex-1 min-h-0 mt-3">
           <div className="flex flex-col sm:flex-row gap-4 flex-wrap items-end shrink-0">
             <Select value={period} onValueChange={setPeriod}><SelectTrigger className="w-40"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="daily">Harian</SelectItem><SelectItem value="weekly">Mingguan</SelectItem><SelectItem value="monthly">Bulanan</SelectItem><SelectItem value="custom">Custom</SelectItem></SelectContent></Select>
             <div className="flex items-center gap-2">
@@ -506,7 +506,7 @@ function ReportsModule({ defaultTab }: { defaultTab?: 'sales' | 'purchases' | 's
         </TabsContent>
 
         {/* ==================== PURCHASES REPORT ==================== */}
-        <TabsContent value="purchases" className="flex flex-col h-full mt-5">
+        <TabsContent value="purchases" className="flex flex-col flex-1 min-h-0 mt-3">
           <div className="flex flex-col sm:flex-row gap-4 flex-wrap items-end shrink-0">
             <Select value={period} onValueChange={setPeriod}><SelectTrigger className="w-40"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="daily">Harian</SelectItem><SelectItem value="weekly">Mingguan</SelectItem><SelectItem value="monthly">Bulanan</SelectItem><SelectItem value="custom">Custom</SelectItem></SelectContent></Select>
             <div className="flex items-center gap-2">
@@ -588,7 +588,7 @@ function ReportsModule({ defaultTab }: { defaultTab?: 'sales' | 'purchases' | 's
         </TabsContent>
 
         {/* ==================== STOCK REPORT ==================== */}
-        <TabsContent value="stock" className="flex flex-col h-full mt-5">
+        <TabsContent value="stock" className="flex flex-col flex-1 min-h-0 mt-3">
           {/* Stock Filters + Date Range */}
           <div className="flex flex-col sm:flex-row gap-4 flex-wrap items-end shrink-0">
             <div className="flex items-center gap-2">
@@ -676,7 +676,7 @@ function ReportsModule({ defaultTab }: { defaultTab?: 'sales' | 'purchases' | 's
         </TabsContent>
 
         {/* ==================== STOCK MUTATIONS REPORT ==================== */}
-        <TabsContent value="stock-mutations" className="flex flex-col h-full mt-5">
+        <TabsContent value="stock-mutations" className="flex flex-col flex-1 min-h-0 mt-3">
           <div className="flex flex-col sm:flex-row gap-4 flex-wrap items-end shrink-0">
             <div className="flex items-center gap-2">
               <div>
