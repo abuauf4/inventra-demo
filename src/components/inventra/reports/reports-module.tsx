@@ -173,7 +173,7 @@ function TypeaheadFilter({
         onChange={e => handleInputChange(e.target.value)}
         onFocus={handleFocus}
         onBlur={handleBlur}
-        className="w-48 h-9 text-sm"
+        className="w-full h-9 text-sm"
       />
       {showDropdown && suggestions.length > 0 && (
         <div className="absolute z-50 top-full mt-1 w-64 bg-white border rounded-md shadow-lg max-h-60 overflow-auto">
@@ -421,45 +421,28 @@ function ReportsModule({ defaultTab }: { defaultTab?: 'sales' | 'purchases' | 's
 
         {/* ==================== SALES REPORT ==================== */}
         <TabsContent value="sales" className="flex flex-col flex-1 min-h-0 mt-3">
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 flex-wrap items-end shrink-0">
-            <Select value={period} onValueChange={setPeriod}><SelectTrigger className="w-full sm:w-40"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="daily">Harian</SelectItem><SelectItem value="weekly">Mingguan</SelectItem><SelectItem value="monthly">Bulanan</SelectItem><SelectItem value="custom">Custom</SelectItem></SelectContent></Select>
+          <div className="flex flex-col gap-2.5 shrink-0">
+            {/* Date range row */}
             <div className="flex items-center gap-2">
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Dari Tanggal</label>
-                <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="w-full sm:w-40" />
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Sampai Tanggal</label>
-                <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="w-full sm:w-40" />
-              </div>
+              <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="flex-1 sm:max-w-[160px] h-9 text-sm" />
+              <span className="text-xs text-stone-400 font-medium shrink-0">s/d</span>
+              <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="flex-1 sm:max-w-[160px] h-9 text-sm" />
             </div>
-            {/* Customer typeahead filter */}
-            <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Customer</label>
-              <TypeaheadFilter
-                placeholder="Cari customer..."
-                searchUrl="/api/customers"
-                selectedId={filterCustomerId}
-                onSelect={(id, item) => { setFilterCustomerId(id); setSelectedCustomer(item) }}
-                onClear={() => { setFilterCustomerId(''); setSelectedCustomer(null) }}
-                chipLabel={selectedCustomer ? `${selectedCustomer.code} — ${selectedCustomer.label}${selectedCustomer.sublabel ? ` — ${selectedCustomer.sublabel}` : ''}` : undefined}
-              />
+            {/* Search + Refresh row */}
+            <div className="flex items-center gap-2">
+              <div className="flex-1">
+                <TypeaheadFilter
+                  placeholder="Cari kode / nama customer"
+                  searchUrl="/api/customers"
+                  selectedId={filterCustomerId}
+                  onSelect={(id, item) => { setFilterCustomerId(id); setSelectedCustomer(item) }}
+                  onClear={() => { setFilterCustomerId(''); setSelectedCustomer(null) }}
+                  chipLabel={selectedCustomer ? `${selectedCustomer.code} — ${selectedCustomer.label}${selectedCustomer.sublabel ? ` — ${selectedCustomer.sublabel}` : ''}` : undefined}
+                />
+              </div>
+              <Button onClick={load} variant="outline" className="h-9 shrink-0"><RefreshCw className="w-4 h-4" /></Button>
             </div>
-            <Button onClick={load} variant="outline"><RefreshCw className="w-4 h-4 mr-2" />Refresh</Button>
           </div>
-
-          {/* Active filter label */}
-          {filterLabel && (
-            <div className="flex items-center gap-2 flex-wrap shrink-0">
-              <Filter className="w-4 h-4 text-stone-400" />
-              <span className="text-xs font-medium text-stone-600 bg-stone-100 px-2.5 py-0.5 rounded-full">{filterLabel}</span>
-              {filterCustomerId && selectedCustomer && (
-                <span className="text-xs font-medium text-stone-600 bg-stone-100 px-2.5 py-0.5 rounded-full">
-                  Customer: {selectedCustomer.code} — {selectedCustomer.label}
-                </span>
-              )}
-            </div>
-          )}
 
           <div className="flex-1 min-h-0 overflow-y-auto space-y-5">
           {loading ? <div className="flex justify-center py-8"><RefreshCw className="w-5 h-5 animate-spin text-stone-300" /></div> : (
@@ -507,45 +490,28 @@ function ReportsModule({ defaultTab }: { defaultTab?: 'sales' | 'purchases' | 's
 
         {/* ==================== PURCHASES REPORT ==================== */}
         <TabsContent value="purchases" className="flex flex-col flex-1 min-h-0 mt-3">
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 flex-wrap items-end shrink-0">
-            <Select value={period} onValueChange={setPeriod}><SelectTrigger className="w-full sm:w-40"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="daily">Harian</SelectItem><SelectItem value="weekly">Mingguan</SelectItem><SelectItem value="monthly">Bulanan</SelectItem><SelectItem value="custom">Custom</SelectItem></SelectContent></Select>
+          <div className="flex flex-col gap-2.5 shrink-0">
+            {/* Date range row */}
             <div className="flex items-center gap-2">
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Dari Tanggal</label>
-                <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="w-full sm:w-40" />
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Sampai Tanggal</label>
-                <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="w-full sm:w-40" />
-              </div>
+              <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="flex-1 sm:max-w-[160px] h-9 text-sm" />
+              <span className="text-xs text-stone-400 font-medium shrink-0">s/d</span>
+              <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="flex-1 sm:max-w-[160px] h-9 text-sm" />
             </div>
-            {/* Supplier typeahead filter */}
-            <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Supplier</label>
-              <TypeaheadFilter
-                placeholder="Cari supplier..."
-                searchUrl="/api/suppliers"
-                selectedId={filterSupplierId}
-                onSelect={(id, item) => { setFilterSupplierId(id); setSelectedSupplier(item) }}
-                onClear={() => { setFilterSupplierId(''); setSelectedSupplier(null) }}
-                chipLabel={selectedSupplier ? `${selectedSupplier.code} — ${selectedSupplier.label}${selectedSupplier.sublabel ? ` — ${selectedSupplier.sublabel}` : ''}` : undefined}
-              />
+            {/* Search + Refresh row */}
+            <div className="flex items-center gap-2">
+              <div className="flex-1">
+                <TypeaheadFilter
+                  placeholder="Cari kode / nama supplier"
+                  searchUrl="/api/suppliers"
+                  selectedId={filterSupplierId}
+                  onSelect={(id, item) => { setFilterSupplierId(id); setSelectedSupplier(item) }}
+                  onClear={() => { setFilterSupplierId(''); setSelectedSupplier(null) }}
+                  chipLabel={selectedSupplier ? `${selectedSupplier.code} — ${selectedSupplier.label}${selectedSupplier.sublabel ? ` — ${selectedSupplier.sublabel}` : ''}` : undefined}
+                />
+              </div>
+              <Button onClick={load} variant="outline" className="h-9 shrink-0"><RefreshCw className="w-4 h-4" /></Button>
             </div>
-            <Button onClick={load} variant="outline"><RefreshCw className="w-4 h-4 mr-2" />Refresh</Button>
           </div>
-
-          {/* Active filter label */}
-          {filterLabel && (
-            <div className="flex items-center gap-2 flex-wrap shrink-0">
-              <Filter className="w-4 h-4 text-stone-400" />
-              <span className="text-xs font-medium text-stone-600 bg-stone-100 px-2.5 py-0.5 rounded-full">{filterLabel}</span>
-              {filterSupplierId && selectedSupplier && (
-                <span className="text-xs font-medium text-stone-600 bg-stone-100 px-2.5 py-0.5 rounded-full">
-                  Supplier: {selectedSupplier.code} — {selectedSupplier.label}
-                </span>
-              )}
-            </div>
-          )}
 
           <div className="flex-1 min-h-0 overflow-y-auto space-y-5">
           {loading ? <div className="flex justify-center py-8"><RefreshCw className="w-6 h-6 animate-spin text-stone-300" /></div> : (
