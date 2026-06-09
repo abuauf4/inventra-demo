@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
       where,
       include: {
         _count: {
-          select: { purchases: true },
+          select: { purchases: true, products: true },
         },
       },
       orderBy: {

@@ -12,7 +12,6 @@ function getPeriodKey(date: Date, period: string): string {
     case 'daily':
       return `${y}-${m}-${d}`
     case 'weekly': {
-      // Get ISO week number
       const tempDate = new Date(date.getTime())
       tempDate.setHours(0, 0, 0, 0)
       tempDate.setDate(tempDate.getDate() + 3 - ((tempDate.getDay() + 6) % 7))
@@ -55,12 +54,12 @@ interface GroupedPeriod {
   period: string
   totalAmount: number
   count: number
-  transactions: { date: Date | string; total: number; transNo: string; id: string }[]
+  transactions: { date: Date | string; total: number; transNo: string; id: string; status: string }[]
 }
 
 // Helper: group transactions by period
 function groupByPeriod(
-  transactions: { date: Date | string; total: number; transNo: string; id: string }[],
+  transactions: { date: Date | string; total: number; transNo: string; id: string; status: string }[],
   period: string
 ): GroupedPeriod[] {
   const groups: Record<string, GroupedPeriod> = {}
@@ -80,7 +79,6 @@ function groupByPeriod(
     groups[key].transactions.push(tx)
   }
 
-  // Sort by period descending
   return Object.values(groups).sort((a, b) => b.period.localeCompare(a.period))
 }
 
@@ -102,12 +100,20 @@ export async function GET(request: NextRequest) {
         const period = searchParams.get('period') || 'daily'
         const dateFrom = searchParams.get('dateFrom') || ''
         const dateTo = searchParams.get('dateTo') || ''
+        const customerId = searchParams.get('customerId') || ''
 
-        const where = buildSaleDateFilter(dateFrom, dateTo)
+        const where: Prisma.SaleWhereInput = { ...buildSaleDateFilter(dateFrom, dateTo) }
 
+        // Filter by customer
+        if (customerId) {
+          where.customerId = customerId
+        }
+
+        // Filter by status — only COMPLETED and PAID count as revenue
+        // But we fetch all and separate in response
         const sales = await db.sale.findMany({
           where,
-          take: 200,
+          take: 500,
           include: {
             customer: { select: { id: true, name: true, code: true } },
             items: {
@@ -124,11 +130,66 @@ export async function GET(request: NextRequest) {
           orderBy: { date: 'desc' },
         })
 
+        // Separate revenue (COMPLETED + PAID) from all transactions
+        const revenueSales = sales.filter(s => s.status === 'COMPLETED' || s.status === 'PAID')
+        const allSales = sales.filter(s => s.status !== 'CANCELLED' && s.status !== 'DRAFT')
+
         const grouped = groupByPeriod(
-          sales.map((s) => ({ date: s.date, total: s.total, transNo: s.transNo, id: s.id })),
+          allSales.map((s) => ({ date: s.date, total: s.total, transNo: s.transNo, id: s.id, status: s.status })),
           period
         )
-        const grandTotal = sales.reduce((sum, s) => sum + s.total, 0)
+
+        const grandTotal = allSales.reduce((sum, s) => sum + s.total, 0)
+        const revenue = revenueSales.reduce((sum, s) => sum + s.total, 0)
+        const totalTransactions = allSales.length
+        const totalAllTransactions = sales.length
+
+        // Top selling products (by revenue) — aggregate from items
+        const productRevenueMap: Record<string, { name: string; sku: string; qty: number; revenue: number; cost: number }> = {}
+        for (const sale of revenueSales) {
+          for (const item of sale.items) {
+            const key = item.variantId || item.productId || 'unknown'
+            const label = item.variant?.name || item.product?.name || 'Unknown'
+            const sku = item.variant?.sku || item.product?.sku || '-'
+            if (!productRevenueMap[key]) {
+              productRevenueMap[key] = { name: label, sku, qty: 0, revenue: 0, cost: 0 }
+            }
+            productRevenueMap[key].qty += item.qty
+            productRevenueMap[key].revenue += item.qty * item.sellPrice
+            // Estimate cost from buyPrice if available
+            const buyPrice = (item.variant as any)?.buyPrice || (item.product as any)?.buyPrice || 0
+            productRevenueMap[key].cost += item.qty * buyPrice
+          }
+        }
+        const topProductsByRevenue = Object.values(productRevenueMap)
+          .sort((a, b) => b.revenue - a.revenue)
+          .slice(0, 10)
+        const topProductsByQty = Object.values(productRevenueMap)
+          .sort((a, b) => b.qty - a.qty)
+          .slice(0, 10)
+
+        // Total estimated cost for profit calculation
+        const totalCost = Object.values(productRevenueMap).reduce((sum, p) => sum + p.cost, 0)
+        const estimatedProfit = revenue - totalCost
+
+        // Customer ranking
+        const customerMap: Record<string, { name: string; code: string; totalSpent: number; orderCount: number }> = {}
+        for (const sale of revenueSales) {
+          const cId = sale.customerId || 'walk-in'
+          if (!customerMap[cId]) {
+            customerMap[cId] = {
+              name: sale.customer?.name || 'Umum',
+              code: sale.customer?.code || '-',
+              totalSpent: 0,
+              orderCount: 0,
+            }
+          }
+          customerMap[cId].totalSpent += sale.total
+          customerMap[cId].orderCount += 1
+        }
+        const topCustomers = Object.values(customerMap)
+          .sort((a, b) => b.totalSpent - a.totalSpent)
+          .slice(0, 10)
 
         return NextResponse.json({
           success: true,
@@ -136,7 +197,14 @@ export async function GET(request: NextRequest) {
             period,
             grouped,
             grandTotal,
-            totalTransactions: sales.length,
+            revenue,
+            totalTransactions,
+            totalAllTransactions,
+            totalCost,
+            estimatedProfit,
+            topProductsByRevenue,
+            topProductsByQty,
+            topCustomers,
           },
         })
       }
@@ -145,12 +213,18 @@ export async function GET(request: NextRequest) {
         const period = searchParams.get('period') || 'daily'
         const dateFrom = searchParams.get('dateFrom') || ''
         const dateTo = searchParams.get('dateTo') || ''
+        const supplierId = searchParams.get('supplierId') || ''
 
-        const where = buildPurchaseDateFilter(dateFrom, dateTo)
+        const where: Prisma.PurchaseWhereInput = { ...buildPurchaseDateFilter(dateFrom, dateTo) }
+
+        // Filter by supplier
+        if (supplierId) {
+          where.supplierId = supplierId
+        }
 
         const purchases = await db.purchase.findMany({
           where,
-          take: 200,
+          take: 500,
           include: {
             supplier: { select: { id: true, name: true, code: true } },
             items: {
@@ -167,11 +241,59 @@ export async function GET(request: NextRequest) {
           orderBy: { date: 'desc' },
         })
 
+        // Only RECEIVED purchases count as actual costs
+        const receivedPurchases = purchases.filter(p => p.status === 'RECEIVED')
+        const allPurchases = purchases.filter(p => p.status !== 'CANCELLED' && p.status !== 'DRAFT')
+
         const grouped = groupByPeriod(
-          purchases.map((p) => ({ date: p.date, total: p.total, transNo: p.transNo, id: p.id })),
+          allPurchases.map((p) => ({ date: p.date, total: p.total, transNo: p.transNo, id: p.id, status: p.status })),
           period
         )
-        const grandTotal = purchases.reduce((sum, p) => sum + p.total, 0)
+
+        const grandTotal = allPurchases.reduce((sum, p) => sum + p.total, 0)
+        const cost = receivedPurchases.reduce((sum, p) => sum + p.total, 0)
+        const totalTransactions = allPurchases.length
+        const totalAllTransactions = purchases.length
+
+        // Top purchased products (by cost) — aggregate from items
+        const productCostMap: Record<string, { name: string; sku: string; qty: number; cost: number }> = {}
+        for (const purchase of receivedPurchases) {
+          for (const item of purchase.items) {
+            const key = item.variantId || item.productId || 'unknown'
+            const label = item.variant?.name || item.product?.name || 'Unknown'
+            const sku = item.variant?.sku || item.product?.sku || '-'
+            if (!productCostMap[key]) {
+              productCostMap[key] = { name: label, sku, qty: 0, cost: 0 }
+            }
+            productCostMap[key].qty += item.qty
+            productCostMap[key].cost += item.qty * item.buyPrice
+          }
+        }
+        const topProductsByCost = Object.values(productCostMap)
+          .sort((a, b) => b.cost - a.cost)
+          .slice(0, 10)
+        const topProductsByQty = Object.values(productCostMap)
+          .sort((a, b) => b.qty - a.qty)
+          .slice(0, 10)
+
+        // Supplier ranking
+        const supplierMap: Record<string, { name: string; code: string; totalSpent: number; orderCount: number }> = {}
+        for (const purchase of allPurchases) {
+          const sId = purchase.supplierId || 'unknown'
+          if (!supplierMap[sId]) {
+            supplierMap[sId] = {
+              name: purchase.supplier?.name || 'Unknown',
+              code: purchase.supplier?.code || '-',
+              totalSpent: 0,
+              orderCount: 0,
+            }
+          }
+          supplierMap[sId].totalSpent += purchase.total
+          supplierMap[sId].orderCount += 1
+        }
+        const topSuppliers = Object.values(supplierMap)
+          .sort((a, b) => b.totalSpent - a.totalSpent)
+          .slice(0, 10)
 
         return NextResponse.json({
           success: true,
@@ -179,16 +301,32 @@ export async function GET(request: NextRequest) {
             period,
             grouped,
             grandTotal,
-            totalTransactions: purchases.length,
+            cost,
+            totalTransactions,
+            totalAllTransactions,
+            topProductsByCost,
+            topProductsByQty,
+            topSuppliers,
           },
         })
       }
 
       case 'stock': {
-        // Use variant-level stock data
+        const categoryId = searchParams.get('categoryId') || ''
+        const supplierId = searchParams.get('supplierId') || ''
+        const lowStockOnly = searchParams.get('lowStockOnly') === 'true'
+
+        const variantWhere: Prisma.ProductVariantWhereInput = { isActive: true }
+        const productWhere: Prisma.ProductWhereInput = {}
+        if (categoryId) productWhere.categoryId = categoryId
+        if (supplierId) productWhere.supplierId = supplierId
+        if (Object.keys(productWhere).length > 0) {
+          variantWhere.product = { ...productWhere, isActive: true }
+        }
+
         const variants = await db.productVariant.findMany({
-          where: { isActive: true },
-          take: 200,
+          where: variantWhere,
+          take: 500,
           include: {
             product: {
               include: {
@@ -219,17 +357,17 @@ export async function GET(request: NextRequest) {
         }))
 
         const lowStockItems = stockData.filter((v) => v.isLowStock)
+        const filteredStockData = lowStockOnly ? stockData.filter((v) => v.isLowStock) : stockData
         const totalInventoryValue = stockData.reduce((sum, v) => sum + v.stockValue, 0)
         const totalVariants = stockData.length
 
-        // Also get unique product count
         const uniqueProductIds = new Set(variants.map((v) => v.productId))
         const totalProducts = uniqueProductIds.size
 
         return NextResponse.json({
           success: true,
           data: {
-            variants: stockData,
+            variants: filteredStockData,
             lowStockItems,
             totalInventoryValue,
             totalProducts,

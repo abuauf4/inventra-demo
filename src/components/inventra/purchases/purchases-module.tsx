@@ -49,6 +49,8 @@ function PurchasesModule() {
   const [cancelConfirm, setCancelConfirm] = useState<{ id: string; status: string } | null>(null)
   const [variantSearches, setVariantSearches] = useState<string[]>([''])
   const [supplierSearch, setSupplierSearch] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [statusSaving, setStatusSaving] = useState(false)
   const supplierInputRef = useRef<HTMLInputElement>(null)
 
   const load = useCallback(async () => {
@@ -70,21 +72,23 @@ function PurchasesModule() {
 
   const handleSave = async () => {
     if (!form.supplierId) { toast.error('Supplier wajib dipilih'); return }
+    setSaving(true)
     try {
       const body = { supplierId: form.supplierId, date: form.date, notes: form.notes || undefined, status: form.status, items: form.items.filter(i => i.variantId).map(i => ({ variantId: i.variantId, qty: parseInt(i.qty) || 0, buyPrice: parseFloat(i.buyPrice) || 0 })) }
       if (!body.items.length) { toast.error('Tambahkan minimal 1 item'); return }
       const res = await fetch('/api/purchases', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       if (!res.ok) { const d = await res.json(); toast.error(d.error || d.message || 'Gagal'); return }
       toast.success('Pembelian dicatat'); setDialogOpen(false); resetForm(); load()
-    } catch { toast.error('Gagal') }
+    } catch { toast.error('Gagal') } finally { setSaving(false) }
   }
 
   const handleStatusChange = async (id: string, newStatus: string) => {
+    setStatusSaving(true)
     try {
       const res = await fetch(`/api/purchases/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: newStatus }) })
       if (!res.ok) { const d = await res.json(); toast.error(d.error || d.message || 'Gagal'); return }
       toast.success('Status diperbarui'); setDetailOpen(false); load()
-    } catch { toast.error('Gagal') }
+    } catch { toast.error('Gagal') } finally { setStatusSaving(false) }
   }
 
   const handleDelete = async (id: string) => {
@@ -93,11 +97,12 @@ function PurchasesModule() {
 
   const handleCancel = async () => {
     if (!cancelConfirm) return
+    setStatusSaving(true)
     try {
       const res = await fetch(`/api/purchases/${cancelConfirm.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'CANCELLED' }) })
       if (!res.ok) { const d = await res.json(); toast.error(d.error || d.message || 'Gagal'); return }
       toast.success('Pembelian dibatalkan'); setCancelConfirm(null); setDetailOpen(false); load()
-    } catch { toast.error('Gagal') }
+    } catch { toast.error('Gagal') } finally { setStatusSaving(false) }
   }
 
   const resetForm = () => {
@@ -125,12 +130,19 @@ function PurchasesModule() {
 
   const openDetail = async (id: string) => { try { const res = await fetch(`/api/purchases/${id}`); setDetail((await res.json()).data); setDetailOpen(true) } catch {} }
   const total = form.items.reduce((s, i) => s + (parseInt(i.qty) || 0) * (parseFloat(i.buyPrice) || 0), 0)
-  const allVariants = products.flatMap(p => (p.variants || []).map(v => ({ ...v, productName: p.name })))
+  // Build variant list, enriched with supplier info from parent product
+  const allVariants = products.flatMap(p => (p.variants || []).map(v => ({ ...v, productName: p.name, supplierId: p.supplierId, supplierName: p.supplier?.name })))
+
+  // When a supplier is selected, prioritize their variants; otherwise show all
+  const supplierVariants = form.supplierId
+    ? allVariants.filter(v => v.supplierId === form.supplierId)
+    : allVariants
 
   const getFilteredVariants = (searchQuery: string) => {
-    if (!searchQuery) return allVariants.slice(0, 8)
+    const pool = supplierVariants
+    if (!searchQuery) return pool.slice(0, 8)
     const q = searchQuery.toLowerCase()
-    return allVariants.filter(v => {
+    return pool.filter(v => {
       if (v.sku.toLowerCase().includes(q)) return true
       if (v.productName.toLowerCase().includes(q)) return true
       if (v.name.toLowerCase().includes(q)) return true
@@ -159,9 +171,9 @@ function PurchasesModule() {
             <TableRow key={p.id}><TableCell className="font-mono text-sm">{p.transNo}</TableCell><TableCell>{p.supplier?.name}</TableCell><TableCell>{fmtDate(p.date)}</TableCell><TableCell><StatusBadge status={p.status} map="purchase" /></TableCell><TableCell className="text-right font-medium">{fmtRp(p.total)}</TableCell>
               <TableCell className="text-right"><div className="flex justify-end gap-1">
                 <Button variant="ghost" size="icon" onClick={() => openDetail(p.id)}><Eye className="w-4 h-4" /></Button>
-                {p.status === 'DRAFT' && <Button variant="ghost" size="sm" className="text-blue-600 text-xs" onClick={() => handleStatusChange(p.id, 'APPROVED')}>Setujui</Button>}
-                {p.status === 'APPROVED' && <Button variant="ghost" size="sm" className="text-emerald-600 text-xs" onClick={() => handleStatusChange(p.id, 'RECEIVED')}>Terima</Button>}
-                {['DRAFT', 'APPROVED', 'RECEIVED'].includes(p.status) && <Button variant="ghost" size="sm" className="text-red-500 text-xs" onClick={() => setCancelConfirm({ id: p.id, status: p.status })}>Batalkan</Button>}
+                {p.status === 'DRAFT' && <Button variant="ghost" size="sm" className="text-blue-600 text-xs" onClick={() => handleStatusChange(p.id, 'APPROVED')} disabled={statusSaving}>Setujui</Button>}
+                {p.status === 'APPROVED' && <Button variant="ghost" size="sm" className="text-emerald-600 text-xs" onClick={() => handleStatusChange(p.id, 'RECEIVED')} disabled={statusSaving}>Terima</Button>}
+                {['DRAFT', 'APPROVED', 'RECEIVED'].includes(p.status) && <Button variant="ghost" size="sm" className="text-red-500 text-xs" onClick={() => setCancelConfirm({ id: p.id, status: p.status })} disabled={statusSaving}>Batalkan</Button>}
                 {p.status === 'DRAFT' && <Button variant="ghost" size="icon" onClick={() => setDeleteConfirm(p.id)} className="text-red-400"><Trash2 className="w-4 h-4" /></Button>}
               </div></TableCell></TableRow>
           ))}</TableBody></Table></CardContent></Card>
@@ -208,9 +220,19 @@ function PurchasesModule() {
             </div>
             <div className="space-y-1.5"><Label className="text-xs">Tanggal</Label><Input type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} /></div>
           </div>
+          {form.supplierId && supplierVariants.length > 0 && (
+            <div className="flex items-center gap-2 text-xs text-purple-600 bg-purple-50 rounded-md px-3 py-1.5">
+              <span>Menampilkan {supplierVariants.length} varian dari {selectedSupplier?.name}</span>
+            </div>
+          )}
+          {form.supplierId && supplierVariants.length === 0 && (
+            <div className="flex items-center gap-2 text-xs text-amber-600 bg-amber-50 rounded-md px-3 py-1.5">
+              <span>Supplier ini belum memiliki produk. Tambahkan produk terlebih dahulu.</span>
+            </div>
+          )}
           <Separator />
           <div className="space-y-2">
-            <div className="flex items-center justify-between"><Label className="text-xs">Item</Label><Button variant="outline" size="sm" onClick={addItem} className="text-xs h-7"><Plus className="w-3 h-3 mr-1" />Tambah</Button></div>
+            <div className="flex items-center justify-between"><Label className="text-xs">Item {form.supplierId ? '(filter: supplier dipilih)' : ''}</Label><Button variant="outline" size="sm" onClick={addItem} className="text-xs h-7"><Plus className="w-3 h-3 mr-1" />Tambah</Button></div>
             {form.items.map((item, idx) => {
               const selectedVariant = allVariants.find(v => v.id === item.variantId)
               const filteredVariants = getFilteredVariants(variantSearches[idx] || '')
@@ -260,10 +282,10 @@ function PurchasesModule() {
           </div>
           <div className="text-right text-lg font-bold">Total: {fmtRp(total)}</div>
         </div>
-        <DialogFooter><Button variant="outline" onClick={() => setDialogOpen(false)}>Batal</Button><Button className="bg-gradient-to-r from-rose-500 to-amber-500 text-white" onClick={handleSave}>Simpan</Button></DialogFooter>
+        <DialogFooter><Button variant="outline" onClick={() => setDialogOpen(false)} disabled={saving}>Batal</Button><Button className="bg-gradient-to-r from-rose-500 to-amber-500 text-white" onClick={handleSave} disabled={saving}>{saving ? 'Menyimpan...' : 'Simpan'}</Button></DialogFooter>
       </DialogContent></Dialog></div>
       <AlertDialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Hapus? Stok tidak akan terpengaruh jika status Draft.</AlertDialogTitle></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Batal</AlertDialogCancel><AlertDialogAction onClick={() => deleteConfirm && handleDelete(deleteConfirm)} className="bg-red-600">Hapus</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
-      <AlertDialog open={!!cancelConfirm} onOpenChange={() => setCancelConfirm(null)}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Batalkan Pembelian?</AlertDialogTitle><AlertDialogDescription>{cancelConfirm?.status === 'RECEIVED' ? 'Stok yang sudah masuk akan dikembalikan.' : cancelConfirm?.status === 'APPROVED' ? 'Pembelian yang sudah disetujui akan dibatalkan.' : 'Pembelian draft akan dibatalkan.'}</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Kembali</AlertDialogCancel><AlertDialogAction onClick={handleCancel} className="bg-red-600">Ya, Batalkan</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
+      <AlertDialog open={!!cancelConfirm} onOpenChange={() => setCancelConfirm(null)}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Batalkan Pembelian?</AlertDialogTitle><AlertDialogDescription>{cancelConfirm?.status === 'RECEIVED' ? 'Stok yang sudah masuk akan dikembalikan.' : cancelConfirm?.status === 'APPROVED' ? 'Pembelian yang sudah disetujui akan dibatalkan.' : 'Pembelian draft akan dibatalkan.'}</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Kembali</AlertDialogCancel><AlertDialogAction onClick={handleCancel} className="bg-red-600" disabled={statusSaving}>Ya, Batalkan</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
     </>
   )
 }

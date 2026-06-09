@@ -49,6 +49,7 @@ function ProductsModule() {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
   const [expandedProducts, setExpandedProducts] = useState<Set<string>>(new Set())
   const [variantNameRef, setVariantNameRef] = useState<HTMLInputElement | null>(null)
+  const [saving, setSaving] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -66,13 +67,14 @@ function ProductsModule() {
 
   const handleSave = async () => {
     if (!form.name || !form.sku || !form.categoryId) { toast.error('Nama, SKU, dan Kategori wajib'); return }
+    setSaving(true)
     try {
       const body = { name: form.name, sku: form.sku, categoryId: form.categoryId, supplierId: form.supplierId || undefined, description: form.description || undefined, buyPrice: parseFloat(form.buyPrice) || 0, sellPrice: parseFloat(form.sellPrice) || 0, minStock: parseInt(form.minStock) || 0, isActive: form.isActive }
       const url = editing ? `/api/products/${editing.id}` : '/api/products'
       const res = await fetch(url, { method: editing ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       if (!res.ok) { const d = await res.json(); toast.error(d.error || d.message || 'Gagal'); return }
       toast.success(editing ? 'Diperbarui' : 'Ditambahkan'); setDialogOpen(false); setEditing(null); setForm({ name: '', sku: '', categoryId: '', supplierId: '', description: '', buyPrice: '', sellPrice: '', minStock: '0', isActive: true }); load()
-    } catch { toast.error('Gagal') }
+    } catch { toast.error('Gagal') } finally { setSaving(false) }
   }
   const handleDelete = async (id: string) => {
     try { const res = await fetch(`/api/products/${id}`, { method: 'DELETE' }); if (!res.ok) { const d = await res.json(); toast.error(d.error || d.message); return } toast.success('Dihapus'); setDeleteConfirm(null); load() } catch { toast.error('Gagal') }
@@ -80,12 +82,13 @@ function ProductsModule() {
 
   const handleAddVariant = async () => {
     if (!selectedProduct || !variantForm.name || !variantForm.sku) { toast.error('Nama dan SKU varian wajib'); return }
+    setSaving(true)
     try {
       const body = { productId: selectedProduct.id, name: variantForm.name, sku: variantForm.sku, attributes: variantForm.attributes, buyPrice: parseFloat(variantForm.buyPrice) || selectedProduct.buyPrice, sellPrice: parseFloat(variantForm.sellPrice) || selectedProduct.sellPrice, stock: parseInt(variantForm.stock) || 0, minStock: parseInt(variantForm.minStock) || 0 }
       const res = await fetch('/api/product-variants', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       if (!res.ok) { const d = await res.json(); toast.error(d.error || d.message || 'Gagal'); return }
       toast.success('Varian ditambahkan'); setVariantDialogOpen(false); setEditingVariant(null); setVariantForm({ name: '', sku: '', attributes: '', buyPrice: '', sellPrice: '', stock: '0', minStock: '0', isActive: true }); load()
-    } catch { toast.error('Gagal') }
+    } catch { toast.error('Gagal') } finally { setSaving(false) }
   }
 
   const handleEditVariant = (variant: ProductVariant) => {
@@ -105,12 +108,13 @@ function ProductsModule() {
 
   const handleSaveVariant = async () => {
     if (!editingVariant || !variantForm.name || !variantForm.sku) { toast.error('Nama dan SKU varian wajib'); return }
+    setSaving(true)
     try {
       const body = { name: variantForm.name, sku: variantForm.sku, attributes: variantForm.attributes, buyPrice: parseFloat(variantForm.buyPrice) || 0, sellPrice: parseFloat(variantForm.sellPrice) || 0, minStock: parseInt(variantForm.minStock) || 0, isActive: variantForm.isActive }
       const res = await fetch(`/api/product-variants/${editingVariant.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       if (!res.ok) { const d = await res.json(); toast.error(d.error || d.message || 'Gagal'); return }
       toast.success('Varian diperbarui'); setVariantDialogOpen(false); setEditingVariant(null); setVariantForm({ name: '', sku: '', attributes: '', buyPrice: '', sellPrice: '', stock: '0', minStock: '0', isActive: true }); load()
-    } catch { toast.error('Gagal') }
+    } catch { toast.error('Gagal') } finally { setSaving(false) }
   }
 
   const handleDeleteVariant = async (id: string) => {
@@ -145,6 +149,7 @@ function ProductsModule() {
                       <span>Beli: {fmtRp(p.buyPrice)}</span><span>Jual: {fmtRp(p.sellPrice)}</span>
                       <span className={getTotalStock(p) <= p.minStock ? 'text-amber-600 font-medium' : ''}>Stok: {getTotalStock(p)}</span>
                       <span>{p.variants?.length || 0} varian</span>
+                      {p.supplier && <span className="text-purple-600">Supplier: {p.supplier.code} — {p.supplier.name}</span>}
                     </div>
                     {/* Mobile action row */}
                     <div className="flex gap-1 mt-2 sm:hidden">
@@ -186,12 +191,12 @@ function ProductsModule() {
         <div className="space-y-3">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3"><div className="space-y-2"><Label>Nama *</Label><Input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></div><div className="space-y-2"><Label>SKU *</Label><Input value={form.sku} onChange={e => setForm({ ...form, sku: e.target.value })} placeholder="Auto: CL000001 jika kosong" /></div></div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3"><div className="space-y-2"><Label>Kategori *</Label><Select value={form.categoryId} onValueChange={v => setForm({ ...form, categoryId: v })}><SelectTrigger><SelectValue placeholder="Pilih" /></SelectTrigger><SelectContent>{categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select></div>
-            <div className="space-y-2"><Label>Supplier</Label><Select value={form.supplierId || 'none'} onValueChange={v => setForm({ ...form, supplierId: v === 'none' ? '' : v })}><SelectTrigger><SelectValue placeholder="Pilih" /></SelectTrigger><SelectContent><SelectItem value="none">Tanpa</SelectItem>{suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent></Select></div></div>
+            <div className="space-y-2"><Label>Supplier</Label><Select value={form.supplierId || 'none'} onValueChange={v => setForm({ ...form, supplierId: v === 'none' ? '' : v })}><SelectTrigger><SelectValue placeholder="Pilih supplier" /></SelectTrigger><SelectContent><SelectItem value="none">Tanpa Supplier</SelectItem>{suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.code} — {s.name}</SelectItem>)}</SelectContent></Select></div></div>
           <div className="space-y-2"><Label>Deskripsi</Label><Textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} /></div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3"><div className="space-y-2"><Label>Harga Beli</Label><Input type="number" value={form.buyPrice} onChange={e => setForm({ ...form, buyPrice: e.target.value })} /></div><div className="space-y-2"><Label>Harga Jual</Label><Input type="number" value={form.sellPrice} onChange={e => setForm({ ...form, sellPrice: e.target.value })} /></div></div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3"><div className="space-y-2"><Label>Min. Stok</Label><Input type="number" value={form.minStock} onChange={e => setForm({ ...form, minStock: e.target.value })} /></div></div>
         </div>
-        <DialogFooter><Button variant="outline" onClick={() => setDialogOpen(false)}>Batal</Button><Button className="bg-gradient-to-r from-rose-500 to-amber-500 text-white" onClick={handleSave}>Simpan</Button></DialogFooter></DialogContent></Dialog>
+        <DialogFooter><Button variant="outline" onClick={() => setDialogOpen(false)} disabled={saving}>Batal</Button><Button className="bg-gradient-to-r from-rose-500 to-amber-500 text-white" onClick={handleSave} disabled={saving}>{saving ? 'Menyimpan...' : 'Simpan'}</Button></DialogFooter></DialogContent></Dialog>
 
       <Dialog open={variantDialogOpen} onOpenChange={(open) => { setVariantDialogOpen(open); if (!open) setEditingVariant(null) }}><DialogContent><DialogHeader><DialogTitle>{editingVariant ? 'Edit' : 'Tambah'} Varian — {selectedProduct?.name}</DialogTitle></DialogHeader>
         <div className="space-y-3" onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); if (editingVariant) { handleSaveVariant() } else { handleAddVariant() } } }}>
@@ -200,7 +205,7 @@ function ProductsModule() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3"><div className="space-y-2"><Label>Harga Beli</Label><Input type="number" value={variantForm.buyPrice} onChange={e => setVariantForm({ ...variantForm, buyPrice: e.target.value })} /></div><div className="space-y-2"><Label>Harga Jual</Label><Input type="number" value={variantForm.sellPrice} onChange={e => setVariantForm({ ...variantForm, sellPrice: e.target.value })} /></div></div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3"><div className="space-y-2"><Label>Stok</Label><Input type="number" value={variantForm.stock} onChange={e => setVariantForm({ ...variantForm, stock: e.target.value })} disabled={!!editingVariant} />{editingVariant && <p className="text-xs text-muted-foreground">Stok diubah melalui transaksi</p>}</div><div className="space-y-2"><Label>Min. Stok</Label><Input type="number" value={variantForm.minStock} onChange={e => setVariantForm({ ...variantForm, minStock: e.target.value })} /></div></div>
         </div>
-        <DialogFooter><Button variant="outline" onClick={() => { setVariantDialogOpen(false); setEditingVariant(null) }}>Batal</Button><Button className="bg-gradient-to-r from-rose-500 to-amber-500 text-white" onClick={editingVariant ? handleSaveVariant : handleAddVariant}>Simpan Varian</Button></DialogFooter></DialogContent></Dialog>
+        <DialogFooter><Button variant="outline" onClick={() => { setVariantDialogOpen(false); setEditingVariant(null) }} disabled={saving}>Batal</Button><Button className="bg-gradient-to-r from-rose-500 to-amber-500 text-white" onClick={editingVariant ? handleSaveVariant : handleAddVariant} disabled={saving}>{saving ? 'Menyimpan...' : 'Simpan Varian'}</Button></DialogFooter></DialogContent></Dialog>
 
       <AlertDialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Hapus?</AlertDialogTitle></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Batal</AlertDialogCancel><AlertDialogAction onClick={() => deleteConfirm && handleDelete(deleteConfirm)} className="bg-red-600">Hapus</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
     </div>

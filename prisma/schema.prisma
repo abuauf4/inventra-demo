@@ -54,16 +54,21 @@ model Supplier {
 }
 
 model Customer {
-  id        String    @id @default(cuid())
-  code      String    @unique
-  name      String
-  phone     String?
-  email     String?
-  address   String?
-  notes     String?
-  sales     Sale[]
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id            String    @id @default(cuid())
+  code          String    @unique
+  name          String
+  phone         String?
+  email         String?
+  address       String?
+  notes         String?
+  companyName   String?   // Nama perusahaan (bisa beda dari nama kontak)
+  npwp          String?   // Nomor Pokok Wajib Pajak
+  contactPerson String?   // Nama PIC / kontak person
+  paymentTerms  String?   // Syarat pembayaran (COD, NET30, dll)
+  customerType  String?   // Jenis: individual, company, government
+  sales         Sale[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 }
 
 // ===================== WAREHOUSE =====================

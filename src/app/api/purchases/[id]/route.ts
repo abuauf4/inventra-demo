@@ -122,74 +122,81 @@ export async function PUT(
       )
     }
 
-    // When status changes to "RECEIVED", update stock and create IN mutations
-    if (newStatus === 'RECEIVED') {
-      for (const item of purchase.items) {
-        const variant = await resolveVariant(item.variantId, item.productId)
-        if (!variant) {
-          return NextResponse.json(
-            { success: false, message: `Variant tidak ditemukan untuk item pembelian` },
-            { status: 404 }
-          )
-        }
-
-        // Update variant stock AND warehouse stock
-        await updateVariantStock(variant.id, item.qty)
-
-        // Create stock mutation
-        await db.stockMutation.create({
-          data: {
-            variantId: variant.id,
-            productId: variant.productId,
-            type: 'IN',
-            qty: item.qty,
-            note: `Pembelian ${purchase.transNo} - Status RECEIVED`,
-            referenceId: purchase.id,
-          },
-        })
+    // Resolve variants for stock operations BEFORE the transaction
+    const resolvedVariants = []
+    for (const item of purchase.items) {
+      const variant = await resolveVariant(item.variantId, item.productId)
+      if (!variant && (newStatus === 'RECEIVED' || (newStatus === 'CANCELLED' && currentStatus === 'RECEIVED'))) {
+        return NextResponse.json(
+          { success: false, message: `Variant tidak ditemukan untuk item pembelian` },
+          { status: 404 }
+        )
+      }
+      if (variant) {
+        resolvedVariants.push({ item, variant })
       }
     }
 
-    // When status changes to "CANCELLED" from "RECEIVED", reverse stock
-    if (newStatus === 'CANCELLED' && currentStatus === 'RECEIVED') {
-      for (const item of purchase.items) {
-        const variant = await resolveVariant(item.variantId, item.productId)
-        if (!variant) continue
+    // Wrap status update + stock changes + mutations in ONE transaction
+    const updatedPurchase = await db.$transaction(async (tx) => {
+      // When status changes to "RECEIVED", update stock and create IN mutations
+      if (newStatus === 'RECEIVED') {
+        for (const { item, variant } of resolvedVariants) {
+          // Update variant stock AND warehouse stock (inside same transaction)
+          await updateVariantStock(variant.id, item.qty, undefined, tx)
 
-        // Reverse variant stock AND warehouse stock
-        await updateVariantStock(variant.id, -item.qty)
-
-        // Create stock mutation for reversal
-        await db.stockMutation.create({
-          data: {
-            variantId: variant.id,
-            productId: variant.productId,
-            type: 'ADJUSTMENT',
-            qty: item.qty,
-            note: `Pembatalan pembelian ${purchase.transNo}`,
-            referenceId: purchase.id,
-          },
-        })
-      }
-    }
-
-    // Update the purchase status
-    const updatedPurchase = await db.purchase.update({
-      where: { id },
-      data: { status: newStatus },
-      include: {
-        supplier: true,
-        items: {
-          include: {
-            variant: {
-              select: { id: true, name: true, sku: true },
+          // Create stock mutation (inside same transaction)
+          await tx.stockMutation.create({
+            data: {
+              variantId: variant.id,
+              productId: variant.productId,
+              type: 'IN',
+              qty: item.qty,
+              note: `Pembelian ${purchase.transNo} - Status RECEIVED`,
+              referenceId: purchase.id,
             },
-            product: {
-              select: { id: true, name: true, sku: true },
+          })
+        }
+      }
+
+      // When status changes to "CANCELLED" from "RECEIVED", reverse stock
+      if (newStatus === 'CANCELLED' && currentStatus === 'RECEIVED') {
+        for (const { item, variant } of resolvedVariants) {
+          // Reverse variant stock AND warehouse stock (inside same transaction)
+          await updateVariantStock(variant.id, -item.qty, undefined, tx)
+
+          // Create stock mutation for reversal (inside same transaction)
+          await tx.stockMutation.create({
+            data: {
+              variantId: variant.id,
+              productId: variant.productId,
+              type: 'ADJUSTMENT',
+              qty: item.qty,
+              note: `Pembatalan pembelian ${purchase.transNo}`,
+              referenceId: purchase.id,
+            },
+          })
+        }
+      }
+
+      // Update the purchase status
+      return await tx.purchase.update({
+        where: { id },
+        data: { status: newStatus },
+        include: {
+          supplier: true,
+          items: {
+            include: {
+              variant: {
+                select: { id: true, name: true, sku: true },
+              },
+              product: {
+                select: { id: true, name: true, sku: true },
+              },
             },
           },
         },
-      },
+      })
     })
 
     // Activity log with enhanced data

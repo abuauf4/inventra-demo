@@ -9,7 +9,7 @@ import {
   ArrowLeftRight, FileBarChart, UserCog, Activity, X,
   Warehouse as WarehouseIcon, Inbox as InboxIcon, Home,
   LayoutDashboard, Briefcase, PenLine, Sun, Moon, LogOut,
-  ChevronDown,
+  ChevronDown, KeyRound,
   // Data Master icons
   // Distribusi future icons
   ClipboardList, RotateCcw,
@@ -26,7 +26,10 @@ import {
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { toast } from 'sonner'
 
 // ===================== ROLE ICONS =====================
@@ -140,6 +143,54 @@ export type { MenuItem, MenuSection }
 
 function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { activePage, setActivePage, currentUser, theme, toggleTheme, setCurrentUser } = useAppStore()
+
+  // Change password state
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false)
+  const [currentPw, setCurrentPw] = useState('')
+  const [newPw, setNewPw] = useState('')
+  const [confirmPw, setConfirmPw] = useState('')
+  const [savingPw, setSavingPw] = useState(false)
+
+  const handleChangePassword = async () => {
+    if (!currentPw || !newPw || !confirmPw) {
+      toast.error('Semua field wajib diisi')
+      return
+    }
+    if (newPw !== confirmPw) {
+      toast.error('Konfirmasi password tidak cocok')
+      return
+    }
+    if (newPw.length < 4) {
+      toast.error('Password baru minimal 4 karakter')
+      return
+    }
+    setSavingPw(true)
+    try {
+      const res = await fetch('/api/users/change-password', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: currentUser?.id,
+          currentPassword: currentPw,
+          newPassword: newPw,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.success) {
+        toast.error(data.message || 'Gagal mengubah password')
+        return
+      }
+      toast.success('Password berhasil diubah')
+      setChangePasswordOpen(false)
+      setCurrentPw('')
+      setNewPw('')
+      setConfirmPw('')
+    } catch {
+      toast.error('Gagal mengubah password')
+    } finally {
+      setSavingPw(false)
+    }
+  }
 
   // Track which sections are expanded — auto-expand section containing active page
   const [expanded, setExpanded] = useState<Record<string, boolean>>(() => {
@@ -354,6 +405,13 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
               <span>{theme === 'light' ? 'Dark Mode' : 'Light Mode'}</span>
             </button>
             <button
+              onClick={() => setChangePasswordOpen(true)}
+              className="flex items-center justify-center w-9 h-9 rounded-lg text-teal-400/40 hover:bg-amber-500/10 hover:text-amber-400 transition-all"
+              title="Ganti Password"
+            >
+              <KeyRound className="w-4 h-4" />
+            </button>
+            <button
               onClick={() => {
                 setCurrentUser(null)
                 toast.success('Berhasil logout')
@@ -366,6 +424,71 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
           </div>
         </div>
       </aside>
+
+      {/* Change Password Dialog */}
+      <Dialog open={changePasswordOpen} onOpenChange={(open) => {
+        if (!open) { setCurrentPw(''); setNewPw(''); setConfirmPw('') }
+        setChangePasswordOpen(open)
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Ganti Password</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-2">
+              <Label>Password saat ini</Label>
+              <Input
+                type="password"
+                value={currentPw}
+                onChange={(e) => setCurrentPw(e.target.value)}
+                placeholder="Masukkan password saat ini"
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleChangePassword() } }}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Password baru</Label>
+              <Input
+                type="password"
+                value={newPw}
+                onChange={(e) => setNewPw(e.target.value)}
+                placeholder="Masukkan password baru (min. 4 karakter)"
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleChangePassword() } }}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Konfirmasi password baru</Label>
+              <Input
+                type="password"
+                value={confirmPw}
+                onChange={(e) => setConfirmPw(e.target.value)}
+                placeholder="Ulangi password baru"
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleChangePassword() } }}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setChangePasswordOpen(false)
+                setCurrentPw('')
+                setNewPw('')
+                setConfirmPw('')
+              }}
+              disabled={savingPw}
+            >
+              Batal
+            </Button>
+            <Button
+              className="bg-gradient-to-r from-rose-500 to-amber-500 text-white"
+              onClick={handleChangePassword}
+              disabled={savingPw}
+            >
+              {savingPw ? 'Menyimpan...' : 'Simpan'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }

@@ -58,7 +58,7 @@ export async function PUT(
   try {
     const { id } = await params
     const body = await request.json()
-    const { name, phone, email, address, notes } = body
+    const { name, phone, email, address, notes, companyName, npwp, contactPerson, paymentTerms, customerType } = body
 
     // Check if customer exists
     const existingCustomer = await db.customer.findUnique({
@@ -79,6 +79,11 @@ export async function PUT(
     if (email !== undefined) updateData.email = email || null
     if (address !== undefined) updateData.address = address || null
     if (notes !== undefined) updateData.notes = notes || null
+    if (companyName !== undefined) updateData.companyName = companyName || null
+    if (npwp !== undefined) updateData.npwp = npwp || null
+    if (contactPerson !== undefined) updateData.contactPerson = contactPerson || null
+    if (paymentTerms !== undefined) updateData.paymentTerms = paymentTerms || null
+    if (customerType !== undefined) updateData.customerType = customerType || null
 
     const customer = await db.customer.update({
       where: { id },

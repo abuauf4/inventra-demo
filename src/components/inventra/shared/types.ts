@@ -4,10 +4,10 @@ export interface Category {
   id: string; name: string; description?: string; _count?: { products: number }; createdAt: string
 }
 export interface Supplier {
-  id: string; code: string; name: string; pic?: string; phone?: string; email?: string; address?: string; notes?: string; _count?: { purchases: number }; createdAt: string
+  id: string; code: string; name: string; pic?: string; phone?: string; email?: string; address?: string; notes?: string; _count?: { purchases: number; products: number }; createdAt: string
 }
 export interface Customer {
-  id: string; code: string; name: string; phone?: string; email?: string; address?: string; notes?: string; _count?: { sales: number }; createdAt: string
+  id: string; code: string; name: string; phone?: string; email?: string; address?: string; notes?: string; companyName?: string; npwp?: string; contactPerson?: string; paymentTerms?: string; customerType?: string; _count?: { sales: number }; createdAt: string
 }
 export interface ProductVariant {
   id: string; productId: string; name: string; sku: string; attributes: string; buyPrice: number; sellPrice: number; stock: number; minStock: number; isActive: boolean; barcode?: string; createdAt: string

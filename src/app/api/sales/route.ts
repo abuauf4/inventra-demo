@@ -155,58 +155,62 @@ export async function POST(request: NextRequest) {
       0
     )
 
-    // Create sale with items
-    const sale = await db.sale.create({
-      data: {
-        transNo,
-        customerId: customerId || null,
-        date: saleDate,
-        total,
-        status: saleStatus,
-        notes: notes || null,
-        items: {
-          create: resolvedItems.map((item) => ({
-            variantId: item.variantId,
-            productId: item.productId,
-            qty: item.qty,
-            sellPrice: item.sellPrice,
-          })),
+    // Create sale + stock updates + mutations in ONE transaction
+    const sale = await db.$transaction(async (tx) => {
+      const created = await tx.sale.create({
+        data: {
+          transNo,
+          customerId: customerId || null,
+          date: saleDate,
+          total,
+          status: saleStatus,
+          notes: notes || null,
+          items: {
+            create: resolvedItems.map((item) => ({
+              variantId: item.variantId,
+              productId: item.productId,
+              qty: item.qty,
+              sellPrice: item.sellPrice,
+            })),
+          },
         },
-      },
-      include: {
-        customer: true,
-        items: {
-          include: {
-            variant: {
-              select: { id: true, name: true, sku: true },
-            },
-            product: {
-              select: { id: true, name: true, sku: true },
+        include: {
+          customer: true,
+          items: {
+            include: {
+              variant: {
+                select: { id: true, name: true, sku: true },
+              },
+              product: {
+                select: { id: true, name: true, sku: true },
+              },
             },
           },
         },
-      },
-    })
+      })
 
-    // ONLY update stock and create OUT mutations if status is "COMPLETED"
-    if (saleStatus === 'COMPLETED') {
-      for (const item of resolvedItems) {
-        // Update variant stock AND warehouse stock (decrement)
-        await updateVariantStock(item.variantId, -item.qty)
+      // ONLY update stock and create OUT mutations if status is "COMPLETED"
+      if (saleStatus === 'COMPLETED') {
+        for (const item of resolvedItems) {
+          // Update variant stock AND warehouse stock (inside same transaction)
+          await updateVariantStock(item.variantId, -item.qty, undefined, tx)
 
-        // Create stock mutation
-        await db.stockMutation.create({
-          data: {
-            variantId: item.variantId,
-            productId: item.productId,
-            type: 'OUT',
-            qty: item.qty,
-            note: `Penjualan ${transNo}`,
-            referenceId: sale.id,
-          },
-        })
+          // Create stock mutation (inside same transaction)
+          await tx.stockMutation.create({
+            data: {
+              variantId: item.variantId,
+              productId: item.productId,
+              type: 'OUT',
+              qty: item.qty,
+              note: `Penjualan ${transNo}`,
+              referenceId: created.id,
+            },
+          })
+        }
       }
-    }
+
+      return created
+    })
 
     // Activity log
     await createActivityLog({

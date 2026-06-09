@@ -122,19 +122,19 @@ export async function PUT(
       )
     }
 
-    // When status changes to "COMPLETED", update stock and create OUT mutations
-    if (newStatus === 'COMPLETED') {
-      for (const item of sale.items) {
-        const variant = await resolveVariant(item.variantId, item.productId)
-        if (!variant) {
-          return NextResponse.json(
-            { success: false, message: `Variant tidak ditemukan untuk item penjualan` },
-            { status: 404 }
-          )
-        }
-
-        // Check stock availability
-        if (item.qty > variant.stock) {
+    // Resolve variants for stock operations BEFORE the transaction
+    const resolvedVariants = []
+    for (const item of sale.items) {
+      const variant = await resolveVariant(item.variantId, item.productId)
+      if (!variant && (newStatus === 'COMPLETED' || (newStatus === 'CANCELLED' && currentStatus === 'COMPLETED'))) {
+        return NextResponse.json(
+          { success: false, message: `Variant tidak ditemukan untuk item penjualan` },
+          { status: 404 }
+        )
+      }
+      if (variant) {
+        // Check stock availability before COMPLETED
+        if (newStatus === 'COMPLETED' && item.qty > variant.stock) {
           return NextResponse.json(
             {
               success: false,
@@ -143,64 +143,70 @@ export async function PUT(
             { status: 400 }
           )
         }
-
-        // Update variant stock AND warehouse stock (decrement)
-        await updateVariantStock(variant.id, -item.qty)
-
-        // Create stock mutation
-        await db.stockMutation.create({
-          data: {
-            variantId: variant.id,
-            productId: variant.productId,
-            type: 'OUT',
-            qty: item.qty,
-            note: `Penjualan ${sale.transNo} - Status COMPLETED`,
-            referenceId: sale.id,
-          },
-        })
+        resolvedVariants.push({ item, variant })
       }
     }
 
-    // When status changes to "CANCELLED" from "COMPLETED", reverse stock
-    if (newStatus === 'CANCELLED' && currentStatus === 'COMPLETED') {
-      for (const item of sale.items) {
-        const variant = await resolveVariant(item.variantId, item.productId)
-        if (!variant) continue
+    // Wrap status update + stock changes + mutations in ONE transaction
+    const updatedSale = await db.$transaction(async (tx) => {
+      // When status changes to "COMPLETED", update stock and create OUT mutations
+      if (newStatus === 'COMPLETED') {
+        for (const { item, variant } of resolvedVariants) {
+          // Update variant stock AND warehouse stock (inside same transaction)
+          await updateVariantStock(variant.id, -item.qty, undefined, tx)
 
-        // Add qty back to variant stock AND warehouse stock
-        await updateVariantStock(variant.id, item.qty)
-
-        // Create stock mutation for reversal
-        await db.stockMutation.create({
-          data: {
-            variantId: variant.id,
-            productId: variant.productId,
-            type: 'ADJUSTMENT',
-            qty: item.qty,
-            note: `Pembatalan penjualan ${sale.transNo}`,
-            referenceId: sale.id,
-          },
-        })
-      }
-    }
-
-    // Update the sale status
-    const updatedSale = await db.sale.update({
-      where: { id },
-      data: { status: newStatus },
-      include: {
-        customer: true,
-        items: {
-          include: {
-            variant: {
-              select: { id: true, name: true, sku: true },
+          // Create stock mutation (inside same transaction)
+          await tx.stockMutation.create({
+            data: {
+              variantId: variant.id,
+              productId: variant.productId,
+              type: 'OUT',
+              qty: item.qty,
+              note: `Penjualan ${sale.transNo} - Status COMPLETED`,
+              referenceId: sale.id,
             },
-            product: {
-              select: { id: true, name: true, sku: true },
+          })
+        }
+      }
+
+      // When status changes to "CANCELLED" from "COMPLETED", reverse stock
+      if (newStatus === 'CANCELLED' && currentStatus === 'COMPLETED') {
+        for (const { item, variant } of resolvedVariants) {
+          // Add qty back to variant stock AND warehouse stock (inside same transaction)
+          await updateVariantStock(variant.id, item.qty, undefined, tx)
+
+          // Create stock mutation for reversal (inside same transaction)
+          await tx.stockMutation.create({
+            data: {
+              variantId: variant.id,
+              productId: variant.productId,
+              type: 'ADJUSTMENT',
+              qty: item.qty,
+              note: `Pembatalan penjualan ${sale.transNo}`,
+              referenceId: sale.id,
+            },
+          })
+        }
+      }
+
+      // Update the sale status
+      return await tx.sale.update({
+        where: { id },
+        data: { status: newStatus },
+        include: {
+          customer: true,
+          items: {
+            include: {
+              variant: {
+                select: { id: true, name: true, sku: true },
+              },
+              product: {
+                select: { id: true, name: true, sku: true },
+              },
             },
           },
         },
-      },
+      })
     })
 
     // Activity log with enhanced data

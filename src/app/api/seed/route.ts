@@ -1,7 +1,20 @@
+// GET /api/seed - DISABLED in production for security
+// Seed data should only be created via CLI: `bun run db:seed`
+// This endpoint is intentionally blocked to prevent:
+// 1. Public access to database seeding
+// 2. Plaintext password creation (seed API doesn't hash passwords)
+// 3. Data corruption from accidental re-seeding
+export async function GET() {
+  return NextResponse.json(
+    { success: false, message: 'Seed endpoint dinonaktifkan. Gunakan CLI: bun run db:seed' },
+    { status: 403 }
+  )
+}
+
+/* ORIGINAL SEED CODE - kept for reference, use prisma/seed.ts instead
 import { db } from '@/lib/db'
 import { NextResponse } from 'next/server'
 
-// GET /api/seed - Seed premium fashion-themed data for Northline Apparel
 export async function GET() {
   try {
     // Short-circuit: if owner user + products already exist, skip everything
@@ -284,3 +297,4 @@ export async function GET() {
     )
   }
 }
+*/

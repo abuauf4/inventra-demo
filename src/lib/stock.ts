@@ -1,22 +1,28 @@
 import { db } from './db'
 
+type TransactionClient = Parameters<Parameters<typeof db.$transaction>[0]>[0]
+
 /**
  * Update variant stock AND sync warehouse stock atomically.
  * This is the ONLY way stock should be modified to ensure consistency.
- * Wrapped in $transaction to prevent data inconsistency on partial failures.
+ * 
+ * If `tx` is provided, the operations run inside the caller's transaction.
+ * If `tx` is NOT provided, the operations are wrapped in their own $transaction.
  * 
  * @param variantId - The product variant ID
  * @param qty - The quantity change (positive = add, negative = subtract)
  * @param warehouseId - Optional warehouse ID. If not provided, updates the first active warehouse.
+ * @param tx - Optional Prisma transaction client. Pass this when calling from within db.$transaction()
  */
 export async function updateVariantStock(
   variantId: string,
   qty: number,
-  warehouseId?: string
+  warehouseId?: string,
+  tx?: TransactionClient
 ) {
-  return await db.$transaction(async (tx) => {
+  const execute = async (client: TransactionClient) => {
     // 1. Update variant total stock
-    const updatedVariant = await tx.productVariant.update({
+    const updatedVariant = await client.productVariant.update({
       where: { id: variantId },
       data: {
         stock: qty > 0 ? { increment: qty } : { decrement: Math.abs(qty) },
@@ -27,7 +33,7 @@ export async function updateVariantStock(
     let whId = warehouseId
     if (!whId) {
       // Default to the first active warehouse
-      const defaultWarehouse = await tx.warehouse.findFirst({
+      const defaultWarehouse = await client.warehouse.findFirst({
         where: { isActive: true },
         orderBy: { createdAt: 'asc' },
       })
@@ -36,7 +42,7 @@ export async function updateVariantStock(
 
     // 3. Update warehouse stock
     if (whId) {
-      const existingStock = await tx.warehouseStock.findUnique({
+      const existingStock = await client.warehouseStock.findUnique({
         where: {
           warehouseId_productVariantId: {
             warehouseId: whId,
@@ -46,7 +52,7 @@ export async function updateVariantStock(
       })
 
       if (existingStock) {
-        await tx.warehouseStock.update({
+        await client.warehouseStock.update({
           where: { id: existingStock.id },
           data: {
             stock: qty > 0 ? { increment: qty } : { decrement: Math.abs(qty) },
@@ -64,7 +70,7 @@ export async function updateVariantStock(
             `Creating warehouse stock with 0 instead. This may indicate a data inconsistency.`
           )
         }
-        await tx.warehouseStock.create({
+        await client.warehouseStock.create({
           data: {
             warehouseId: whId,
             productVariantId: variantId,
@@ -75,7 +81,15 @@ export async function updateVariantStock(
     }
 
     return updatedVariant
-  })
+  }
+
+  // If tx provided, we're already in a transaction — use it directly
+  if (tx) {
+    return execute(tx)
+  }
+
+  // Otherwise, wrap in our own transaction
+  return db.$transaction(async (innerTx) => execute(innerTx))
 }
 
 /**

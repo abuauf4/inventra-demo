@@ -28,7 +28,7 @@ import {
 import { Switch } from '@/components/ui/switch'
 
 import {
-  Search, Plus, Edit, Trash2, RefreshCw,
+  Search, Plus, Edit, Trash2, RefreshCw, KeyRound,
 } from 'lucide-react'
 
 function UserManagementModule() {
@@ -40,7 +40,51 @@ function UserManagementModule() {
   const [editing, setEditing] = useState<User | null>(null)
   const [form, setForm] = useState({ name: '', username: '', email: '', password: '', role: 'staff', isActive: true })
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
   const nameRef = useRef<HTMLInputElement>(null)
+
+  // Reset password state
+  const [resetPwUser, setResetPwUser] = useState<User | null>(null)
+  const [resetPw, setResetPw] = useState('')
+  const [resetPwConfirm, setResetPwConfirm] = useState('')
+  const [resetPwSaving, setResetPwSaving] = useState(false)
+
+  const handleResetPassword = async () => {
+    if (!resetPw || !resetPwConfirm) {
+      toast.error('Semua field wajib diisi')
+      return
+    }
+    if (resetPw !== resetPwConfirm) {
+      toast.error('Konfirmasi password tidak cocok')
+      return
+    }
+    if (resetPw.length < 4) {
+      toast.error('Password baru minimal 4 karakter')
+      return
+    }
+    if (!resetPwUser) return
+    setResetPwSaving(true)
+    try {
+      const res = await fetch(`/api/users/${resetPwUser.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: resetPw }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.success) {
+        toast.error(data.message || 'Gagal mereset password')
+        return
+      }
+      toast.success(`Password ${resetPwUser.name} berhasil direset`)
+      setResetPwUser(null)
+      setResetPw('')
+      setResetPwConfirm('')
+    } catch {
+      toast.error('Gagal mereset password')
+    } finally {
+      setResetPwSaving(false)
+    }
+  }
 
   useEffect(() => {
     if (dialogOpen) {
@@ -57,6 +101,7 @@ function UserManagementModule() {
 
   const handleSave = async () => {
     if (!form.name || !form.username || (!editing && !form.password)) { toast.error('Field wajib harus diisi'); return }
+    setSaving(true)
     try {
       const body: any = { name: form.name, username: form.username, email: form.email || undefined, role: form.role, isActive: form.isActive }
       if (form.password) body.password = form.password
@@ -64,7 +109,7 @@ function UserManagementModule() {
       const res = await fetch(url, { method: editing ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       if (!res.ok) { const d = await res.json(); toast.error(d.error || d.message || 'Gagal'); return }
       toast.success(editing ? 'Diperbarui' : 'Ditambahkan'); setDialogOpen(false); setEditing(null); setForm({ name: '', username: '', email: '', password: '', role: 'staff', isActive: true }); load()
-    } catch { toast.error('Gagal') }
+    } catch { toast.error('Gagal') } finally { setSaving(false) }
   }
   const handleDelete = async (id: string) => {
     if (currentUser?.id === id) { toast.error('Tidak bisa hapus akun sendiri'); setDeleteConfirm(null); return }
@@ -81,13 +126,62 @@ function UserManagementModule() {
         <Card className="border-0 shadow-sm"><CardContent className="p-0"><Table><TableHeader><TableRow><TableHead>Nama</TableHead><TableHead>Username</TableHead><TableHead>Email</TableHead><TableHead>Role</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
           <TableBody>{!users.length ? <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Belum ada data</TableCell></TableRow> : users.map(u => (
             <TableRow key={u.id}><TableCell className="font-medium">{u.name}</TableCell><TableCell className="font-mono text-sm">{u.username}</TableCell><TableCell>{u.email || '-'}</TableCell><TableCell><Badge className={u.role === 'owner' ? 'bg-purple-100 text-purple-700' : u.role === 'admin' ? 'bg-blue-100 text-blue-700' : u.role === 'warehouse' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-700'}>{u.role.charAt(0).toUpperCase() + u.role.slice(1)}</Badge></TableCell><TableCell><Badge variant={u.isActive ? 'default' : 'secondary'} className={u.isActive ? 'bg-emerald-100 text-emerald-700' : ''}>{u.isActive ? 'Aktif' : 'Nonaktif'}</Badge></TableCell>
-              <TableCell className="text-right"><div className="flex justify-end gap-1"><Button variant="ghost" size="icon" onClick={() => { setEditing(u); setForm({ name: u.name, username: u.username, email: u.email || '', password: '', role: u.role, isActive: u.isActive }); setDialogOpen(true) }}><Edit className="w-4 h-4" /></Button>{currentUser?.id !== u.id && <Button variant="ghost" size="icon" onClick={() => setDeleteConfirm(u.id)} className="text-red-500"><Trash2 className="w-4 h-4" /></Button>}</div></TableCell></TableRow>
+              <TableCell className="text-right"><div className="flex justify-end gap-1"><Button variant="ghost" size="icon" onClick={() => { setEditing(u); setForm({ name: u.name, username: u.username, email: u.email || '', password: '', role: u.role, isActive: u.isActive }); setDialogOpen(true) }}><Edit className="w-4 h-4" /></Button><Button variant="ghost" size="icon" onClick={() => { setResetPwUser(u); setResetPw(''); setResetPwConfirm('') }} title="Reset Password" className="text-amber-500"><KeyRound className="w-4 h-4" /></Button>{currentUser?.id !== u.id && <Button variant="ghost" size="icon" onClick={() => setDeleteConfirm(u.id)} className="text-red-500"><Trash2 className="w-4 h-4" /></Button>}</div></TableCell></TableRow>
           ))}</TableBody></Table></CardContent></Card>
       )}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}><DialogContent><DialogHeader><DialogTitle>{editing ? 'Edit' : 'Tambah'} User</DialogTitle></DialogHeader>
         <div className="space-y-3"><div className="space-y-2"><Label>Nama *</Label><Input ref={nameRef} value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleSave() } }} /></div><div className="space-y-2"><Label>Username *</Label><Input value={form.username} onChange={e => setForm({ ...form, username: e.target.value })} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleSave() } }} /></div><div className="space-y-2"><Label>Email</Label><Input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="Opsional" onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleSave() } }} /></div><div className="space-y-2"><Label>{editing ? 'Password (kosongkan jika tidak diubah)' : 'Password *'}</Label><Input type="password" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleSave() } }} /></div><div className="space-y-2"><Label>Role</Label><Select value={form.role} onValueChange={v => setForm({ ...form, role: v })}><SelectTrigger /><SelectContent><SelectItem value="owner">Owner</SelectItem><SelectItem value="admin">Admin</SelectItem><SelectItem value="staff">Staff</SelectItem><SelectItem value="warehouse">Warehouse</SelectItem></SelectContent></Select></div><div className="flex items-center justify-between"><Label>Aktif</Label><Switch checked={form.isActive} onCheckedChange={v => setForm({ ...form, isActive: v })} /></div></div>
-        <DialogFooter><Button variant="outline" onClick={() => setDialogOpen(false)}>Batal</Button><Button className="bg-gradient-to-r from-rose-500 to-amber-500 text-white" onClick={handleSave}>Simpan</Button></DialogFooter></DialogContent></Dialog>
+        <DialogFooter><Button variant="outline" onClick={() => setDialogOpen(false)} disabled={saving}>Batal</Button><Button className="bg-gradient-to-r from-rose-500 to-amber-500 text-white" onClick={handleSave} disabled={saving}>{saving ? 'Menyimpan...' : 'Simpan'}</Button></DialogFooter></DialogContent></Dialog>
       <AlertDialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Hapus?</AlertDialogTitle></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Batal</AlertDialogCancel><AlertDialogAction onClick={() => deleteConfirm && handleDelete(deleteConfirm)} className="bg-red-600">Hapus</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
+
+      {/* Reset Password Dialog */}
+      <Dialog open={!!resetPwUser} onOpenChange={(open) => {
+        if (!open) { setResetPwUser(null); setResetPw(''); setResetPwConfirm('') }
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reset Password — {resetPwUser?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-2">
+              <Label>Password baru</Label>
+              <Input
+                type="password"
+                value={resetPw}
+                onChange={(e) => setResetPw(e.target.value)}
+                placeholder="Masukkan password baru (min. 4 karakter)"
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleResetPassword() } }}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Konfirmasi password baru</Label>
+              <Input
+                type="password"
+                value={resetPwConfirm}
+                onChange={(e) => setResetPwConfirm(e.target.value)}
+                placeholder="Ulangi password baru"
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleResetPassword() } }}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => { setResetPwUser(null); setResetPw(''); setResetPwConfirm('') }}
+              disabled={resetPwSaving}
+            >
+              Batal
+            </Button>
+            <Button
+              className="bg-gradient-to-r from-rose-500 to-amber-500 text-white"
+              onClick={handleResetPassword}
+              disabled={resetPwSaving}
+            >
+              {resetPwSaving ? 'Menyimpan...' : 'Simpan'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

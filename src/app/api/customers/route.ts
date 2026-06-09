@@ -12,10 +12,13 @@ export async function GET(request: NextRequest) {
     const where = search
       ? {
           OR: [
-            { code: { contains: search, mode: 'insensitive' } },
-            { name: { contains: search, mode: 'insensitive' } },
-            { phone: { contains: search, mode: 'insensitive' } },
-            { email: { contains: search, mode: 'insensitive' } },
+            { code: { contains: search } },
+            { name: { contains: search } },
+            { phone: { contains: search } },
+            { email: { contains: search } },
+            { companyName: { contains: search } },
+            { npwp: { contains: search } },
+            { contactPerson: { contains: search } },
           ],
         }
       : {}
@@ -46,7 +49,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { name, phone, email, address, notes } = body
+    const { name, phone, email, address, notes, companyName, npwp, contactPerson, paymentTerms, customerType } = body
 
     // Validation
     if (!name) {
@@ -66,6 +69,11 @@ export async function POST(request: NextRequest) {
         email: email || null,
         address: address || null,
         notes: notes || null,
+        companyName: companyName || null,
+        npwp: npwp || null,
+        contactPerson: contactPerson || null,
+        paymentTerms: paymentTerms || null,
+        customerType: customerType || null,
       },
       include: {
         _count: {
@@ -81,7 +89,7 @@ export async function POST(request: NextRequest) {
       entityId: customer.id,
       entityCode: code,
       details: `Membuat Customer ${code} ${name}`,
-      newData: JSON.stringify({ name, phone, email, address }),
+      newData: JSON.stringify({ name, phone, email, address, companyName, npwp, contactPerson, paymentTerms, customerType }),
     })
 
     return NextResponse.json({ success: true, data: customer }, { status: 201 })

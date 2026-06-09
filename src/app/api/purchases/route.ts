@@ -138,58 +138,62 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // Create purchase with items
-    const purchase = await db.purchase.create({
-      data: {
-        transNo,
-        supplierId,
-        date: purchaseDate,
-        total,
-        status: purchaseStatus,
-        notes: notes || null,
-        items: {
-          create: resolvedItems.map((item) => ({
-            variantId: item.variantId,
-            productId: item.productId,
-            qty: item.qty,
-            buyPrice: item.buyPrice,
-          })),
+    // Create purchase + stock updates + mutations in ONE transaction
+    const purchase = await db.$transaction(async (tx) => {
+      const created = await tx.purchase.create({
+        data: {
+          transNo,
+          supplierId,
+          date: purchaseDate,
+          total,
+          status: purchaseStatus,
+          notes: notes || null,
+          items: {
+            create: resolvedItems.map((item) => ({
+              variantId: item.variantId,
+              productId: item.productId,
+              qty: item.qty,
+              buyPrice: item.buyPrice,
+            })),
+          },
         },
-      },
-      include: {
-        supplier: true,
-        items: {
-          include: {
-            variant: {
-              select: { id: true, name: true, sku: true },
-            },
-            product: {
-              select: { id: true, name: true, sku: true },
+        include: {
+          supplier: true,
+          items: {
+            include: {
+              variant: {
+                select: { id: true, name: true, sku: true },
+              },
+              product: {
+                select: { id: true, name: true, sku: true },
+              },
             },
           },
         },
-      },
-    })
+      })
 
-    // ONLY update stock and create IN mutations if status is "RECEIVED"
-    if (purchaseStatus === 'RECEIVED') {
-      for (const item of resolvedItems) {
-        // Update variant stock AND warehouse stock
-        await updateVariantStock(item.variantId, item.qty)
+      // ONLY update stock and create IN mutations if status is "RECEIVED"
+      if (purchaseStatus === 'RECEIVED') {
+        for (const item of resolvedItems) {
+          // Update variant stock AND warehouse stock (inside same transaction)
+          await updateVariantStock(item.variantId, item.qty, undefined, tx)
 
-        // Create stock mutation
-        await db.stockMutation.create({
-          data: {
-            variantId: item.variantId,
-            productId: item.productId,
-            type: 'IN',
-            qty: item.qty,
-            note: `Pembelian ${transNo}`,
-            referenceId: purchase.id,
-          },
-        })
+          // Create stock mutation (inside same transaction)
+          await tx.stockMutation.create({
+            data: {
+              variantId: item.variantId,
+              productId: item.productId,
+              type: 'IN',
+              qty: item.qty,
+              note: `Pembelian ${transNo}`,
+              referenceId: created.id,
+            },
+          })
+        }
       }
-    }
+
+      return created
+    })
 
     // Activity log
     await createActivityLog({
