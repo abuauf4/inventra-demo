@@ -12,6 +12,7 @@ import LoginScreen from '@/components/inventra/shared/login-screen'
 import Sidebar from '@/components/inventra/shared/sidebar'
 import Header from '@/components/inventra/shared/header'
 import GlobalSearch from '@/components/inventra/shared/global-search'
+import MobileBottomNav from '@/components/inventra/shared/mobile-bottom-nav'
 
 // Business Modules
 import CategoriesModule from '@/components/inventra/categories/categories-module'
@@ -178,23 +179,22 @@ export default function InventraApp() {
 
   return (
     <div className="h-screen overflow-hidden flex bg-stone-50/80 dark:bg-[#0f1117] transition-colors duration-300">
-      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      {/* Sidebar — hidden on mobile, only shows on desktop */}
+      <div className="hidden lg:block">
+        <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      </div>
       <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
         <Header />
-        <main key={activePage} className="flex-1 min-h-0 overflow-hidden px-3 sm:px-6 lg:px-8 pt-3 sm:pt-5 lg:pt-6 pb-2 sm:pb-3 lg:pb-4 transition-colors duration-500">{renderPage()}</main>
+        <main key={activePage} className="flex-1 min-h-0 overflow-hidden px-3 sm:px-6 lg:px-8 pt-3 sm:pt-5 lg:pt-6 pb-16 lg:pb-4 transition-colors duration-500">{renderPage()}</main>
       </div>
       <GlobalSearch />
-      {/* Mobile Floating Action Buttons */}
-      <div className="fixed bottom-6 right-6 flex flex-col gap-3 lg:hidden z-40">
-        <button
-          onClick={() => setSearchOpen(true)}
-          className="w-11 h-11 rounded-full bg-white/80 dark:bg-stone-800/80 backdrop-blur-sm text-stone-600 dark:text-stone-300 shadow-lg border border-stone-200/40 dark:border-stone-700/40 hover:shadow-xl hover:scale-105 transition-all duration-300 flex items-center justify-center"
-        >
-          <Search className="w-5 h-5" />
-        </button>
+      {/* Mobile Bottom Navigation */}
+      <MobileBottomNav />
+      {/* Mobile Floating Action — Jual Cepat only, positioned above bottom nav */}
+      <div className="fixed bottom-[72px] right-4 lg:hidden z-40">
         <button
           onClick={() => { setActivePage('sales'); setOpenSalesForm(true) }}
-          className="w-11 h-11 rounded-full bg-gradient-to-br from-amber-400 to-amber-500 text-white shadow-lg shadow-amber-500/30 hover:shadow-xl hover:scale-105 hover:from-amber-500 hover:to-amber-600 transition-all duration-300 flex items-center justify-center"
+          className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-400 to-amber-500 text-white shadow-lg shadow-amber-500/30 hover:shadow-xl hover:scale-105 active:scale-95 transition-all duration-300 flex items-center justify-center"
         >
           <ShoppingBag className="w-5 h-5" />
         </button>
