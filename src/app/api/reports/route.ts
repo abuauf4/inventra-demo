@@ -2,6 +2,29 @@ import { db } from '@/lib/db'
 import { Prisma } from '@prisma/client'
 import { NextRequest, NextResponse } from 'next/server'
 
+// Helper: get current month start/end as ISO date strings
+function getCurrentMonthRange(): { dateFrom: string; dateTo: string } {
+  const now = new Date()
+  const y = now.getFullYear()
+  const m = now.getMonth()
+  const firstDay = new Date(y, m, 1)
+  const lastDay = new Date(y, m + 1, 0)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return {
+    dateFrom: `${firstDay.getFullYear()}-${pad(firstDay.getMonth() + 1)}-${pad(firstDay.getDate())}`,
+    dateTo: `${lastDay.getFullYear()}-${pad(lastDay.getMonth() + 1)}-${pad(lastDay.getDate())}`,
+  }
+}
+
+// Helper: resolve dateFrom/dateTo, defaulting to current month if not provided
+function resolveDateRange(dateFrom: string | null, dateTo: string | null): { dateFrom: string; dateTo: string } {
+  const current = getCurrentMonthRange()
+  return {
+    dateFrom: dateFrom || current.dateFrom,
+    dateTo: dateTo || current.dateTo,
+  }
+}
+
 // Helper: get period key from date based on period type
 function getPeriodKey(date: Date, period: string): string {
   const y = date.getFullYear()
@@ -98,8 +121,9 @@ export async function GET(request: NextRequest) {
     switch (type) {
       case 'sales': {
         const period = searchParams.get('period') || 'daily'
-        const dateFrom = searchParams.get('dateFrom') || ''
-        const dateTo = searchParams.get('dateTo') || ''
+        const resolved = resolveDateRange(searchParams.get('dateFrom'), searchParams.get('dateTo'))
+        const dateFrom = resolved.dateFrom
+        const dateTo = resolved.dateTo
         const customerId = searchParams.get('customerId') || ''
 
         const where: Prisma.SaleWhereInput = { ...buildSaleDateFilter(dateFrom, dateTo) }
@@ -195,6 +219,8 @@ export async function GET(request: NextRequest) {
           success: true,
           data: {
             period,
+            dateFrom,
+            dateTo,
             grouped,
             grandTotal,
             revenue,
@@ -211,8 +237,9 @@ export async function GET(request: NextRequest) {
 
       case 'purchases': {
         const period = searchParams.get('period') || 'daily'
-        const dateFrom = searchParams.get('dateFrom') || ''
-        const dateTo = searchParams.get('dateTo') || ''
+        const resolved = resolveDateRange(searchParams.get('dateFrom'), searchParams.get('dateTo'))
+        const dateFrom = resolved.dateFrom
+        const dateTo = resolved.dateTo
         const supplierId = searchParams.get('supplierId') || ''
 
         const where: Prisma.PurchaseWhereInput = { ...buildPurchaseDateFilter(dateFrom, dateTo) }
@@ -299,6 +326,8 @@ export async function GET(request: NextRequest) {
           success: true,
           data: {
             period,
+            dateFrom,
+            dateTo,
             grouped,
             grandTotal,
             cost,
@@ -377,9 +406,83 @@ export async function GET(request: NextRequest) {
         })
       }
 
+      case 'stock-mutations': {
+        const resolved = resolveDateRange(searchParams.get('dateFrom'), searchParams.get('dateTo'))
+        const dateFrom = resolved.dateFrom
+        const dateTo = resolved.dateTo
+
+        const where: Prisma.StockMutationWhereInput = {}
+        where.createdAt = {}
+        if (dateFrom) where.createdAt.gte = new Date(dateFrom)
+        if (dateTo) {
+          // Include the entire end date by setting time to end of day
+          const endDate = new Date(dateTo)
+          endDate.setHours(23, 59, 59, 999)
+          where.createdAt.lte = endDate
+        }
+
+        const mutations = await db.stockMutation.findMany({
+          where,
+          take: 500,
+          include: {
+            product: {
+              select: { id: true, name: true, sku: true },
+            },
+            variant: {
+              select: { id: true, name: true, sku: true, product: { select: { id: true, name: true } } },
+            },
+            warehouse: {
+              select: { id: true, name: true, code: true },
+            },
+          },
+          orderBy: { createdAt: 'desc' },
+        })
+
+        // Group by type for summary
+        const byType: Record<string, { count: number; totalQty: number; mutations: any[] }> = {
+          IN: { count: 0, totalQty: 0, mutations: [] },
+          OUT: { count: 0, totalQty: 0, mutations: [] },
+          ADJUSTMENT: { count: 0, totalQty: 0, mutations: [] },
+          TRANSFER: { count: 0, totalQty: 0, mutations: [] },
+        }
+
+        for (const m of mutations) {
+          const t = m.type as string
+          if (!byType[t]) {
+            byType[t] = { count: 0, totalQty: 0, mutations: [] }
+          }
+          byType[t].count += 1
+          byType[t].totalQty += Math.abs(m.qty)
+          byType[t].mutations.push(m)
+        }
+
+        const mappedMutations = mutations.map((m) => ({
+          id: m.id,
+          type: m.type,
+          qty: m.qty,
+          note: m.note,
+          createdAt: m.createdAt,
+          productName: m.variant?.product?.name || m.product?.name || '-',
+          variantName: m.variant?.name || '-',
+          sku: m.variant?.sku || m.product?.sku || '-',
+          warehouseName: m.warehouse?.name || '-',
+        }))
+
+        return NextResponse.json({
+          success: true,
+          data: {
+            dateFrom,
+            dateTo,
+            byType,
+            mutations: mappedMutations,
+            totalMutations: mutations.length,
+          },
+        })
+      }
+
       default:
         return NextResponse.json(
-          { success: false, message: 'Tipe laporan tidak valid. Gunakan: sales, purchases, atau stock' },
+          { success: false, message: 'Tipe laporan tidak valid. Gunakan: sales, purchases, stock, atau stock-mutations' },
           { status: 400 }
         )
     }

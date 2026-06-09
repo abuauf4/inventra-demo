@@ -34,6 +34,19 @@ import {
 
 const today = () => new Date().toISOString().split('T')[0]
 
+/** Parse variant attributes JSON into a readable string */
+const parseVariantAttrs = (attrs: string): string => {
+  try {
+    const parsed = JSON.parse(attrs)
+    if (parsed && typeof parsed === 'object') {
+      return Object.entries(parsed).map(([k, v]) => `${k}: ${v}`).join(', ')
+    }
+    return ''
+  } catch {
+    return ''
+  }
+}
+
 function PurchasesModule() {
   const [purchases, setPurchases] = useState<Purchase[]>([])
   const [suppliers, setSuppliers] = useState<Supplier[]>([])
@@ -186,19 +199,25 @@ function PurchasesModule() {
         </div>}
       </DialogContent></Dialog>
 
-      {/* New Purchase Dialog — Fast UX */}
+      {/* New Purchase Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}><DialogContent className="max-w-2xl"><DialogHeader><DialogTitle>Tambah Pembelian</DialogTitle></DialogHeader>
         <div className="space-y-3">
+          {/* Row 1: Supplier code/search + Tanggal */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {/* Supplier — typeahead */}
             <div className="space-y-1.5">
-              <Label className="text-xs">Supplier *</Label>
+              <Label className="text-xs">Kode Supplier / Cari *</Label>
               <div className="relative">
                 <Input
                   ref={supplierInputRef}
-                  placeholder="Ketik nama / kode... (Tab → lanjut)"
-                  value={selectedSupplier ? `${selectedSupplier.code} ${selectedSupplier.name}` : supplierSearch}
+                  placeholder="Ketik kode / nama supplier..."
+                  value={form.supplierId ? (selectedSupplier?.code || '') : supplierSearch}
                   onChange={e => { setSupplierSearch(e.target.value); if (form.supplierId) setForm({ ...form, supplierId: '' }) }}
+                  onFocus={() => {
+                    if (form.supplierId && selectedSupplier) {
+                      setForm({ ...form, supplierId: '' })
+                      setSupplierSearch(selectedSupplier.code)
+                    }
+                  }}
                   onKeyDown={e => {
                     if (e.key === 'Tab' && !form.supplierId && filteredSuppliers.length === 1) {
                       setForm({ ...form, supplierId: filteredSuppliers[0].id }); setSupplierSearch(''); e.preventDefault()
@@ -220,6 +239,17 @@ function PurchasesModule() {
             </div>
             <div className="space-y-1.5"><Label className="text-xs">Tanggal</Label><Input type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} /></div>
           </div>
+          {/* Row 2: Supplier Name readonly + Phone/Address readonly */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Nama Supplier</Label>
+              <Input readOnly className="bg-muted text-muted-foreground h-9" value={selectedSupplier?.name || ''} placeholder="—" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Telepon / Alamat</Label>
+              <Input readOnly className="bg-muted text-muted-foreground h-9" value={selectedSupplier ? [selectedSupplier.phone, selectedSupplier.address].filter(Boolean).join(' — ') || '' : ''} placeholder="—" />
+            </div>
+          </div>
           {form.supplierId && supplierVariants.length > 0 && (
             <div className="flex items-center gap-2 text-xs text-purple-600 bg-purple-50 rounded-md px-3 py-1.5">
               <span>Menampilkan {supplierVariants.length} varian dari {selectedSupplier?.name}</span>
@@ -237,45 +267,77 @@ function PurchasesModule() {
               const selectedVariant = allVariants.find(v => v.id === item.variantId)
               const filteredVariants = getFilteredVariants(variantSearches[idx] || '')
               return (
-                <div key={idx} className="flex flex-col sm:grid sm:grid-cols-12 gap-2 items-start sm:items-center">
-                  <div className="w-full sm:col-span-5 relative">
-                    <Input
-                      placeholder="SKU / nama varian..."
-                      value={selectedVariant ? `${selectedVariant.sku} ${selectedVariant.productName} — ${selectedVariant.name}` : (variantSearches[idx] || '')}
-                      onChange={e => {
-                        const newSearches = [...variantSearches]; newSearches[idx] = e.target.value; setVariantSearches(newSearches)
-                        if (item.variantId) { const newItems = [...form.items]; newItems[idx] = { ...newItems[idx], variantId: '', buyPrice: '0' }; setForm({ ...form, items: newItems }) }
-                      }}
-                      onKeyDown={e => {
-                        if (e.key === 'Tab' && !item.variantId && filteredVariants.length === 1) {
-                          updateItem(idx, 'variantId', filteredVariants[0].id)
-                          const newSearches = [...variantSearches]; newSearches[idx] = ''; setVariantSearches(newSearches)
-                          e.preventDefault()
-                        }
-                        if (e.key === 'Enter' && item.variantId) { handleSave(); e.preventDefault() }
-                      }}
-                      className="h-8 text-sm"
-                    />
-                    {(variantSearches[idx] || '') && !item.variantId && filteredVariants.length > 0 && (
-                      <div className="absolute z-50 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-48 overflow-auto">
-                        {filteredVariants.map(v => (
-                          <button key={v.id} className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 text-left text-sm"
-                            onMouseDown={() => {
-                              updateItem(idx, 'variantId', v.id)
-                              const newSearches = [...variantSearches]; newSearches[idx] = ''; setVariantSearches(newSearches)
-                            }}>
-                            <Badge variant="outline" className="font-mono text-[10px]">{v.sku}</Badge>
-                            <span className="truncate">{v.productName} — {v.name}</span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
+                <div key={idx} className="border rounded-lg p-3 space-y-2">
+                  {/* Row 1: SKU search + Product Name readonly */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div className="relative">
+                      <Label className="text-xs mb-1 block">SKU / Cari Varian</Label>
+                      <Input
+                        placeholder="Ketik SKU / nama varian..."
+                        value={item.variantId ? (selectedVariant?.sku || '') : (variantSearches[idx] || '')}
+                        onChange={e => {
+                          const newSearches = [...variantSearches]; newSearches[idx] = e.target.value; setVariantSearches(newSearches)
+                          if (item.variantId) { const newItems = [...form.items]; newItems[idx] = { ...newItems[idx], variantId: '', buyPrice: '0' }; setForm({ ...form, items: newItems }) }
+                        }}
+                        onFocus={() => {
+                          if (item.variantId && selectedVariant) {
+                            const newItems = [...form.items]
+                            newItems[idx] = { ...newItems[idx], variantId: '', buyPrice: '0' }
+                            setForm({ ...form, items: newItems })
+                            const newSearches = [...variantSearches]
+                            newSearches[idx] = selectedVariant.sku
+                            setVariantSearches(newSearches)
+                          }
+                        }}
+                        onKeyDown={e => {
+                          if (e.key === 'Tab' && !item.variantId && filteredVariants.length === 1) {
+                            updateItem(idx, 'variantId', filteredVariants[0].id)
+                            const newSearches = [...variantSearches]; newSearches[idx] = ''; setVariantSearches(newSearches)
+                            e.preventDefault()
+                          }
+                          if (e.key === 'Enter' && item.variantId) { handleSave(); e.preventDefault() }
+                        }}
+                        className="h-8 text-sm"
+                      />
+                      {(variantSearches[idx] || '') && !item.variantId && filteredVariants.length > 0 && (
+                        <div className="absolute z-50 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-48 overflow-auto">
+                          {filteredVariants.map(v => (
+                            <button key={v.id} className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 text-left text-sm"
+                              onMouseDown={() => {
+                                updateItem(idx, 'variantId', v.id)
+                                const newSearches = [...variantSearches]; newSearches[idx] = ''; setVariantSearches(newSearches)
+                              }}>
+                              <Badge variant="outline" className="font-mono text-[10px]">{v.sku}</Badge>
+                              <span className="truncate">{v.productName} — {v.name}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <Label className="text-xs mb-1 block text-muted-foreground">Nama Produk</Label>
+                      <Input readOnly className="bg-muted text-muted-foreground h-8 text-sm" value={selectedVariant?.productName || ''} placeholder="—" />
+                    </div>
                   </div>
-                  <div className="w-full sm:w-auto sm:col-span-2"><Input type="number" placeholder="Qty" value={item.qty} onChange={e => updateItem(idx, 'qty', e.target.value)} className="h-8 text-sm w-full"
-                    onKeyDown={e => { if (e.key === 'Enter' && item.variantId) { handleSave(); e.preventDefault() } }} /></div>
-                  <div className="w-full sm:w-auto sm:col-span-3"><Input type="number" placeholder="Harga" value={item.buyPrice} onChange={e => updateItem(idx, 'buyPrice', e.target.value)} className="h-8 text-sm w-full"
-                    onKeyDown={e => { if (e.key === 'Enter' && item.variantId) { handleSave(); e.preventDefault() } }} /></div>
-                  <div className="sm:col-span-2 flex justify-end">{form.items.length > 1 && <Button variant="ghost" size="icon" onClick={() => removeItem(idx)} className="text-red-500 h-7 w-7"><Trash2 className="w-3.5 h-3.5" /></Button>}</div>
+                  {/* Row 2: Variant/Size readonly + Price readonly + Qty editable + Delete */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    <div>
+                      <Label className="text-xs mb-1 block text-muted-foreground">Varian / Ukuran</Label>
+                      <Input readOnly className="bg-muted text-muted-foreground h-8 text-sm" value={selectedVariant ? `${selectedVariant.name}${parseVariantAttrs(selectedVariant.attributes) ? ' — ' + parseVariantAttrs(selectedVariant.attributes) : ''}` : ''} placeholder="—" />
+                    </div>
+                    <div>
+                      <Label className="text-xs mb-1 block text-muted-foreground">Harga Beli</Label>
+                      <Input readOnly className="bg-muted text-muted-foreground h-8 text-sm" value={selectedVariant ? fmtRp(selectedVariant.buyPrice) : ''} placeholder="—" />
+                    </div>
+                    <div>
+                      <Label className="text-xs mb-1 block">Qty</Label>
+                      <Input type="number" placeholder="Qty" value={item.qty} onChange={e => updateItem(idx, 'qty', e.target.value)} className="h-8 text-sm"
+                        onKeyDown={e => { if (e.key === 'Enter' && item.variantId) { handleSave(); e.preventDefault() } }} />
+                    </div>
+                    <div className="flex items-end">
+                      {form.items.length > 1 && <Button variant="ghost" size="icon" onClick={() => removeItem(idx)} className="text-red-500 h-7 w-7"><Trash2 className="w-3.5 h-3.5" /></Button>}
+                    </div>
+                  </div>
                 </div>
               )
             })}

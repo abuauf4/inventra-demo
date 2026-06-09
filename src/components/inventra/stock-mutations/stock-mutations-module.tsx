@@ -44,6 +44,19 @@ interface FlatVariant {
   attributes: string
 }
 
+/** Parse variant attributes JSON into a readable string */
+const parseVariantAttrs = (attrs: string): string => {
+  try {
+    const parsed = JSON.parse(attrs)
+    if (parsed && typeof parsed === 'object') {
+      return Object.entries(parsed).map(([k, v]) => `${k}: ${v}`).join(', ')
+    }
+    return ''
+  } catch {
+    return ''
+  }
+}
+
 function StockMutationsModule() {
   const [mutations, setMutations] = useState<StockMutation[]>([])
   const [filterType, setFilterType] = useState('all')
@@ -349,19 +362,22 @@ function StockMutationsModule() {
             </TabsList>
 
             {/* ===== Variant typeahead (shared across tabs) ===== */}
-            <div className="mt-4 space-y-1.5">
+            <div className="mt-4 space-y-2">
               <Label className="text-xs font-medium">Varian Produk *</Label>
               <div className="relative">
                 <Input
                   ref={variantInputRef}
                   placeholder="Ketik SKU / nama varian... (Tab → pilih)"
-                  value={selectedVariant
-                    ? `${selectedVariant.sku} ${selectedVariant.productName} — ${selectedVariant.name}`
-                    : variantSearch
-                  }
+                  value={selectedVariantId ? (selectedVariant?.sku || '') : variantSearch}
                   onChange={e => {
                     setVariantSearch(e.target.value)
                     if (selectedVariantId) setSelectedVariantId('')
+                  }}
+                  onFocus={() => {
+                    if (selectedVariantId && selectedVariant) {
+                      setSelectedVariantId('')
+                      setVariantSearch(selectedVariant.sku)
+                    }
                   }}
                   onKeyDown={e => {
                     if (e.key === 'Tab' && !selectedVariantId && filteredVariants.length === 1) {
@@ -399,12 +415,21 @@ function StockMutationsModule() {
                   </div>
                 )}
               </div>
-              {/* Selected variant info */}
+              {/* Readonly detail fields for selected variant */}
               {selectedVariant && (
-                <div className="flex items-center gap-2 text-xs text-muted-foreground bg-amber-50 rounded-md px-3 py-1.5">
-                  <Badge variant="outline" className="font-mono text-[10px]">{selectedVariant.sku}</Badge>
-                  <span>{selectedVariant.productName} — {selectedVariant.name}</span>
-                  <span className="ml-auto font-medium">Total stok: {selectedVariant.stock}</span>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Nama Produk</Label>
+                    <Input readOnly className="bg-muted text-muted-foreground h-8 text-sm" value={selectedVariant.productName} />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Varian / Ukuran</Label>
+                    <Input readOnly className="bg-muted text-muted-foreground h-8 text-sm" value={`${selectedVariant.name}${parseVariantAttrs(selectedVariant.attributes) ? ' — ' + parseVariantAttrs(selectedVariant.attributes) : ''}`} />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Total Stok</Label>
+                    <Input readOnly className="bg-muted text-muted-foreground h-8 text-sm" value={String(selectedVariant.stock)} />
+                  </div>
                 </div>
               )}
             </div>
