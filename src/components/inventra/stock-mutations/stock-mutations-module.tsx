@@ -397,11 +397,11 @@ function StockMutationsModule() {
                   }}
                 />
                 {variantSearch && !selectedVariantId && filteredVariants.length > 0 && (
-                  <div className="absolute z-50 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-48 overflow-auto">
+                  <div className="absolute z-50 w-full mt-1 bg-popover border rounded-lg shadow-lg max-h-48 overflow-auto">
                     {filteredVariants.map(v => (
                       <button
                         key={v.id}
-                        className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 text-left text-sm"
+                        className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-accent text-left text-sm"
                         onMouseDown={() => {
                           setSelectedVariantId(v.id)
                           setVariantSearch('')

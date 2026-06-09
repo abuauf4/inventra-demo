@@ -4,6 +4,13 @@ import bcrypt from 'bcryptjs'
 
 const VALID_ROLES = ['owner', 'admin', 'staff', 'warehouse']
 
+// Helper: get current user from request headers
+function getCurrentUser(request: NextRequest) {
+  const userId = request.headers.get('x-current-user-id')
+  const userRole = request.headers.get('x-current-user-role')
+  return { userId, userRole }
+}
+
 // PUT /api/users/[id] - Update user by id
 export async function PUT(
   request: NextRequest,
@@ -11,6 +18,7 @@ export async function PUT(
 ) {
   try {
     const { id } = await params
+    const { userId: currentUserId, userRole: currentUserRole } = getCurrentUser(request)
     const body = await request.json()
     const { name, username, email, password, role, isActive } = body
 
@@ -24,6 +32,44 @@ export async function PUT(
         { success: false, message: 'Pengguna tidak ditemukan' },
         { status: 404 }
       )
+    }
+
+    // === ROLE PROTECTION ===
+    if (role !== undefined && role !== existingUser.role) {
+      // User cannot change their own role
+      if (id === currentUserId) {
+        return NextResponse.json(
+          { success: false, message: 'Anda tidak dapat mengubah role akun sendiri' },
+          { status: 403 }
+        )
+      }
+
+      // Non-owner cannot change any user role to owner
+      if (role === 'owner' && currentUserRole !== 'owner') {
+        return NextResponse.json(
+          { success: false, message: 'Hanya owner yang dapat menetapkan role owner' },
+          { status: 403 }
+        )
+      }
+
+      // Non-owner cannot change roles at all
+      if (currentUserRole !== 'owner') {
+        return NextResponse.json(
+          { success: false, message: 'Hanya owner yang dapat mengubah role pengguna' },
+          { status: 403 }
+        )
+      }
+
+      // Owner role must be protected: cannot remove the last owner
+      if (existingUser.role === 'owner' && role !== 'owner') {
+        const ownerCount = await db.user.count({ where: { role: 'owner', isActive: true } })
+        if (ownerCount <= 1) {
+          return NextResponse.json(
+            { success: false, message: 'Tidak dapat mengubah role owner terakhir. Harus ada minimal satu owner.' },
+            { status: 403 }
+          )
+        }
+      }
     }
 
     // If username is changed, check uniqueness
@@ -96,11 +142,12 @@ export async function PUT(
 
 // DELETE /api/users/[id] - Delete user by id
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params
+    const { userId: currentUserId, userRole: currentUserRole } = getCurrentUser(request)
 
     // Check if user exists
     const existingUser = await db.user.findUnique({
@@ -112,6 +159,33 @@ export async function DELETE(
         { success: false, message: 'Pengguna tidak ditemukan' },
         { status: 404 }
       )
+    }
+
+    // Cannot delete yourself
+    if (id === currentUserId) {
+      return NextResponse.json(
+        { success: false, message: 'Anda tidak dapat menghapus akun sendiri' },
+        { status: 403 }
+      )
+    }
+
+    // Non-owner cannot delete users
+    if (currentUserRole !== 'owner') {
+      return NextResponse.json(
+        { success: false, message: 'Hanya owner yang dapat menghapus pengguna' },
+        { status: 403 }
+      )
+    }
+
+    // Cannot delete the last owner
+    if (existingUser.role === 'owner') {
+      const ownerCount = await db.user.count({ where: { role: 'owner', isActive: true } })
+      if (ownerCount <= 1) {
+        return NextResponse.json(
+          { success: false, message: 'Tidak dapat menghapus owner terakhir. Harus ada minimal satu owner.' },
+          { status: 403 }
+        )
+      }
     }
 
     await db.user.delete({

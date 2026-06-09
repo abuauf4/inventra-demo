@@ -116,7 +116,7 @@ export const useAppStore = create<AppState>()(
       setQuickActionOpen: (open) => set({ quickActionOpen: open }),
       activeWarehouse: 'Gudang Utama',
       setActiveWarehouse: (warehouse) => set({ activeWarehouse: warehouse }),
-      theme: 'dark',
+      theme: 'light',
       setTheme: (theme) => {
         if (typeof document !== 'undefined') {
           document.documentElement.classList.toggle('dark', theme === 'dark')

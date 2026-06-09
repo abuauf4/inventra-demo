@@ -41,9 +41,9 @@ function LoginScreen() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-stone-50">
+    <div className="min-h-screen flex items-center justify-center bg-stone-50 dark:bg-[#0f1117]">
       {/* Subtle dot pattern */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle,oklch(0.80_0.005_260)_1px,transparent_1px)] bg-[size:24px_24px] opacity-40" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle,oklch(0.80_0.005_260)_1px,transparent_1px)] bg-[size:24px_24px] opacity-40 dark:opacity-10" />
 
       <div className="relative z-10 w-full max-w-sm mx-4">
         {/* Logo + Brand */}
@@ -51,20 +51,20 @@ function LoginScreen() {
           <div className="mx-auto w-14 h-14 bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl flex items-center justify-center shadow-sm mb-4">
             <Package className="w-7 h-7 text-white" />
           </div>
-          <h1 className="text-xl font-bold text-stone-900 tracking-tight">
+          <h1 className="text-xl font-bold text-stone-900 dark:text-white tracking-tight">
             NAUKA INVENTRA
           </h1>
-          <p className="text-sm text-stone-400 mt-0.5">
+          <p className="text-sm text-stone-400 dark:text-stone-500 mt-0.5">
             Sistem Operasional Bisnis untuk UMKM
           </p>
         </div>
 
         {/* Login Card */}
-        <div className="bg-white border border-stone-200/80 rounded-2xl p-7 shadow-sm">
+        <div className="bg-white dark:bg-[#1a1f2e] border border-stone-200/80 dark:border-white/[0.06] rounded-2xl p-7 shadow-sm">
           <div className="space-y-4">
             {/* Username */}
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-stone-500 uppercase tracking-wider">
+              <label className="text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">
                 Username
               </label>
               <Input
@@ -73,13 +73,13 @@ function LoginScreen() {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
-                className="h-11 bg-stone-50 border-stone-200 text-stone-900 placeholder:text-stone-300 focus:border-amber-400 focus:ring-amber-400/20 rounded-xl transition-all"
+                className="h-11 bg-stone-50 dark:bg-white/[0.04] border-stone-200 dark:border-white/[0.08] text-stone-900 dark:text-white placeholder:text-stone-300 dark:placeholder:text-stone-600 focus:border-amber-400 focus:ring-amber-400/20 rounded-xl transition-all"
               />
             </div>
 
             {/* Password */}
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-stone-500 uppercase tracking-wider">
+              <label className="text-xs font-medium text-stone-500 dark:text-stone-400 uppercase tracking-wider">
                 Password
               </label>
               <div className="relative">
@@ -89,12 +89,12 @@ function LoginScreen() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
-                  className="h-11 bg-stone-50 border-stone-200 text-stone-900 placeholder:text-stone-300 focus:border-amber-400 focus:ring-amber-400/20 rounded-xl pr-10 transition-all"
+                  className="h-11 bg-stone-50 dark:bg-white/[0.04] border-stone-200 dark:border-white/[0.08] text-stone-900 dark:text-white placeholder:text-stone-300 dark:placeholder:text-stone-600 focus:border-amber-400 focus:ring-amber-400/20 rounded-xl pr-10 transition-all"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-300 hover:text-stone-500 transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-300 dark:text-stone-600 hover:text-stone-500 dark:hover:text-stone-400 transition-colors"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -103,7 +103,7 @@ function LoginScreen() {
 
             {/* Submit */}
             <Button
-              className="w-full h-11 bg-stone-900 hover:bg-stone-800 text-white rounded-xl font-medium shadow-sm transition-all group mt-2"
+              className="w-full h-11 bg-stone-900 dark:bg-amber-600 hover:bg-stone-800 dark:hover:bg-amber-700 text-white rounded-xl font-medium shadow-sm transition-all group mt-2"
               onClick={handleLogin}
               disabled={loading}
             >
@@ -123,7 +123,7 @@ function LoginScreen() {
         </div>
 
         {/* Footer hint */}
-        <p className="text-center text-stone-300 text-[11px] mt-6">
+        <p className="text-center text-stone-300 dark:text-stone-600 text-[11px] mt-6">
           Demo Environment
         </p>
       </div>

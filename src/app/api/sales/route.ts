@@ -130,8 +130,9 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // Check stock availability if status is COMPLETED
-    if (saleStatus === 'COMPLETED') {
+    // Check stock availability if status is COMPLETED or PAID
+    // PAID sales will eventually become COMPLETED, so validate stock upfront
+    if (saleStatus === 'COMPLETED' || saleStatus === 'PAID') {
       for (const item of resolvedItems) {
         if (item.qty > item.variantStock) {
           return NextResponse.json(

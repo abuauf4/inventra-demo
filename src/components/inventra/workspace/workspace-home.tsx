@@ -86,7 +86,7 @@ export default function WorkspaceHome() {
           {lowStockCount > 0 && (
             <button
               onClick={() => setActivePage('products')}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 text-amber-700 text-xs font-medium hover:bg-amber-100 transition-colors border border-amber-200/60"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 text-xs font-medium hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors border border-amber-200/60 dark:border-amber-800/30"
             >
               <AlertTriangle className="w-3.5 h-3.5" />
               {lowStockCount} varian perlu restock
@@ -95,7 +95,7 @@ export default function WorkspaceHome() {
           {(data.pendingPurchaseCount ?? 0) > 0 && (
             <button
               onClick={() => setActivePage('purchases')}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 text-xs font-medium hover:bg-blue-100 transition-colors border border-blue-200/60"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 text-xs font-medium hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors border border-blue-200/60 dark:border-blue-800/30"
             >
               {data.pendingPurchaseCount} PO menunggu
             </button>
@@ -103,7 +103,7 @@ export default function WorkspaceHome() {
           {(data.pendingSaleCount ?? 0) > 0 && (
             <button
               onClick={() => setActivePage('sales')}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-teal-50 text-teal-700 text-xs font-medium hover:bg-teal-100 transition-colors border border-teal-200/60"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-300 text-xs font-medium hover:bg-teal-100 dark:hover:bg-teal-900/30 transition-colors border border-teal-200/60 dark:border-teal-800/30"
             >
               {data.pendingSaleCount} SO belum selesai
             </button>
@@ -211,8 +211,8 @@ export default function WorkspaceHome() {
                   <div
                     className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
                       t.type === 'sale'
-                        ? 'bg-emerald-50 text-emerald-600'
-                        : 'bg-blue-50 text-blue-600'
+                        ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400'
+                        : 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
                     }`}
                   >
                     {t.type === 'sale' ? (
@@ -268,10 +268,10 @@ export default function WorkspaceHome() {
                   <div
                     className={`w-7 h-7 rounded-lg flex items-center justify-center mt-0.5 shrink-0 ${
                       item.priority === 'urgent'
-                        ? 'bg-red-50 text-red-500'
+                        ? 'bg-red-50 text-red-500 dark:bg-red-900/20 dark:text-red-400'
                         : item.priority === 'warning'
-                        ? 'bg-amber-50 text-amber-500'
-                        : 'bg-blue-50 text-blue-500'
+                        ? 'bg-amber-50 text-amber-500 dark:bg-amber-900/20 dark:text-amber-400'
+                        : 'bg-blue-50 text-blue-500 dark:bg-blue-900/20 dark:text-blue-400'
                     }`}
                   >
                     {item.type === 'stock_low' ? (

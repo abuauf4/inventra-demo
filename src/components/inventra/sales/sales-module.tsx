@@ -88,10 +88,35 @@ function SalesModule() {
   }, [dialogOpen])
 
   const handleSave = async () => {
+    // Client-side stock validation before API call
+    const mappedItems = form.items.filter(i => i.variantId).map(i => {
+      const v = allVariants.find(v => v.id === i.variantId)
+      return { variantId: i.variantId, qty: parseInt(i.qty) || 0, sellPrice: parseFloat(i.sellPrice) || 0, stock: v?.productStock ?? 0, name: v ? `${v.productName} — ${v.name}` : '' }
+    })
+    if (!mappedItems.length) { toast.error('Tambahkan minimal 1 item'); return }
+
+    // Validate stock for COMPLETED sales
+    if (form.status === 'COMPLETED') {
+      for (const item of mappedItems) {
+        if (item.qty > item.stock) {
+          toast.error(`Stok tidak cukup: ${item.name}. Tersedia: ${item.stock}, Diminta: ${item.qty}`)
+          return
+        }
+      }
+    }
+    // Warn for PAID sales (stock will be deducted later at COMPLETED)
+    if (form.status === 'PAID') {
+      for (const item of mappedItems) {
+        if (item.qty > item.stock) {
+          toast.error(`Stok tidak cukup: ${item.name}. Tersedia: ${item.stock}, Diminta: ${item.qty}. Stok akan dicek saat penjualan diselesaikan.`)
+          return
+        }
+      }
+    }
+
     setSaving(true)
     try {
-      const body = { customerId: form.customerId || undefined, date: form.date, notes: form.notes || undefined, status: form.status, items: form.items.filter(i => i.variantId).map(i => ({ variantId: i.variantId, qty: parseInt(i.qty) || 0, sellPrice: parseFloat(i.sellPrice) || 0 })) }
-      if (!body.items.length) { toast.error('Tambahkan minimal 1 item'); return }
+      const body = { customerId: form.customerId || undefined, date: form.date, notes: form.notes || undefined, status: form.status, items: mappedItems.map(({ stock, name, ...rest }) => rest) }
       const res = await fetch('/api/sales', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       if (!res.ok) { const d = await res.json(); toast.error(d.error || d.message || 'Gagal'); return }
       toast.success('Penjualan dicatat'); setDialogOpen(false); resetForm(); load()
@@ -219,9 +244,9 @@ function SalesModule() {
                   }}
                 />
                 {customerSearch && !form.customerId && filteredCustomers.length > 0 && (
-                  <div className="absolute z-50 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-40 overflow-auto">
+                  <div className="absolute z-50 w-full mt-1 bg-popover border rounded-lg shadow-lg max-h-40 overflow-auto">
                     {filteredCustomers.map(c => (
-                      <button key={c.id} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-left text-sm"
+                      <button key={c.id} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-accent text-left text-sm"
                         onMouseDown={() => { setForm({ ...form, customerId: c.id }); setCustomerSearch('') }}>
                         <Badge variant="outline" className="font-mono text-[10px]">{c.code}</Badge>
                         <span>{c.name}</span>
@@ -286,9 +311,9 @@ function SalesModule() {
                         className="h-8 text-sm"
                       />
                       {(variantSearches[idx] || '') && !item.variantId && filteredVariants.length > 0 && (
-                        <div className="absolute z-50 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-48 overflow-auto">
+                        <div className="absolute z-50 w-full mt-1 bg-popover border rounded-lg shadow-lg max-h-48 overflow-auto">
                           {filteredVariants.map(v => (
-                            <button key={v.id} className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 text-left text-sm"
+                            <button key={v.id} className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-accent text-left text-sm"
                               onMouseDown={() => {
                                 updateItem(idx, 'variantId', v.id)
                                 const newSearches = [...variantSearches]; newSearches[idx] = ''; setVariantSearches(newSearches)
@@ -317,9 +342,12 @@ function SalesModule() {
                       <Input readOnly className="bg-muted text-muted-foreground h-8 text-sm" value={selectedVariant ? fmtRp(selectedVariant.sellPrice) : ''} placeholder="—" />
                     </div>
                     <div>
-                      <Label className="text-xs mb-1 block">Qty</Label>
+                      <Label className="text-xs mb-1 block">Qty {selectedVariant && <span className="text-muted-foreground font-normal">(Stok: {selectedVariant.productStock})</span>}</Label>
                       <Input type="number" placeholder="Qty" value={item.qty} onChange={e => updateItem(idx, 'qty', e.target.value)} className="h-8 text-sm"
                         onKeyDown={e => { if (e.key === 'Enter' && item.variantId) { handleSave(); e.preventDefault() } }} />
+                      {selectedVariant && parseInt(item.qty) > selectedVariant.productStock && (
+                        <p className="text-[10px] text-red-500 mt-0.5">Melebihi stok ({selectedVariant.productStock})</p>
+                      )}
                     </div>
                     <div className="flex items-end">
                       {form.items.length > 1 && <Button variant="ghost" size="icon" onClick={() => removeItem(idx)} className="text-red-500 h-7 w-7"><Trash2 className="w-3.5 h-3.5" /></Button>}
