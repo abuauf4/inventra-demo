@@ -12,7 +12,6 @@ import LoginScreen from '@/components/inventra/shared/login-screen'
 import Sidebar from '@/components/inventra/shared/sidebar'
 import Header from '@/components/inventra/shared/header'
 import GlobalSearch from '@/components/inventra/shared/global-search'
-import MobileBottomNav from '@/components/inventra/shared/mobile-bottom-nav'
 import SpeedDialFAB from '@/components/inventra/shared/speed-dial-fab'
 
 // Business Modules
@@ -186,11 +185,9 @@ export default function InventraApp() {
       </div>
       <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
         <Header />
-        <main key={activePage} className="flex-1 min-h-0 overflow-hidden px-3 sm:px-6 lg:px-8 pt-3 sm:pt-5 lg:pt-6 pb-16 lg:pb-4 transition-colors duration-500">{renderPage()}</main>
+        <main key={activePage} className="flex-1 min-h-0 overflow-hidden px-3 sm:px-6 lg:px-8 pt-3 sm:pt-5 lg:pt-6 pb-4 transition-colors duration-500">{renderPage()}</main>
       </div>
       <GlobalSearch />
-      {/* Mobile Bottom Navigation */}
-      <MobileBottomNav />
       {/* Mobile Speed Dial FAB */}
       <SpeedDialFAB />
     </div>

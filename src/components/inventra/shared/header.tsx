@@ -3,8 +3,9 @@
 import { useState } from 'react'
 import { useAppStore } from '@/lib/store'
 import { menuSections } from './sidebar'
+import MobileFullscreenMenu from './mobile-fullscreen-menu'
 
-import { Menu, Bell, MoreVertical, LogOut, Search, ShoppingBag, Sun, Moon, KeyRound } from 'lucide-react'
+import { Menu, Bell, MoreVertical, LogOut, Search, ShoppingBag, Sun, Moon, KeyRound, X } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -34,6 +35,9 @@ function Header() {
     theme,
     toggleTheme,
   } = useAppStore()
+
+  // Mobile full-screen menu state
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   // Change password state
   const [changePasswordOpen, setChangePasswordOpen] = useState(false)
@@ -90,15 +94,13 @@ function Header() {
   return (
     <>
       <header className="shrink-0 z-30 bg-white/60 dark:bg-[#0f1117]/60 backdrop-blur-2xl border-b border-stone-200/30 dark:border-white/[0.03] px-4 lg:px-6 h-14 flex items-center gap-3 transition-all duration-300">
-        {/* Mobile menu — hidden since we use bottom nav on mobile */}
-        {/* <Button
-          variant="ghost"
-          size="icon"
-          className="lg:hidden text-stone-400 hover:text-stone-600 transition-all duration-200 rounded-xl hover:bg-stone-100/50"
-          onClick={() => setSidebarOpen(!sidebarOpen)}
+        {/* Mobile hamburger — opens full-screen menu */}
+        <button
+          onClick={() => setMobileMenuOpen(true)}
+          className="lg:hidden w-9 h-9 flex items-center justify-center rounded-xl text-stone-500 hover:text-stone-700 hover:bg-stone-100/50 dark:text-stone-400 dark:hover:text-stone-200 dark:hover:bg-white/[0.04] transition-all duration-200"
         >
           <Menu className="w-5 h-5" />
-        </Button> */}
+        </button>
 
         {/* Page title */}
         <h2
@@ -281,6 +283,9 @@ function Header() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Mobile Full-Screen Menu */}
+      <MobileFullscreenMenu open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
     </>
   )
 }
