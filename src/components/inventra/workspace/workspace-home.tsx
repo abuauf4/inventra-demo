@@ -60,16 +60,16 @@ export default function WorkspaceHome() {
           { label: 'Cari', icon: <Search className="w-4 h-4" />, shortcut: 'Ctrl+K', color: 'bg-stone-600', action: () => setSearchOpen(true) },
         ]
       : [
-          { label: 'Jual', icon: <ShoppingBag className="w-4 h-4" />, shortcut: 'Alt+S', color: 'bg-amber-500', action: () => setQuickActionOpen(true) },
+          { label: 'Jual', icon: <ShoppingBag className="w-4 h-4" />, shortcut: 'Alt+S', color: 'bg-gradient-to-br from-amber-500 to-orange-500', action: () => setQuickActionOpen(true) },
           { label: 'Beli', icon: <ShoppingCart className="w-4 h-4" />, shortcut: null, color: 'bg-stone-700', action: () => setActivePage('purchases') },
           { label: 'Cari', icon: <Search className="w-4 h-4" />, shortcut: 'Ctrl+K', color: 'bg-stone-600', action: () => setSearchOpen(true) },
         ]
 
   return (
-    <div className="max-w-3xl mx-auto space-y-8 animate-in fade-in duration-300">
-      {/* ===== Greeting ===== */}
+    <div className="max-w-3xl mx-auto space-y-8 page-enter">
+      {/* ===== Greeting — the breath in ===== */}
       <div className="space-y-1.5">
-        <p className="text-sm text-stone-400">
+        <p className="text-sm text-stone-400 transition-colors duration-500">
           {timeGreeting}
         </p>
         <h1 className="text-2xl font-bold tracking-tight text-stone-900 dark:text-white">
@@ -80,22 +80,22 @@ export default function WorkspaceHome() {
         </p>
       </div>
 
-      {/* ===== Priority alerts ===== */}
+      {/* ===== Priority alerts — the heartbeat ===== */}
       {(lowStockCount > 0 || (data.pendingPurchaseCount ?? 0) > 0 || (data.pendingSaleCount ?? 0) > 0) && (
         <div className="flex flex-wrap items-center gap-2">
           {lowStockCount > 0 && (
             <button
               onClick={() => setActivePage('products')}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 text-xs font-medium hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors border border-amber-200/60 dark:border-amber-800/30"
+              className="group inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-amber-50/80 dark:bg-amber-900/15 text-amber-700 dark:text-amber-300 text-xs font-medium hover:bg-amber-100/80 dark:hover:bg-amber-900/25 transition-all duration-300 border border-amber-200/40 dark:border-amber-800/20 hover:shadow-md hover:shadow-amber-200/20"
             >
-              <AlertTriangle className="w-3.5 h-3.5" />
+              <AlertTriangle className="w-3.5 h-3.5 badge-breathe" />
               {lowStockCount} varian perlu restock
             </button>
           )}
           {(data.pendingPurchaseCount ?? 0) > 0 && (
             <button
               onClick={() => setActivePage('purchases')}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 text-xs font-medium hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors border border-blue-200/60 dark:border-blue-800/30"
+              className="group inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-blue-50/80 dark:bg-blue-900/15 text-blue-700 dark:text-blue-300 text-xs font-medium hover:bg-blue-100/80 dark:hover:bg-blue-900/25 transition-all duration-300 border border-blue-200/40 dark:border-blue-800/20 hover:shadow-md hover:shadow-blue-200/20"
             >
               {data.pendingPurchaseCount} PO menunggu
             </button>
@@ -103,7 +103,7 @@ export default function WorkspaceHome() {
           {(data.pendingSaleCount ?? 0) > 0 && (
             <button
               onClick={() => setActivePage('sales')}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-300 text-xs font-medium hover:bg-teal-100 dark:hover:bg-teal-900/30 transition-colors border border-teal-200/60 dark:border-teal-800/30"
+              className="group inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-teal-50/80 dark:bg-teal-900/15 text-teal-700 dark:text-teal-300 text-xs font-medium hover:bg-teal-100/80 dark:hover:bg-teal-900/25 transition-all duration-300 border border-teal-200/40 dark:border-teal-800/20 hover:shadow-md hover:shadow-teal-200/20"
             >
               {data.pendingSaleCount} SO belum selesai
             </button>
@@ -111,22 +111,22 @@ export default function WorkspaceHome() {
         </div>
       )}
 
-      {/* ===== Quick Actions ===== */}
-      <div className="flex items-center gap-2">
+      {/* ===== Quick Actions — the movement ===== */}
+      <div className="flex items-center gap-2.5">
         {quickActions.map((a, i) => (
           <button
             key={i}
             onClick={a.action}
-            className="group flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/70 dark:bg-[#1a1f2e]/70 backdrop-blur-sm border border-stone-200/50 dark:border-white/[0.05] hover:border-stone-300/70 dark:hover:border-white/[0.08] shadow-sm hover:shadow-md transition-all duration-200 ease-out text-sm font-medium text-stone-700 dark:text-stone-300"
+            className="card-living group flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-white/60 dark:bg-[#1a1f2e]/60 backdrop-blur-sm border border-stone-200/40 dark:border-white/[0.04] shadow-sm text-sm font-medium text-stone-700 dark:text-stone-300"
           >
             <div
-              className={`w-7 h-7 rounded-lg ${a.color} flex items-center justify-center text-white group-hover:scale-105 transition-transform duration-200 ease-out shadow-sm`}
+              className={`w-7 h-7 rounded-lg ${a.color} flex items-center justify-center text-white group-hover:scale-110 transition-transform duration-300 ease-out shadow-sm`}
             >
               {a.icon}
             </div>
             {a.label}
             {a.shortcut && (
-              <kbd className="text-[10px] bg-stone-100/80 px-1.5 py-0.5 rounded-md font-mono text-stone-400 border border-stone-200/50 ml-1 dark:bg-white/[0.04] dark:border-white/[0.04] dark:text-stone-600">
+              <kbd className="text-[10px] bg-stone-100/60 px-1.5 py-0.5 rounded-lg font-mono text-stone-400 border border-stone-200/40 ml-1 dark:bg-white/[0.03] dark:border-white/[0.03] dark:text-stone-600">
                 {a.shortcut}
               </kbd>
             )}
@@ -134,7 +134,7 @@ export default function WorkspaceHome() {
         ))}
       </div>
 
-      {/* ===== Low Stock ===== */}
+      {/* ===== Low Stock — the urgency ===== */}
       {(data.lowStockProducts ?? []).length > 0 && (role === 'owner' || role === 'admin' || role === 'warehouse') && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
@@ -144,26 +144,26 @@ export default function WorkspaceHome() {
             {lowStockCount > 4 && (
               <button
                 onClick={() => setActivePage('products')}
-                className="text-[11px] text-stone-400 hover:text-stone-600 font-medium"
+                className="text-[11px] text-stone-400 hover:text-stone-600 font-medium transition-colors duration-300"
               >
                 +{lowStockCount - 4} lainnya
               </button>
             )}
           </div>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
             {(data.lowStockProducts ?? []).slice(0, 4).map((p) => (
               <button
                 key={p.variantId}
                 onClick={() => setActivePage('products')}
-                className={`flex items-center gap-2.5 p-3 rounded-xl bg-white/70 border hover:shadow-md transition-all duration-200 ease-out text-left dark:bg-[#1a1f2e]/70 backdrop-blur-sm ${
+                className={`card-living flex items-center gap-2.5 p-3 rounded-xl bg-white/60 border text-left dark:bg-[#1a1f2e]/60 backdrop-blur-sm ${
                   p.stock <= 0
-                    ? 'border-red-200/60 dark:border-red-800/30'
-                    : 'border-stone-200/60 dark:border-white/[0.05]'
+                    ? 'border-red-200/40 dark:border-red-800/25'
+                    : 'border-stone-200/40 dark:border-white/[0.04]'
                 }`}
               >
                 <div
-                  className={`w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold ${
-                    p.stock <= 0 ? 'bg-red-400' : 'bg-amber-500'
+                  className={`w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold shadow-sm ${
+                    p.stock <= 0 ? 'bg-gradient-to-br from-red-400 to-red-500' : 'bg-gradient-to-br from-amber-400 to-amber-500'
                   }`}
                 >
                   {p.stock}
@@ -182,8 +182,8 @@ export default function WorkspaceHome() {
         </div>
       )}
 
-      {/* ===== Bottom: Recent + Inbox ===== */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      {/* ===== Bottom: Recent + Inbox — the stories ===== */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {/* Recent Transactions */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
@@ -192,12 +192,12 @@ export default function WorkspaceHome() {
             </p>
             <button
               onClick={() => setActivePage('sales')}
-              className="text-[11px] text-stone-400 hover:text-stone-600 font-medium flex items-center gap-0.5"
+              className="text-[11px] text-stone-400 hover:text-stone-600 font-medium flex items-center gap-0.5 transition-colors duration-300"
             >
               Semua <ArrowRight className="w-2.5 h-2.5" />
             </button>
           </div>
-          <div className="bg-white/70 dark:bg-[#1a1f2e]/70 rounded-xl border border-stone-200/50 dark:border-white/[0.05] divide-y divide-stone-100/60 dark:divide-white/[0.03] backdrop-blur-sm">
+          <div className="card-living bg-white/60 dark:bg-[#1a1f2e]/60 rounded-xl border border-stone-200/40 dark:border-white/[0.04] divide-y divide-stone-100/50 dark:divide-white/[0.03] backdrop-blur-sm overflow-hidden">
             {!(data.recentTransactions ?? []).length ? (
               <div className="p-5 text-center text-xs text-stone-400">
                 Belum ada transaksi
@@ -206,13 +206,13 @@ export default function WorkspaceHome() {
               (data.recentTransactions ?? []).slice(0, 4).map((t, i) => (
                 <div
                   key={i}
-                  className="flex items-center gap-2.5 px-3.5 py-2.5 hover:bg-stone-50/60 transition-colors duration-200 ease-out dark:hover:bg-white/[0.02]"
+                  className="flex items-center gap-2.5 px-3.5 py-2.5 hover:bg-stone-50/40 transition-all duration-300 ease-out dark:hover:bg-white/[0.02]"
                 >
                   <div
-                    className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                    className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-colors duration-300 ${
                       t.type === 'sale'
-                        ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-400'
-                        : 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
+                        ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/15 dark:text-emerald-400'
+                        : 'bg-blue-50 text-blue-600 dark:bg-blue-900/15 dark:text-blue-400'
                     }`}
                   >
                     {t.type === 'sale' ? (
@@ -249,12 +249,12 @@ export default function WorkspaceHome() {
             </p>
             <button
               onClick={() => setActivePage('inbox')}
-              className="text-[11px] text-stone-400 hover:text-stone-600 font-medium flex items-center gap-0.5"
+              className="text-[11px] text-stone-400 hover:text-stone-600 font-medium flex items-center gap-0.5 transition-colors duration-300"
             >
               Buka <ArrowRight className="w-2.5 h-2.5" />
             </button>
           </div>
-          <div className="bg-white/70 dark:bg-[#1a1f2e]/70 rounded-xl border border-stone-200/50 dark:border-white/[0.05] divide-y divide-stone-100/60 dark:divide-white/[0.03] backdrop-blur-sm">
+          <div className="card-living bg-white/60 dark:bg-[#1a1f2e]/60 rounded-xl border border-stone-200/40 dark:border-white/[0.04] divide-y divide-stone-100/50 dark:divide-white/[0.03] backdrop-blur-sm overflow-hidden">
             {inboxItems.length === 0 ? (
               <div className="p-5 text-center text-xs text-stone-400">
                 Tidak ada pesan baru
@@ -263,15 +263,15 @@ export default function WorkspaceHome() {
               inboxItems.slice(0, 4).map((item: any) => (
                 <div
                   key={item.id}
-                  className="flex items-start gap-2.5 px-3.5 py-2.5 hover:bg-stone-50/60 transition-colors duration-200 ease-out dark:hover:bg-white/[0.02]"
+                  className="flex items-start gap-2.5 px-3.5 py-2.5 hover:bg-stone-50/40 transition-all duration-300 ease-out dark:hover:bg-white/[0.02]"
                 >
                   <div
-                    className={`w-7 h-7 rounded-lg flex items-center justify-center mt-0.5 shrink-0 ${
+                    className={`w-7 h-7 rounded-lg flex items-center justify-center mt-0.5 shrink-0 transition-colors duration-300 ${
                       item.priority === 'urgent'
-                        ? 'bg-red-50 text-red-500 dark:bg-red-900/20 dark:text-red-400'
+                        ? 'bg-red-50 text-red-500 dark:bg-red-900/15 dark:text-red-400'
                         : item.priority === 'warning'
-                        ? 'bg-amber-50 text-amber-500 dark:bg-amber-900/20 dark:text-amber-400'
-                        : 'bg-blue-50 text-blue-500 dark:bg-blue-900/20 dark:text-blue-400'
+                        ? 'bg-amber-50 text-amber-500 dark:bg-amber-900/15 dark:text-amber-400'
+                        : 'bg-blue-50 text-blue-500 dark:bg-blue-900/15 dark:text-blue-400'
                     }`}
                   >
                     {item.type === 'stock_low' ? (

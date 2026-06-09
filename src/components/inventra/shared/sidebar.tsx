@@ -9,14 +9,14 @@ import {
   ArrowLeftRight, FileBarChart, UserCog, Activity, X,
   Warehouse as WarehouseIcon, Inbox as InboxIcon, Home,
   LayoutDashboard, Briefcase, PenLine, Sun, Moon, LogOut,
-  ChevronDown, ChevronRight, KeyRound,
+  ChevronRight, KeyRound,
   ClipboardList, RotateCcw,
   ArrowRightLeft, ClipboardCheck, Sliders,
   Receipt, CreditCard, Wallet, Banknote,
   BookOpen, BookMarked, Scale, TrendingUp,
   BarChart3, UserCircle, Truck as TruckReport,
   Building2, Palette, FileText,
-  Sparkles, Lock,
+  Lock, Circle,
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -54,7 +54,7 @@ interface MenuSection {
   items: MenuItem[]
 }
 
-// ===================== MENU SECTIONS — FINAL STRUCTURE =====================
+// ===================== MENU SECTIONS =====================
 const menuSections: MenuSection[] = [
   {
     label: null,
@@ -186,7 +186,7 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
     }
   }
 
-  // Track which sections are expanded — auto-expand section containing active page
+  // Track which sections are expanded
   const [expanded, setExpanded] = useState<Record<string, boolean>>(() => {
     const initial: Record<string, boolean> = {}
     menuSections.forEach((section, i) => {
@@ -212,39 +212,61 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
 
   return (
     <>
-      {/* Mobile overlay — soft blur */}
+      {/* Mobile overlay */}
       {open && (
         <div
-          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 lg:hidden transition-opacity duration-300"
+          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 lg:hidden transition-opacity duration-500"
           onClick={onClose}
         />
       )}
 
       <aside
-        className={`fixed lg:static inset-y-0 left-0 z-50 w-[272px] bg-gradient-to-b from-[#162032] via-[#19263a] to-[#0f1a2e] transform transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] flex flex-col shadow-2xl lg:shadow-none ${
+        className={`fixed lg:static inset-y-0 left-0 z-50 w-[272px] bg-[#0e1525] transform transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] flex flex-col shadow-2xl lg:shadow-none overflow-hidden ${
           open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
       >
-        {/* ===== Profile Area ===== */}
-        <div className="px-5 pt-6 pb-5">
+        {/* ===== Ambient Light Orbs — the breath ===== */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          {/* Primary warm orb — top right */}
+          <div
+            className="sidebar-ambient-orb absolute -top-20 -right-20 w-64 h-64 rounded-full bg-amber-500/[0.07] blur-3xl"
+          />
+          {/* Cool orb — middle left */}
+          <div
+            className="sidebar-ambient-orb absolute top-1/2 -left-32 w-80 h-80 rounded-full bg-blue-500/[0.04] blur-3xl"
+            style={{ animationDelay: '3s' }}
+          />
+          {/* Subtle bottom warm glow */}
+          <div
+            className="sidebar-ambient-orb absolute -bottom-16 right-8 w-48 h-48 rounded-full bg-amber-600/[0.05] blur-3xl"
+            style={{ animationDelay: '5s' }}
+          />
+        </div>
+
+        {/* ===== Profile Area — the face ===== */}
+        <div className="relative px-5 pt-6 pb-4">
           <div className="flex items-center gap-3.5">
-            {/* Avatar circle */}
-            <div
-              className={`w-10 h-10 rounded-full bg-gradient-to-br ${
-                roleColors[currentUser?.role ?? 'staff'] || 'from-gray-400 to-gray-500'
-              } flex items-center justify-center text-white text-sm font-bold shrink-0 shadow-lg ring-2 ring-white/10`}
-            >
-              {(currentUser?.name ?? 'U').slice(0, 2).toUpperCase()}
+            {/* Avatar — with breathing ring */}
+            <div className="relative shrink-0">
+              <div
+                className={`w-10 h-10 rounded-full bg-gradient-to-br ${
+                  roleColors[currentUser?.role ?? 'staff'] || 'from-gray-400 to-gray-500'
+                } flex items-center justify-center text-white text-sm font-bold ring-2 ring-white/[0.08] shadow-lg transition-shadow duration-500`}
+              >
+                {(currentUser?.name ?? 'U').slice(0, 2).toUpperCase()}
+              </div>
+              {/* Online indicator — breathing */}
+              <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-400 rounded-full ring-2 ring-[#0e1525] sidebar-active-bar" />
             </div>
             <div className="flex-1 min-w-0">
-              <h2 className="font-semibold text-[14px] text-white/90 truncate leading-tight">
+              <h2 className="font-semibold text-[14px] text-white/85 truncate leading-tight">
                 {currentUser?.name ?? 'User'}
               </h2>
               <div className="flex items-center gap-1.5 mt-0.5">
-                <span className="text-amber-400/70">
+                <span className="text-amber-400/60">
                   {roleIcons[currentUser?.role ?? 'staff']}
                 </span>
-                <span className="text-[11px] text-white/40 capitalize">
+                <span className="text-[11px] text-white/30 capitalize">
                   {roleLabels[currentUser?.role ?? 'staff']}
                 </span>
               </div>
@@ -252,31 +274,33 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
             <Button
               variant="ghost"
               size="icon"
-              className="lg:hidden w-8 h-8 text-white/40 hover:text-white hover:bg-white/10 transition-colors duration-200 rounded-xl"
+              className="lg:hidden w-8 h-8 text-white/30 hover:text-white hover:bg-white/10 transition-all duration-300 rounded-xl"
               onClick={onClose}
             >
               <X className="w-4 h-4" />
             </Button>
           </div>
 
-          {/* Brand line */}
-          <div className="flex items-center gap-2 mt-4 pt-4 border-t border-white/[0.06]">
-            <div className="w-7 h-7 bg-gradient-to-br from-amber-400 via-orange-500 to-amber-600 rounded-lg flex items-center justify-center shadow-md shadow-amber-500/20">
-              <Package className="w-3.5 h-3.5 text-white" />
+          {/* Brand — with breathing icon */}
+          <div className="flex items-center gap-2.5 mt-5 pt-4 border-t border-white/[0.04]">
+            <div className="sidebar-brand-icon w-8 h-8 bg-gradient-to-br from-amber-400 via-orange-500 to-amber-600 rounded-xl flex items-center justify-center shadow-lg shadow-amber-500/25">
+              <Package className="w-4 h-4 text-white" />
             </div>
             <div className="flex-1 min-w-0">
-              <span className="font-bold text-[13px] text-white/80 tracking-tight">
+              <span className="font-bold text-[13px] text-white/75 tracking-tight">
                 Inventra
               </span>
-              <span className="text-[10px] text-white/25 ml-1.5">
+              <span className="text-[10px] text-white/15 ml-1.5">
                 by Nauka
               </span>
             </div>
+            {/* Subtle version badge */}
+            <span className="text-[9px] text-white/10 font-mono">v1.1</span>
           </div>
         </div>
 
-        {/* ===== Navigation — Collapsible Sections ===== */}
-        <div className="flex-1 overflow-y-auto overscroll-contain -webkit-overflow-scrolling-touch px-3 pb-2">
+        {/* ===== Navigation — the pulse ===== */}
+        <div className="relative flex-1 overflow-y-auto overscroll-contain -webkit-overflow-scrolling-touch px-3 pb-2">
           <nav className="space-y-0.5">
             {menuSections.map((section, si) => {
               // Hide "Pengaturan" section for non-owners
@@ -286,7 +310,7 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
               const isExpanded = expanded[si] ?? false
               const hasActive = section.items.some((item) => item.key === activePage && !item.soon)
 
-              // Ungrouped items (Home) — always visible
+              // Ungrouped items (Home)
               if (!isGroup) {
                 return (
                   <div key={si}>
@@ -299,20 +323,24 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
                             setActivePage(item.key)
                             onClose()
                           }}
-                          className={`group w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200 ease-out relative ${
+                          className={`sidebar-nav-item group w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-300 ease-out relative ${
                             isActive
-                              ? 'bg-gradient-to-r from-amber-500/15 to-amber-500/5 text-amber-300'
-                              : 'text-white/50 hover:bg-white/[0.04] hover:text-white/75'
+                              ? 'bg-gradient-to-r from-amber-500/20 via-amber-500/10 to-transparent text-amber-300'
+                              : 'text-white/45 hover:bg-white/[0.03] hover:text-white/70'
                           }`}
+                          style={{ animationDelay: `${si * 30}ms` }}
                         >
-                          {/* Active left accent bar */}
+                          {/* Active left accent — breathing */}
                           {isActive && (
-                            <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-amber-400 rounded-r-full shadow-sm shadow-amber-400/50" />
+                            <span className="sidebar-active-bar absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-gradient-to-b from-amber-300 to-amber-500 rounded-r-full shadow-lg shadow-amber-400/40" />
                           )}
-                          <span className={`transition-colors duration-200 ${isActive ? 'text-amber-400' : 'text-white/35 group-hover:text-white/55'}`}>
+                          <span className={`transition-all duration-300 ${isActive ? 'text-amber-400 drop-shadow-[0_0_6px_rgba(251,191,36,0.3)]' : 'text-white/25 group-hover:text-white/50'}`}>
                             {item.icon}
                           </span>
                           {item.label}
+                          {isActive && (
+                            <Circle className="ml-auto w-1.5 h-1.5 fill-amber-400/60 text-amber-400/60 sidebar-active-bar" />
+                          )}
                         </button>
                       )
                     })}
@@ -320,34 +348,34 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
                 )
               }
 
-              // Grouped items — collapsible
+              // Grouped sections
               return (
                 <div key={si} className="mt-1">
-                  {/* Section header — clickable to toggle */}
+                  {/* Section header */}
                   <button
                     onClick={() => toggleSection(String(si))}
-                    className={`w-full flex items-center gap-2 px-3 pt-3 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] transition-colors duration-200 ${
-                      hasActive ? 'text-amber-400/50' : 'text-white/20'
-                    } hover:text-white/35`}
+                    className={`w-full flex items-center gap-2 px-3.5 pt-3 pb-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] transition-all duration-300 ${
+                      hasActive ? 'text-amber-400/40' : 'text-white/15'
+                    } hover:text-white/30`}
                   >
                     <ChevronRight
-                      className={`w-3 h-3 transition-transform duration-300 ease-out ${
+                      className={`w-3 h-3 transition-transform duration-400 ease-out ${
                         isExpanded ? 'rotate-90' : 'rotate-0'
                       }`}
                     />
                     <span className="flex-1 text-left">{section.label}</span>
                     {hasActive && (
-                      <span className="w-1 h-1 rounded-full bg-amber-400/60" />
+                      <span className="w-1 h-1 rounded-full bg-amber-400/50 sidebar-active-bar" />
                     )}
                   </button>
 
-                  {/* Section items — collapsible */}
+                  {/* Section items */}
                   <div
-                    className={`overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] ${
+                    className={`overflow-hidden transition-all duration-400 ease-[cubic-bezier(0.4,0,0.2,1)] ${
                       isExpanded ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'
                     }`}
                   >
-                    {section.items.map((item) => {
+                    {section.items.map((item, ii) => {
                       const isActive = activePage === item.key && !item.soon
                       return (
                         <button
@@ -357,30 +385,34 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
                             setActivePage(item.key)
                             onClose()
                           }}
-                          className={`group w-full flex items-center gap-3 px-3 py-[7px] rounded-xl text-[13px] font-medium transition-all duration-200 ease-out relative ${
+                          className={`sidebar-nav-item group w-full flex items-center gap-3 px-3.5 py-[7px] rounded-xl text-[13px] font-medium transition-all duration-300 ease-out relative ${
                             item.soon
-                              ? 'text-white/20 cursor-not-allowed'
+                              ? 'text-white/15 cursor-not-allowed'
                               : isActive
-                                ? 'bg-gradient-to-r from-amber-500/15 to-amber-500/5 text-amber-300'
-                                : 'text-white/50 hover:bg-white/[0.04] hover:text-white/75'
+                                ? 'bg-gradient-to-r from-amber-500/20 via-amber-500/10 to-transparent text-amber-300'
+                                : 'text-white/45 hover:bg-white/[0.03] hover:text-white/70'
                           }`}
+                          style={{ animationDelay: `${(si * 30) + (ii * 20)}ms` }}
                         >
-                          {/* Active left accent bar */}
+                          {/* Active left accent — breathing */}
                           {isActive && (
-                            <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-amber-400 rounded-r-full shadow-sm shadow-amber-400/50" />
+                            <span className="sidebar-active-bar absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-gradient-to-b from-amber-300 to-amber-500 rounded-r-full shadow-lg shadow-amber-400/40" />
                           )}
-                          <span className={`transition-colors duration-200 ${
+                          <span className={`transition-all duration-300 ${
                             item.soon
-                              ? 'text-white/15'
+                              ? 'text-white/10'
                               : isActive
-                                ? 'text-amber-400'
-                                : 'text-white/30 group-hover:text-white/50'
+                                ? 'text-amber-400 drop-shadow-[0_0_6px_rgba(251,191,36,0.3)]'
+                                : 'text-white/20 group-hover:text-white/45'
                           }`}>
                             {item.icon}
                           </span>
                           <span className="flex-1 text-left">{item.label}</span>
                           {item.soon && (
-                            <Lock className="w-3 h-3 text-white/10" />
+                            <Lock className="w-3 h-3 text-white/[0.06]" />
+                          )}
+                          {isActive && !item.soon && (
+                            <Circle className="w-1.5 h-1.5 fill-amber-400/50 text-amber-400/50 sidebar-active-bar" />
                           )}
                         </button>
                       )
@@ -392,28 +424,30 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
           </nav>
         </div>
 
-        {/* ===== Bottom: Theme + Actions ===== */}
-        <div className="border-t border-white/[0.06] px-3 py-3 space-y-1">
+        {/* ===== Bottom — the anchor ===== */}
+        <div className="relative border-t border-white/[0.04] px-3 py-3 space-y-1">
           {/* Theme toggle */}
           <button
             onClick={toggleTheme}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-[12px] text-white/35 hover:bg-white/[0.04] hover:text-white/60 transition-all duration-200 ease-out"
+            className="group w-full flex items-center gap-3 px-3.5 py-2 rounded-xl text-[12px] text-white/25 hover:bg-white/[0.03] hover:text-white/50 transition-all duration-300 ease-out"
           >
-            {theme === 'light' ? (
-              <Moon className="w-[16px] h-[16px]" />
-            ) : (
-              <Sun className="w-[16px] h-[16px]" />
-            )}
+            <span className="transition-transform duration-500 ease-out group-hover:rotate-12">
+              {theme === 'light' ? (
+                <Moon className="w-[16px] h-[16px]" />
+              ) : (
+                <Sun className="w-[16px] h-[16px]" />
+              )}
+            </span>
             <span>{theme === 'light' ? 'Dark Mode' : 'Light Mode'}</span>
           </button>
 
-          {/* Action buttons row */}
+          {/* Action buttons */}
           <div className="flex items-center gap-1 px-1">
             <button
               onClick={() => setChangePasswordOpen(true)}
-              className="flex-1 flex items-center gap-2 px-3 py-2 rounded-xl text-[12px] text-white/25 hover:bg-amber-500/10 hover:text-amber-400/80 transition-all duration-200 ease-out"
+              className="group flex-1 flex items-center gap-2 px-3 py-2 rounded-xl text-[12px] text-white/20 hover:bg-amber-500/[0.08] hover:text-amber-400/70 transition-all duration-300 ease-out"
             >
-              <KeyRound className="w-[14px] h-[14px]" />
+              <KeyRound className="w-[14px] h-[14px] transition-transform duration-300 group-hover:scale-110" />
               <span>Password</span>
             </button>
             <button
@@ -421,9 +455,9 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
                 setCurrentUser(null)
                 toast.success('Berhasil logout')
               }}
-              className="flex-1 flex items-center gap-2 px-3 py-2 rounded-xl text-[12px] text-white/25 hover:bg-red-500/10 hover:text-red-400/80 transition-all duration-200 ease-out"
+              className="group flex-1 flex items-center gap-2 px-3 py-2 rounded-xl text-[12px] text-white/20 hover:bg-red-500/[0.08] hover:text-red-400/70 transition-all duration-300 ease-out"
             >
-              <LogOut className="w-[14px] h-[14px]" />
+              <LogOut className="w-[14px] h-[14px] transition-transform duration-300 group-hover:-translate-x-0.5" />
               <span>Logout</span>
             </button>
           </div>

@@ -31,19 +31,22 @@ function Header() {
   const unread = notifications.filter((n) => !n.read).length
 
   return (
-    <header className="sticky top-0 z-30 bg-white/70 dark:bg-[#0f1117]/70 backdrop-blur-2xl border-b border-stone-200/40 dark:border-white/[0.04] px-4 lg:px-6 h-14 flex items-center gap-3 transition-colors duration-300">
+    <header className="sticky top-0 z-30 bg-white/60 dark:bg-[#0f1117]/60 backdrop-blur-2xl border-b border-stone-200/30 dark:border-white/[0.03] px-4 lg:px-6 h-14 flex items-center gap-3 transition-all duration-500">
       {/* Mobile menu */}
       <Button
         variant="ghost"
         size="icon"
-        className="lg:hidden text-stone-400 hover:text-stone-600 transition-colors duration-200 rounded-xl"
+        className="lg:hidden text-stone-400 hover:text-stone-600 transition-all duration-300 rounded-xl hover:bg-stone-100/50"
         onClick={() => setSidebarOpen(!sidebarOpen)}
       >
         <Menu className="w-5 h-5" />
       </Button>
 
-      {/* Page title */}
-      <h2 className="text-[15px] font-semibold text-stone-800 dark:text-stone-200 tracking-tight">
+      {/* Page title — fades with each page change */}
+      <h2
+        key={activePage}
+        className="text-[15px] font-semibold text-stone-800 dark:text-stone-200 tracking-tight page-enter"
+      >
         {label}
       </h2>
 
@@ -52,11 +55,11 @@ function Header() {
       {/* Search trigger */}
       <button
         onClick={() => setSearchOpen(true)}
-        className="hidden sm:flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-stone-50/80 hover:bg-stone-100/80 text-sm text-stone-400 transition-all duration-200 ease-out border border-stone-200/40 dark:bg-white/[0.03] dark:hover:bg-white/[0.05] dark:border-white/[0.04] min-w-[180px]"
+        className="hidden sm:flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-stone-50/60 hover:bg-stone-100/60 text-sm text-stone-400 transition-all duration-300 ease-out border border-stone-200/30 dark:bg-white/[0.02] dark:hover:bg-white/[0.04] dark:border-white/[0.03] min-w-[180px]"
       >
-        <Search className="w-3.5 h-3.5" />
+        <Search className="w-3.5 h-3.5 transition-transform duration-300 group-hover:scale-110" />
         <span className="text-stone-400 dark:text-stone-500">Cari...</span>
-        <kbd className="ml-auto text-[10px] bg-white/80 dark:bg-white/[0.04] px-1.5 py-0.5 rounded-lg border border-stone-200/50 dark:border-white/[0.05] font-mono text-stone-300 dark:text-stone-600">
+        <kbd className="ml-auto text-[10px] bg-white/60 dark:bg-white/[0.03] px-1.5 py-0.5 rounded-lg border border-stone-200/40 dark:border-white/[0.04] font-mono text-stone-300 dark:text-stone-600">
           Ctrl+K
         </kbd>
       </button>
@@ -65,7 +68,7 @@ function Header() {
       <Button
         variant="ghost"
         size="sm"
-        className="hidden sm:flex text-amber-600 dark:text-amber-400 hover:text-amber-700 hover:bg-amber-50/80 dark:hover:bg-amber-950/20 gap-1.5 text-xs font-medium transition-all duration-200 ease-out rounded-xl"
+        className="hidden sm:flex text-amber-600 dark:text-amber-400 hover:text-amber-700 hover:bg-amber-50/60 dark:hover:bg-amber-950/15 gap-1.5 text-xs font-medium transition-all duration-300 ease-out rounded-xl"
         onClick={() => setQuickActionOpen(true)}
       >
         <ShoppingBag className="w-4 h-4" />
@@ -75,10 +78,10 @@ function Header() {
       {/* Notifications */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" className="relative transition-colors duration-200 rounded-xl">
+          <Button variant="ghost" size="icon" className="relative transition-all duration-300 rounded-xl hover:bg-stone-100/50">
             <Bell className="w-4 h-4 text-stone-400 dark:text-stone-500" />
             {unread > 0 && (
-              <span className="absolute top-1 right-1 w-4 h-4 bg-amber-500 rounded-full text-[10px] text-white flex items-center justify-center font-bold shadow-sm shadow-amber-500/30">
+              <span className="badge-breathe absolute top-1 right-1 w-4 h-4 bg-amber-500 rounded-full text-[10px] text-white flex items-center justify-center font-bold shadow-md shadow-amber-500/30">
                 {unread}
               </span>
             )}
@@ -112,7 +115,7 @@ function Header() {
       {/* More menu */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" className="transition-colors duration-200 rounded-xl">
+          <Button variant="ghost" size="icon" className="transition-all duration-300 rounded-xl hover:bg-stone-100/50">
             <MoreVertical className="w-4 h-4 text-stone-400 dark:text-stone-500" />
           </Button>
         </DropdownMenuTrigger>
