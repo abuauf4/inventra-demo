@@ -253,6 +253,9 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
         <ScrollArea className="flex-1">
           <nav className="p-2 space-y-0.5">
             {menuSections.map((section, si) => {
+              // Hide "Pengaturan" section for non-owners
+              if (section.label === 'Pengaturan' && currentUser?.role !== 'owner') return null
+
               const isGroup = section.label !== null
               const isExpanded = expanded[si] ?? false
               const hasActive = section.items.some((item) => item.key === activePage && !item.soon)

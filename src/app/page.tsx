@@ -153,7 +153,7 @@ export default function InventraApp() {
 
       // Pengaturan
       case 'user-management':
-        return <UserManagementModule />
+        return currentUser.role === 'owner' ? <UserManagementModule /> : <ComingSoonPage title="User Management" />
       case 'branch':
         return <ComingSoonPage title="Cabang" />
       case 'branding':
