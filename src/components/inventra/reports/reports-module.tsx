@@ -152,11 +152,11 @@ function TypeaheadFilter({
   // If selected, show chip
   if (selectedId) {
     return (
-      <div className="flex items-center gap-1.5 bg-blue-50 border border-blue-200 rounded-md px-3 py-1.5 h-9 max-w-xs">
-        <span className="text-sm text-blue-800 truncate flex-1">{chipLabel || 'Dipilih'}</span>
+      <div className="flex items-center gap-1.5 bg-stone-100 border border-stone-200 rounded-md px-3 py-1.5 h-9 max-w-xs">
+        <span className="text-sm text-stone-700 truncate flex-1">{chipLabel || 'Dipilih'}</span>
         <button
           onClick={handleClear}
-          className="text-blue-400 hover:text-blue-700 shrink-0"
+          className="text-stone-400 hover:text-stone-700 shrink-0"
           type="button"
         >
           <X className="w-3.5 h-3.5" />
@@ -293,11 +293,11 @@ function ProductTypeaheadFilter({
 
   if (selectedId) {
     return (
-      <div className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 rounded-md px-3 py-1.5 h-9 max-w-xs">
-        <span className="text-sm text-emerald-800 truncate flex-1">{chipLabel || 'Dipilih'}</span>
+      <div className="flex items-center gap-1.5 bg-stone-100 border border-stone-200 rounded-md px-3 py-1.5 h-9 max-w-xs">
+        <span className="text-sm text-stone-700 truncate flex-1">{chipLabel || 'Dipilih'}</span>
         <button
           onClick={handleClear}
-          className="text-emerald-400 hover:text-emerald-700 shrink-0"
+          className="text-stone-400 hover:text-stone-700 shrink-0"
           type="button"
         >
           <X className="w-3.5 h-3.5" />
@@ -451,50 +451,50 @@ function ReportsModule({ defaultTab }: { defaultTab?: 'sales' | 'purchases' | 's
           {/* Active filter label */}
           {filterLabel && (
             <div className="flex items-center gap-2 flex-wrap">
-              <Filter className="w-4 h-4 text-amber-500" />
-              <span className="text-sm font-medium text-amber-700 bg-amber-50 px-3 py-1 rounded-full">{filterLabel}</span>
+              <Filter className="w-4 h-4 text-stone-400" />
+              <span className="text-xs font-medium text-stone-600 bg-stone-100 px-2.5 py-0.5 rounded-full">{filterLabel}</span>
               {filterCustomerId && selectedCustomer && (
-                <span className="text-sm font-medium text-blue-700 bg-blue-50 px-3 py-1 rounded-full">
+                <span className="text-xs font-medium text-stone-600 bg-stone-100 px-2.5 py-0.5 rounded-full">
                   Customer: {selectedCustomer.code} — {selectedCustomer.label}
                 </span>
               )}
             </div>
           )}
 
-          {loading ? <div className="flex justify-center py-8"><RefreshCw className="w-6 h-6 animate-spin text-amber-500" /></div> : (
+          {loading ? <div className="flex justify-center py-8"><RefreshCw className="w-5 h-5 animate-spin text-stone-300" /></div> : (
             <>
               {/* Summary Cards */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                <Card className="border-0 shadow-sm"><CardContent className="p-4 flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center"><TrendingUp className="w-5 h-5 text-emerald-600" /></div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <Card className="border shadow-sm bg-white"><CardContent className="p-4 flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-emerald-50 flex items-center justify-center"><TrendingUp className="w-4 h-4 text-emerald-600" /></div>
                   <div><p className="text-xs text-muted-foreground">Pendapatan</p><p className="text-lg font-bold text-emerald-700">{fmtRp(data?.revenue || 0)}</p><p className="text-[10px] text-muted-foreground">COMPLETED + PAID</p></div>
                 </CardContent></Card>
-                <Card className="border-0 shadow-sm"><CardContent className="p-4 flex items-center gap-3">
+                <Card className="border shadow-sm bg-white"><CardContent className="p-4 flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-rose-100 flex items-center justify-center"><ShoppingCart className="w-5 h-5 text-rose-600" /></div>
                   <div><p className="text-xs text-muted-foreground">Modal</p><p className="text-lg font-bold text-rose-700">{fmtRp(data?.totalCost || 0)}</p><p className="text-[10px] text-muted-foreground">Estimasi HPP</p></div>
                 </CardContent></Card>
-                <Card className="border-0 shadow-sm"><CardContent className="p-4 flex items-center gap-3">
+                <Card className="border shadow-sm bg-white"><CardContent className="p-4 flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-teal-100 flex items-center justify-center"><TrendingUp className="w-5 h-5 text-teal-600" /></div>
                   <div><p className="text-xs text-muted-foreground">Estimasi Profit</p><p className={`text-lg font-bold ${(data?.estimatedProfit || 0) >= 0 ? 'text-teal-700' : 'text-red-700'}`}>{fmtRp(data?.estimatedProfit || 0)}</p><p className="text-[10px] text-muted-foreground">{data?.revenue ? `${((data.estimatedProfit / data.revenue) * 100).toFixed(1)}% margin` : '-'}</p></div>
                 </CardContent></Card>
-                <Card className="border-0 shadow-sm"><CardContent className="p-4 flex items-center gap-3">
+                <Card className="border shadow-sm bg-white"><CardContent className="p-4 flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center"><ShoppingCart className="w-5 h-5 text-amber-600" /></div>
                   <div><p className="text-xs text-muted-foreground">Total Transaksi</p><p className="text-lg font-bold">{fmt(data?.totalTransactions || 0)}</p><p className="text-[10px] text-muted-foreground">Tanpa DRAFT/CANCELLED</p></div>
                 </CardContent></Card>
               </div>
 
               {/* Period Table */}
-              <Card className="border-0 shadow-sm"><CardHeader><CardTitle>Laporan Penjualan per Periode</CardTitle></CardHeader><CardContent>
+              <Card className="border shadow-sm bg-white"><CardHeader><CardTitle>Laporan Penjualan per Periode</CardTitle></CardHeader><CardContent>
                 {data?.grouped?.length > 0 ? <Table><TableHeader><TableRow><TableHead>Periode</TableHead><TableHead className="text-center">Jumlah Transaksi</TableHead><TableHead className="text-right">Total</TableHead></TableRow></TableHeader><TableBody>{data.grouped.map((item: any, i: number) => <TableRow key={i}><TableCell>{item.period}</TableCell><TableCell className="text-center">{item.count}</TableCell><TableCell className="text-right font-medium">{fmtRp(item.totalAmount)}</TableCell></TableRow>)}</TableBody></Table> : <p className="text-center text-muted-foreground py-8">Tidak ada data</p>}
               </CardContent></Card>
 
               {/* Top Products + Top Customers */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <Card className="border-0 shadow-sm"><CardHeader><CardTitle className="flex items-center gap-2"><Trophy className="w-4 h-4 text-amber-500" />Produk Terlaris (Pendapatan)</CardTitle></CardHeader><CardContent>
+                <Card className="border shadow-sm bg-white"><CardHeader><CardTitle className="flex items-center gap-2"><Trophy className="w-4 h-4 text-amber-500" />Produk Terlaris (Pendapatan)</CardTitle></CardHeader><CardContent>
                   {data?.topProductsByRevenue?.length > 0 ? <Table><TableHeader><TableRow><TableHead>Produk</TableHead><TableHead className="text-center">Qty</TableHead><TableHead className="text-right">Pendapatan</TableHead><TableHead className="text-right">Profit</TableHead></TableRow></TableHeader>
                     <TableBody>{data.topProductsByRevenue.map((p: any, i: number) => <TableRow key={i}><TableCell><div className="font-medium">{p.name}</div><div className="text-xs text-muted-foreground font-mono">{p.sku}</div></TableCell><TableCell className="text-center">{p.qty}</TableCell><TableCell className="text-right font-medium">{fmtRp(p.revenue)}</TableCell><TableCell className="text-right text-teal-600">{fmtRp(p.revenue - p.cost)}</TableCell></TableRow>)}</TableBody></Table> : <p className="text-center text-muted-foreground py-4">Tidak ada data</p>}
                 </CardContent></Card>
-                <Card className="border-0 shadow-sm"><CardHeader><CardTitle className="flex items-center gap-2"><Users className="w-4 h-4 text-purple-500" />Customer Teratas</CardTitle></CardHeader><CardContent>
+                <Card className="border shadow-sm bg-white"><CardHeader><CardTitle className="flex items-center gap-2"><Users className="w-4 h-4 text-purple-500" />Customer Teratas</CardTitle></CardHeader><CardContent>
                   {data?.topCustomers?.length > 0 ? <Table><TableHeader><TableRow><TableHead>Customer</TableHead><TableHead className="text-center">Order</TableHead><TableHead className="text-right">Total Belanja</TableHead></TableRow></TableHeader>
                     <TableBody>{data.topCustomers.map((c: any, i: number) => <TableRow key={i}><TableCell><div className="font-medium">{c.name}</div><div className="text-xs text-muted-foreground font-mono">{c.code}</div></TableCell><TableCell className="text-center">{c.orderCount}</TableCell><TableCell className="text-right font-medium">{fmtRp(c.totalSpent)}</TableCell></TableRow>)}</TableBody></Table> : <p className="text-center text-muted-foreground py-4">Tidak ada data</p>}
                 </CardContent></Card>
@@ -535,46 +535,46 @@ function ReportsModule({ defaultTab }: { defaultTab?: 'sales' | 'purchases' | 's
           {/* Active filter label */}
           {filterLabel && (
             <div className="flex items-center gap-2 flex-wrap">
-              <Filter className="w-4 h-4 text-amber-500" />
-              <span className="text-sm font-medium text-amber-700 bg-amber-50 px-3 py-1 rounded-full">{filterLabel}</span>
+              <Filter className="w-4 h-4 text-stone-400" />
+              <span className="text-xs font-medium text-stone-600 bg-stone-100 px-2.5 py-0.5 rounded-full">{filterLabel}</span>
               {filterSupplierId && selectedSupplier && (
-                <span className="text-sm font-medium text-purple-700 bg-purple-50 px-3 py-1 rounded-full">
+                <span className="text-xs font-medium text-stone-600 bg-stone-100 px-2.5 py-0.5 rounded-full">
                   Supplier: {selectedSupplier.code} — {selectedSupplier.label}
                 </span>
               )}
             </div>
           )}
 
-          {loading ? <div className="flex justify-center py-8"><RefreshCw className="w-6 h-6 animate-spin text-amber-500" /></div> : (
+          {loading ? <div className="flex justify-center py-8"><RefreshCw className="w-6 h-6 animate-spin text-stone-300" /></div> : (
             <>
               {/* Summary Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <Card className="border-0 shadow-sm"><CardContent className="p-4 flex items-center gap-3">
+                <Card className="border shadow-sm bg-white"><CardContent className="p-4 flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-rose-100 flex items-center justify-center"><ShoppingCart className="w-5 h-5 text-rose-600" /></div>
                   <div><p className="text-xs text-muted-foreground">Total Biaya (Diterima)</p><p className="text-lg font-bold text-rose-700">{fmtRp(data?.cost || 0)}</p><p className="text-[10px] text-muted-foreground">Status RECEIVED saja</p></div>
                 </CardContent></Card>
-                <Card className="border-0 shadow-sm"><CardContent className="p-4 flex items-center gap-3">
+                <Card className="border shadow-sm bg-white"><CardContent className="p-4 flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center"><Package className="w-5 h-5 text-amber-600" /></div>
                   <div><p className="text-xs text-muted-foreground">Total Transaksi</p><p className="text-lg font-bold">{fmt(data?.totalTransactions || 0)}</p><p className="text-[10px] text-muted-foreground">Tanpa DRAFT/CANCELLED</p></div>
                 </CardContent></Card>
-                <Card className="border-0 shadow-sm"><CardContent className="p-4 flex items-center gap-3">
+                <Card className="border shadow-sm bg-white"><CardContent className="p-4 flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center"><TrendingUp className="w-5 h-5 text-purple-600" /></div>
                   <div><p className="text-xs text-muted-foreground">Grand Total</p><p className="text-lg font-bold">{fmtRp(data?.grandTotal || 0)}</p><p className="text-[10px] text-muted-foreground">Semua status (kecuali DRAFT/CANCELLED)</p></div>
                 </CardContent></Card>
               </div>
 
               {/* Period Table */}
-              <Card className="border-0 shadow-sm"><CardHeader><CardTitle>Laporan Pembelian per Periode</CardTitle></CardHeader><CardContent>
+              <Card className="border shadow-sm bg-white"><CardHeader><CardTitle>Laporan Pembelian per Periode</CardTitle></CardHeader><CardContent>
                 {data?.grouped?.length > 0 ? <Table><TableHeader><TableRow><TableHead>Periode</TableHead><TableHead className="text-center">Jumlah Transaksi</TableHead><TableHead className="text-right">Total</TableHead></TableRow></TableHeader><TableBody>{data.grouped.map((item: any, i: number) => <TableRow key={i}><TableCell>{item.period}</TableCell><TableCell className="text-center">{item.count}</TableCell><TableCell className="text-right font-medium">{fmtRp(item.totalAmount)}</TableCell></TableRow>)}</TableBody></Table> : <p className="text-center text-muted-foreground py-8">Tidak ada data</p>}
               </CardContent></Card>
 
               {/* Top Products + Top Suppliers */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <Card className="border-0 shadow-sm"><CardHeader><CardTitle className="flex items-center gap-2"><Trophy className="w-4 h-4 text-amber-500" />Produk Termahal (Biaya)</CardTitle></CardHeader><CardContent>
+                <Card className="border shadow-sm bg-white"><CardHeader><CardTitle className="flex items-center gap-2"><Trophy className="w-4 h-4 text-amber-500" />Produk Termahal (Biaya)</CardTitle></CardHeader><CardContent>
                   {data?.topProductsByCost?.length > 0 ? <Table><TableHeader><TableRow><TableHead>Produk</TableHead><TableHead className="text-center">Qty</TableHead><TableHead className="text-right">Total Biaya</TableHead></TableRow></TableHeader>
                     <TableBody>{data.topProductsByCost.map((p: any, i: number) => <TableRow key={i}><TableCell><div className="font-medium">{p.name}</div><div className="text-xs text-muted-foreground font-mono">{p.sku}</div></TableCell><TableCell className="text-center">{p.qty}</TableCell><TableCell className="text-right font-medium">{fmtRp(p.cost)}</TableCell></TableRow>)}</TableBody></Table> : <p className="text-center text-muted-foreground py-4">Tidak ada data</p>}
                 </CardContent></Card>
-                <Card className="border-0 shadow-sm"><CardHeader><CardTitle className="flex items-center gap-2"><Truck className="w-4 h-4 text-purple-500" />Supplier Teratas</CardTitle></CardHeader><CardContent>
+                <Card className="border shadow-sm bg-white"><CardHeader><CardTitle className="flex items-center gap-2"><Truck className="w-4 h-4 text-purple-500" />Supplier Teratas</CardTitle></CardHeader><CardContent>
                   {data?.topSuppliers?.length > 0 ? <Table><TableHeader><TableRow><TableHead>Supplier</TableHead><TableHead className="text-center">Order</TableHead><TableHead className="text-right">Total Belanja</TableHead></TableRow></TableHeader>
                     <TableBody>{data.topSuppliers.map((s: any, i: number) => <TableRow key={i}><TableCell><div className="font-medium">{s.name}</div><div className="text-xs text-muted-foreground font-mono">{s.code}</div></TableCell><TableCell className="text-center">{s.orderCount}</TableCell><TableCell className="text-right font-medium">{fmtRp(s.totalSpent)}</TableCell></TableRow>)}</TableBody></Table> : <p className="text-center text-muted-foreground py-4">Tidak ada data</p>}
                 </CardContent></Card>
@@ -628,38 +628,38 @@ function ReportsModule({ defaultTab }: { defaultTab?: 'sales' | 'purchases' | 's
           {/* Active filter label */}
           {filterLabel && (
             <div className="flex items-center gap-2 flex-wrap">
-              <Filter className="w-4 h-4 text-amber-500" />
-              <span className="text-sm font-medium text-amber-700 bg-amber-50 px-3 py-1 rounded-full">{filterLabel}</span>
+              <Filter className="w-4 h-4 text-stone-400" />
+              <span className="text-xs font-medium text-stone-600 bg-stone-100 px-2.5 py-0.5 rounded-full">{filterLabel}</span>
               {filterStockSupplierId && selectedStockSupplier && (
-                <span className="text-sm font-medium text-purple-700 bg-purple-50 px-3 py-1 rounded-full">
+                <span className="text-xs font-medium text-stone-600 bg-stone-100 px-2.5 py-0.5 rounded-full">
                   Supplier: {selectedStockSupplier.code} — {selectedStockSupplier.label}
                 </span>
               )}
               {filterProductId && selectedProduct && (
-                <span className="text-sm font-medium text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full">
+                <span className="text-xs font-medium text-stone-600 bg-stone-100 px-2.5 py-0.5 rounded-full">
                   Produk: {selectedProduct.code} — {selectedProduct.label}
                 </span>
               )}
             </div>
           )}
 
-          {loading ? <div className="flex justify-center py-8"><RefreshCw className="w-6 h-6 animate-spin text-amber-500" /></div> : (
+          {loading ? <div className="flex justify-center py-8"><RefreshCw className="w-6 h-6 animate-spin text-stone-300" /></div> : (
             <>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <Card className="border-0 shadow-sm"><CardContent className="p-4 flex items-center gap-3">
+                <Card className="border shadow-sm bg-white"><CardContent className="p-4 flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center"><Package className="w-5 h-5 text-amber-600" /></div>
                   <div><p className="text-xs text-muted-foreground">Total Varian</p><p className="text-lg font-bold">{fmt(data?.totalVariants || 0)}</p></div>
                 </CardContent></Card>
-                <Card className="border-0 shadow-sm"><CardContent className="p-4 flex items-center gap-3">
+                <Card className="border shadow-sm bg-white"><CardContent className="p-4 flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center"><AlertTriangle className="w-5 h-5 text-red-600" /></div>
                   <div><p className="text-xs text-muted-foreground">Stok Menipis</p><p className="text-lg font-bold text-amber-600">{fmt(data?.lowStockCount || 0)}</p></div>
                 </CardContent></Card>
-                <Card className="border-0 shadow-sm"><CardContent className="p-4 flex items-center gap-3">
+                <Card className="border shadow-sm bg-white"><CardContent className="p-4 flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center"><TrendingUp className="w-5 h-5 text-emerald-600" /></div>
                   <div><p className="text-xs text-muted-foreground">Nilai Persediaan</p><p className="text-lg font-bold">{fmtRp(data?.totalInventoryValue || 0)}</p></div>
                 </CardContent></Card>
               </div>
-              <Card className="border-0 shadow-sm"><CardHeader><CardTitle>Laporan Stok (Per Varian)</CardTitle></CardHeader><CardContent>
+              <Card className="border shadow-sm bg-white"><CardHeader><CardTitle>Laporan Stok (Per Varian)</CardTitle></CardHeader><CardContent>
                 {data?.variants?.length > 0 ? <div className="overflow-x-auto max-h-96"><Table><TableHeader><TableRow><TableHead>Produk</TableHead><TableHead>Varian</TableHead><TableHead className="text-center">Stok</TableHead><TableHead className="text-center">Min</TableHead><TableHead className="text-right">Harga Beli</TableHead><TableHead className="text-right">Nilai</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
                   <TableBody>{data.variants.map((p: any) => <TableRow key={p.id}><TableCell className="font-medium">{p.name || p.productName}</TableCell><TableCell>{p.variantName || '-'}</TableCell><TableCell className="text-center">{p.stock}</TableCell><TableCell className="text-center">{p.minStock}</TableCell><TableCell className="text-right">{fmtRp(p.buyPrice)}</TableCell><TableCell className="text-right">{fmtRp(p.stockValue)}</TableCell>
                     <TableCell><Badge variant={p.stock <= p.minStock ? (p.stock <= 0 ? 'destructive' : 'secondary') : 'default'} className={p.stock > p.minStock ? 'bg-emerald-100 text-emerald-700' : p.stock <= 0 ? '' : 'bg-amber-100 text-amber-700'}>{p.stock <= 0 ? 'Habis' : p.stock <= p.minStock ? 'Menipis' : 'Aman'}</Badge></TableCell>
@@ -688,35 +688,35 @@ function ReportsModule({ defaultTab }: { defaultTab?: 'sales' | 'purchases' | 's
           {/* Active filter label */}
           {filterLabel && (
             <div className="flex items-center gap-2">
-              <Filter className="w-4 h-4 text-amber-500" />
-              <span className="text-sm font-medium text-amber-700 bg-amber-50 px-3 py-1 rounded-full">{filterLabel}</span>
+              <Filter className="w-4 h-4 text-stone-400" />
+              <span className="text-xs font-medium text-stone-600 bg-stone-100 px-2.5 py-0.5 rounded-full">{filterLabel}</span>
             </div>
           )}
 
-          {loading ? <div className="flex justify-center py-8"><RefreshCw className="w-6 h-6 animate-spin text-amber-500" /></div> : (
+          {loading ? <div className="flex justify-center py-8"><RefreshCw className="w-6 h-6 animate-spin text-stone-300" /></div> : (
             <>
               {/* Summary Cards by Type */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                <Card className="border-0 shadow-sm"><CardContent className="p-4 flex items-center gap-3">
+                <Card className="border shadow-sm bg-white"><CardContent className="p-4 flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center"><ArrowDownCircle className="w-5 h-5 text-emerald-600" /></div>
                   <div><p className="text-xs text-muted-foreground">Stok Masuk (IN)</p><p className="text-lg font-bold text-emerald-700">{fmt(data?.byType?.IN?.count || 0)} transaksi</p><p className="text-[10px] text-muted-foreground">Total: {fmt(data?.byType?.IN?.totalQty || 0)} unit</p></div>
                 </CardContent></Card>
-                <Card className="border-0 shadow-sm"><CardContent className="p-4 flex items-center gap-3">
+                <Card className="border shadow-sm bg-white"><CardContent className="p-4 flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-rose-100 flex items-center justify-center"><ArrowUpCircle className="w-5 h-5 text-rose-600" /></div>
                   <div><p className="text-xs text-muted-foreground">Stok Keluar (OUT)</p><p className="text-lg font-bold text-rose-700">{fmt(data?.byType?.OUT?.count || 0)} transaksi</p><p className="text-[10px] text-muted-foreground">Total: {fmt(data?.byType?.OUT?.totalQty || 0)} unit</p></div>
                 </CardContent></Card>
-                <Card className="border-0 shadow-sm"><CardContent className="p-4 flex items-center gap-3">
+                <Card className="border shadow-sm bg-white"><CardContent className="p-4 flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center"><SlidersHorizontal className="w-5 h-5 text-amber-600" /></div>
                   <div><p className="text-xs text-muted-foreground">Penyesuaian (ADJ)</p><p className="text-lg font-bold text-amber-700">{fmt(data?.byType?.ADJUSTMENT?.count || 0)} transaksi</p><p className="text-[10px] text-muted-foreground">Total: {fmt(data?.byType?.ADJUSTMENT?.totalQty || 0)} unit</p></div>
                 </CardContent></Card>
-                <Card className="border-0 shadow-sm"><CardContent className="p-4 flex items-center gap-3">
+                <Card className="border shadow-sm bg-white"><CardContent className="p-4 flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center"><ArrowUpDown className="w-5 h-5 text-blue-600" /></div>
                   <div><p className="text-xs text-muted-foreground">Transfer</p><p className="text-lg font-bold text-blue-700">{fmt(data?.byType?.TRANSFER?.count || 0)} transaksi</p><p className="text-[10px] text-muted-foreground">Total: {fmt(data?.byType?.TRANSFER?.totalQty || 0)} unit</p></div>
                 </CardContent></Card>
               </div>
 
               {/* Mutations Table */}
-              <Card className="border-0 shadow-sm">
+              <Card className="border shadow-sm bg-white">
                 <CardHeader><CardTitle className="flex items-center gap-2"><ArrowUpDown className="w-4 h-4 text-amber-500" />Detail Mutasi Stok</CardTitle></CardHeader>
                 <CardContent>
                   {data?.mutations?.length > 0 ? (

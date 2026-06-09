@@ -29,14 +29,14 @@ import UserManagementModule from '@/components/inventra/user-management/user-man
 // ===================== COMING SOON PLACEHOLDER =====================
 function ComingSoonPage({ title }: { title: string }) {
   return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
-      <div className="w-16 h-16 rounded-2xl bg-amber-100 dark:bg-amber-900/20 flex items-center justify-center mb-4">
-        <Construction className="w-8 h-8 text-amber-500" />
+    <div className="flex flex-col items-center justify-center min-h-[50vh] text-center">
+      <div className="w-14 h-14 rounded-2xl bg-stone-100 dark:bg-white/[0.05] flex items-center justify-center mb-4">
+        <Construction className="w-7 h-7 text-stone-300 dark:text-stone-600" />
       </div>
-      <h2 className="text-xl font-bold text-stone-800 dark:text-stone-200 mb-2">
+      <h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200 mb-1">
         {title}
       </h2>
-      <p className="text-sm text-stone-500 dark:text-stone-400 max-w-md">
+      <p className="text-sm text-stone-400 max-w-sm">
         Fitur ini sedang dalam pengembangan dan akan tersedia di update mendatang.
       </p>
     </div>
@@ -161,7 +161,7 @@ export default function InventraApp() {
       case 'doc-numbering':
         return <ComingSoonPage title="Nomor Dokumen" />
 
-      // Legacy redirects (old page keys that may persist in localStorage)
+      // Legacy redirects
       case 'dashboard-analytics':
       case 'reports':
         return <ReportsModule />
@@ -176,11 +176,11 @@ export default function InventraApp() {
   }
 
   return (
-    <div className="min-h-screen flex bg-[#f4f6fb] dark:bg-[#0f1117]">
+    <div className="min-h-screen flex bg-stone-50 dark:bg-[#0f1117]">
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="flex-1 flex flex-col min-w-0">
         <Header />
-        <main className="flex-1 p-3 sm:p-4 lg:p-8 pb-20 lg:pb-8">{renderPage()}</main>
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 pb-24 lg:pb-8 overflow-auto">{renderPage()}</main>
       </div>
       <GlobalSearch />
       <QuickSaleDialog />
@@ -188,13 +188,13 @@ export default function InventraApp() {
       <div className="fixed bottom-6 right-6 flex flex-col gap-3 lg:hidden z-40">
         <button
           onClick={() => setSearchOpen(true)}
-          className="w-12 h-12 rounded-full bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900 shadow-lg hover:shadow-xl transition-all flex items-center justify-center"
+          className="w-11 h-11 rounded-full bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-300 shadow-md border border-stone-200 dark:border-stone-700 hover:shadow-lg transition-all flex items-center justify-center"
         >
           <Search className="w-5 h-5" />
         </button>
         <button
           onClick={() => setQuickActionOpen(true)}
-          className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 text-white shadow-lg hover:shadow-xl transition-all flex items-center justify-center"
+          className="w-11 h-11 rounded-full bg-amber-500 text-white shadow-md hover:shadow-lg hover:bg-amber-600 transition-all flex items-center justify-center"
         >
           <ShoppingBag className="w-5 h-5" />
         </button>

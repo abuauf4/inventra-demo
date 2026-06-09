@@ -10,18 +10,11 @@ import {
   Warehouse as WarehouseIcon, Inbox as InboxIcon, Home,
   LayoutDashboard, Briefcase, PenLine, Sun, Moon, LogOut,
   ChevronDown, KeyRound,
-  // Data Master icons
-  // Distribusi future icons
   ClipboardList, RotateCcw,
-  // Inventory future icons
   ArrowRightLeft, ClipboardCheck, Sliders,
-  // Finance icons
   Receipt, CreditCard, Wallet, Banknote,
-  // Accounting icons
   BookOpen, BookMarked, Scale, TrendingUp,
-  // Report icons
   BarChart3, UserCircle, Truck as TruckReport,
-  // Settings icons
   Building2, Palette, FileText,
 } from 'lucide-react'
 
@@ -221,34 +214,34 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
       {/* Mobile overlay */}
       {open && (
         <div
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
+          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 lg:hidden"
           onClick={onClose}
         />
       )}
 
       <aside
-        className={`fixed lg:static inset-y-0 left-0 z-50 w-[260px] bg-[#162032] transform transition-transform duration-200 flex flex-col ${
+        className={`fixed lg:static inset-y-0 left-0 z-50 w-[250px] bg-[#1e2538] transform transition-transform duration-200 flex flex-col ${
           open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
       >
         {/* ===== Brand Area ===== */}
-        <div className="p-4 border-b border-white/[0.06]">
+        <div className="px-4 py-4 border-b border-white/[0.06]">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl flex items-center justify-center shadow-sm shadow-amber-500/20">
+            <div className="w-8 h-8 bg-gradient-to-br from-amber-500 to-orange-600 rounded-lg flex items-center justify-center">
               <Package className="w-4 h-4 text-white" />
             </div>
             <div className="flex-1 min-w-0">
-              <h1 className="font-bold text-sm text-white tracking-tight">
+              <h1 className="font-bold text-[13px] text-white/90 tracking-tight">
                 NAUKA INVENTRA
               </h1>
-              <p className="text-[10px] text-teal-400/60 truncate">
+              <p className="text-[10px] text-white/30 truncate">
                 Sistem Operasional Bisnis
               </p>
             </div>
             <Button
               variant="ghost"
               size="icon"
-              className="lg:hidden w-8 h-8 text-teal-400/60 hover:text-white hover:bg-white/10"
+              className="lg:hidden w-7 h-7 text-white/30 hover:text-white hover:bg-white/10"
               onClick={onClose}
             >
               <X className="w-4 h-4" />
@@ -263,7 +256,6 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
               const isGroup = section.label !== null
               const isExpanded = expanded[si] ?? false
               const hasActive = section.items.some((item) => item.key === activePage && !item.soon)
-              const hasEnabledItems = section.items.some((item) => !item.soon)
 
               // Ungrouped items (Home) — always visible
               if (!isGroup) {
@@ -278,11 +270,11 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
                         }}
                         className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium transition-all ${
                           activePage === item.key
-                            ? 'bg-white/[0.08] text-amber-400 border-l-2 border-amber-500 pl-[10px]'
-                            : 'text-teal-200/50 hover:bg-white/[0.04] hover:text-teal-100/80'
+                            ? 'bg-amber-500/10 text-amber-400'
+                            : 'text-white/45 hover:bg-white/[0.04] hover:text-white/70'
                         }`}
                       >
-                        <span className={activePage === item.key ? 'text-amber-500' : 'text-teal-400/40'}>
+                        <span className={activePage === item.key ? 'text-amber-500' : 'text-white/25'}>
                           {item.icon}
                         </span>
                         {item.label}
@@ -298,13 +290,9 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
                   {/* Section header — clickable to toggle */}
                   <button
                     onClick={() => toggleSection(String(si))}
-                    className={`w-full flex items-center gap-2 px-3 pt-4 pb-1.5 text-[10px] font-semibold uppercase tracking-widest transition-colors ${
-                      hasActive
-                        ? 'text-teal-500/70'
-                        : hasEnabledItems
-                          ? 'text-teal-500/40'
-                          : 'text-teal-500/20'
-                    } hover:text-teal-400/60`}
+                    className={`w-full flex items-center gap-2 px-3 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-widest transition-colors ${
+                      hasActive ? 'text-white/40' : 'text-white/20'
+                    } hover:text-white/40`}
                   >
                     <ChevronDown
                       className={`w-3 h-3 transition-transform duration-200 ${
@@ -312,14 +300,9 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
                       }`}
                     />
                     <span className="flex-1 text-left">{section.label}</span>
-                    {!isExpanded && (
-                      <span className="text-[9px] text-teal-500/25 font-normal">
-                        {section.items.filter((i) => !i.soon).length}
-                      </span>
-                    )}
                   </button>
 
-                  {/* Section items — collapsible with animation */}
+                  {/* Section items — collapsible */}
                   <div
                     className={`overflow-hidden transition-all duration-200 ${
                       isExpanded ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'
@@ -333,26 +316,26 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
                           setActivePage(item.key)
                           onClose()
                         }}
-                        className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium transition-all ${
+                        className={`w-full flex items-center gap-2.5 px-3 py-[7px] rounded-lg text-[13px] font-medium transition-all ${
                           item.soon
-                            ? 'text-teal-200/20 cursor-not-allowed'
+                            ? 'text-white/15 cursor-not-allowed'
                             : activePage === item.key
-                              ? 'bg-white/[0.08] text-amber-400 border-l-2 border-amber-500 pl-[10px]'
-                              : 'text-teal-200/50 hover:bg-white/[0.04] hover:text-teal-100/80'
+                              ? 'bg-amber-500/10 text-amber-400'
+                              : 'text-white/45 hover:bg-white/[0.04] hover:text-white/70'
                         }`}
                       >
                         <span className={
                           item.soon
-                            ? 'text-teal-400/15'
+                            ? 'text-white/10'
                             : activePage === item.key
                               ? 'text-amber-500'
-                              : 'text-teal-400/40'
+                              : 'text-white/25'
                         }>
                           {item.icon}
                         </span>
                         <span className="flex-1 text-left">{item.label}</span>
                         {item.soon && (
-                          <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-teal-400/10 text-teal-400/30 uppercase tracking-wider">
+                          <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-white/[0.05] text-white/20 uppercase tracking-wider">
                             Soon
                           </span>
                         )}
@@ -370,21 +353,21 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
           {currentUser && (
             <div className="flex items-center gap-2.5 px-1">
               <div
-                className={`w-9 h-9 rounded-xl bg-gradient-to-br ${
+                className={`w-8 h-8 rounded-lg bg-gradient-to-br ${
                   roleColors[currentUser.role ?? 'staff'] || 'from-gray-400 to-gray-500'
-                } flex items-center justify-center text-white text-sm font-bold shadow-sm shrink-0`}
+                } flex items-center justify-center text-white text-xs font-bold shrink-0`}
               >
                 {(currentUser.name ?? 'U').slice(0, 2).toUpperCase()}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-white truncate">
+                <p className="text-[13px] font-medium text-white/80 truncate">
                   {currentUser.name ?? 'User'}
                 </p>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-teal-400/50">
+                  <span className="text-white/25">
                     {roleIcons[currentUser.role ?? 'staff']}
                   </span>
-                  <span className="text-[11px] text-teal-400/50 capitalize">
+                  <span className="text-[11px] text-white/25 capitalize">
                     {roleLabels[currentUser.role ?? 'staff']}
                   </span>
                 </div>
@@ -395,31 +378,31 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
           <div className="flex items-center gap-1">
             <button
               onClick={toggleTheme}
-              className="flex-1 flex items-center gap-2 px-3 py-2 rounded-lg text-[13px] text-teal-200/50 hover:bg-white/[0.04] hover:text-teal-100/80 transition-all"
+              className="flex-1 flex items-center gap-2 px-3 py-1.5 rounded-lg text-[12px] text-white/35 hover:bg-white/[0.04] hover:text-white/60 transition-all"
             >
               {theme === 'light' ? (
-                <Moon className="w-4 h-4" />
+                <Moon className="w-3.5 h-3.5" />
               ) : (
-                <Sun className="w-4 h-4" />
+                <Sun className="w-3.5 h-3.5" />
               )}
               <span>{theme === 'light' ? 'Dark Mode' : 'Light Mode'}</span>
             </button>
             <button
               onClick={() => setChangePasswordOpen(true)}
-              className="flex items-center justify-center w-9 h-9 rounded-lg text-teal-400/40 hover:bg-amber-500/10 hover:text-amber-400 transition-all"
+              className="flex items-center justify-center w-8 h-8 rounded-lg text-white/20 hover:bg-amber-500/10 hover:text-amber-400 transition-all"
               title="Ganti Password"
             >
-              <KeyRound className="w-4 h-4" />
+              <KeyRound className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={() => {
                 setCurrentUser(null)
                 toast.success('Berhasil logout')
               }}
-              className="flex items-center justify-center w-9 h-9 rounded-lg text-teal-400/40 hover:bg-red-500/10 hover:text-red-400 transition-all"
+              className="flex items-center justify-center w-8 h-8 rounded-lg text-white/20 hover:bg-red-500/10 hover:text-red-400 transition-all"
               title="Logout"
             >
-              <LogOut className="w-4 h-4" />
+              <LogOut className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
@@ -480,7 +463,7 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
               Batal
             </Button>
             <Button
-              className="bg-gradient-to-r from-rose-500 to-amber-500 text-white"
+              className="bg-stone-900 hover:bg-stone-800 text-white"
               onClick={handleChangePassword}
               disabled={savingPw}
             >

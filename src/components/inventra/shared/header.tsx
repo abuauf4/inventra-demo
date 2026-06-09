@@ -31,19 +31,19 @@ function Header() {
   const unread = notifications.filter((n) => !n.read).length
 
   return (
-    <header className="sticky top-0 z-30 bg-white/80 dark:bg-[#0f1117]/80 backdrop-blur-md border-b border-stone-200/60 dark:border-white/[0.06] px-4 lg:px-6 py-3 flex items-center gap-3">
+    <header className="sticky top-0 z-30 bg-white/90 dark:bg-[#0f1117]/90 backdrop-blur-md border-b border-stone-200/60 dark:border-white/[0.06] px-4 lg:px-6 h-14 flex items-center gap-3">
       {/* Mobile menu */}
       <Button
         variant="ghost"
         size="icon"
-        className="lg:hidden text-stone-500 dark:text-stone-400"
+        className="lg:hidden text-stone-400"
         onClick={() => setSidebarOpen(!sidebarOpen)}
       >
         <Menu className="w-5 h-5" />
       </Button>
 
       {/* Page title */}
-      <h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200">
+      <h2 className="text-[15px] font-semibold text-stone-800 dark:text-stone-200">
         {label}
       </h2>
 
@@ -52,34 +52,31 @@ function Header() {
       {/* Search trigger */}
       <button
         onClick={() => setSearchOpen(true)}
-        className="hidden sm:flex items-center gap-2 px-3.5 py-2 rounded-xl bg-stone-50 dark:bg-white/[0.04] hover:bg-stone-100 dark:hover:bg-white/[0.08] text-sm text-stone-400 transition-colors border border-stone-200/60 dark:border-white/[0.06] min-w-[200px]"
+        className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-stone-50 hover:bg-stone-100 text-sm text-stone-400 transition-colors border border-stone-200/60 dark:bg-white/[0.04] dark:hover:bg-white/[0.08] dark:border-white/[0.06] min-w-[180px]"
       >
-        <Search className="w-4 h-4" />
+        <Search className="w-3.5 h-3.5" />
         <span className="text-stone-400 dark:text-stone-500">Cari...</span>
-        <kbd className="ml-auto text-[10px] bg-white dark:bg-white/[0.06] px-1.5 py-0.5 rounded border border-stone-200 dark:border-white/[0.06] font-mono text-stone-400 dark:text-stone-500">
+        <kbd className="ml-auto text-[10px] bg-white dark:bg-white/[0.06] px-1.5 py-0.5 rounded border border-stone-200 dark:border-white/[0.06] font-mono text-stone-300 dark:text-stone-500">
           Ctrl+K
         </kbd>
       </button>
 
-      {/* Quick Sale — amber/orange tones */}
+      {/* Quick Sale */}
       <Button
         variant="ghost"
         size="sm"
-        className="hidden sm:flex text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/30 gap-1.5 text-xs font-medium"
+        className="hidden sm:flex text-amber-600 dark:text-amber-400 hover:text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-950/30 gap-1.5 text-xs font-medium"
         onClick={() => setQuickActionOpen(true)}
       >
         <ShoppingBag className="w-4 h-4" />
         <span className="hidden md:inline">Jual Cepat</span>
-        <kbd className="text-[10px] bg-amber-100 dark:bg-amber-900/30 px-1 py-0.5 rounded font-mono text-amber-600 dark:text-amber-400">
-          Alt+S
-        </kbd>
       </Button>
 
-      {/* Notifications — amber badge */}
+      {/* Notifications */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="icon" className="relative">
-            <Bell className="w-5 h-5 text-stone-400 dark:text-stone-500" />
+            <Bell className="w-4 h-4 text-stone-400 dark:text-stone-500" />
             {unread > 0 && (
               <span className="absolute top-1 right-1 w-4 h-4 bg-amber-500 rounded-full text-[10px] text-white flex items-center justify-center font-bold">
                 {unread}
@@ -116,7 +113,7 @@ function Header() {
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="icon">
-            <MoreVertical className="w-5 h-5 text-stone-400 dark:text-stone-500" />
+            <MoreVertical className="w-4 h-4 text-stone-400 dark:text-stone-500" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent
