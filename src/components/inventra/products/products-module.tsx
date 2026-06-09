@@ -157,20 +157,20 @@ function ProductsModule() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex flex-col sm:flex-row gap-3 shrink-0">
+      <div className="flex flex-col sm:flex-row gap-4 shrink-0">
         <div className="relative flex-1"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" /><Input placeholder="Cari produk..." value={search} onChange={e => setSearch(e.target.value)} className="pl-10" /></div>
         <Select value={filterCategory} onValueChange={setFilterCategory}><SelectTrigger className="w-44"><SelectValue placeholder="Kategori" /></SelectTrigger><SelectContent><SelectItem value="all">Semua Kategori</SelectItem>{categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select>
         <Button variant={filterLowStock ? 'default' : 'outline'} onClick={() => setFilterLowStock(!filterLowStock)} className={filterLowStock ? 'bg-amber-500 hover:bg-amber-600' : ''}><AlertTriangle className="w-4 h-4 mr-2" />Stok Menipis</Button>
         <Button onClick={() => { setEditing(null); setForm({ name: '', sku: '', categoryId: '', supplierId: '', description: '', buyPrice: '', sellPrice: '', minStock: '0', isActive: true }); setDialogOpen(true) }} className="bg-gradient-to-r from-rose-500 to-amber-500 text-white"><Plus className="w-4 h-4 mr-2" />Tambah</Button>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto mt-4">
+      <div className="flex-1 min-h-0 overflow-y-auto mt-6">
       {loading ? <div className="flex justify-center py-8"><RefreshCw className="w-6 h-6 animate-spin text-rose-500" /></div> : (
-        <div className="space-y-3">
+        <div className="space-y-5">
           {products.length === 0 ? <Card className="border-0 shadow-sm"><CardContent className="text-center py-8 text-muted-foreground">Belum ada produk</CardContent></Card> : products.map(p => (
             <Card key={p.id} className="border-0 shadow-sm">
-              <CardContent className="p-3 sm:p-4">
-                <div className="flex items-start gap-3 sm:gap-4">
+              <CardContent className="p-4 sm:p-5">
+                <div className="flex items-start gap-4 sm:gap-5">
                   <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-rose-100 to-amber-100 flex items-center justify-center text-rose-600 shrink-0"><Package className="w-5 h-5 sm:w-6 sm:h-6" /></div>
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-1.5 sm:gap-2"><h3 className="font-semibold text-sm sm:text-base">{p.name}</h3><Badge variant="outline" className="font-mono text-xs">{p.sku}</Badge><Badge className="bg-rose-100 text-rose-700 text-[10px] sm:text-xs">{p.category?.name}</Badge><Badge variant={p.isActive ? 'default' : 'secondary'} className={p.isActive ? 'bg-emerald-100 text-emerald-700 text-[10px] sm:text-xs' : 'text-[10px] sm:text-xs'}>{p.isActive ? 'Aktif' : 'Nonaktif'}</Badge></div>
@@ -197,7 +197,7 @@ function ProductsModule() {
                   </div>
                 </div>
                 {expandedProducts.has(p.id) && (p.variants ?? []).length > 0 && (
-                  <div className="mt-3 pt-3 border-t">
+                  <div className="mt-4 pt-4 border-t">
                     <div className="overflow-x-auto"><Table><TableHeader><TableRow><TableHead>Varian</TableHead><TableHead>SKU</TableHead><TableHead>Atribut</TableHead><TableHead className="text-right">Harga Beli</TableHead><TableHead className="text-right">Harga Jual</TableHead><TableHead className="text-center">Stok</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
                       <TableBody>{(p.variants ?? []).map(v => {
                         const attrs = (() => { try { return JSON.parse(v.attributes) } catch { return {} } })()

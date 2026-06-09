@@ -66,7 +66,7 @@ export default function WorkspaceHome() {
         ]
 
   return (
-    <div className="max-w-3xl mx-auto space-y-8 page-enter overflow-y-auto h-full">
+    <div className="max-w-3xl mx-auto space-y-10 page-enter overflow-y-auto h-full">
       {/* ===== Greeting — the breath in ===== */}
       <div className="space-y-1.5">
         <p className="text-sm text-stone-400 transition-colors duration-500">
@@ -82,7 +82,7 @@ export default function WorkspaceHome() {
 
       {/* ===== Priority alerts — the heartbeat ===== */}
       {(lowStockCount > 0 || (data.pendingPurchaseCount ?? 0) > 0 || (data.pendingSaleCount ?? 0) > 0) && (
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2.5">
           {lowStockCount > 0 && (
             <button
               onClick={() => setActivePage('products')}
@@ -112,12 +112,12 @@ export default function WorkspaceHome() {
       )}
 
       {/* ===== Quick Actions — the movement ===== */}
-      <div className="flex items-center gap-2.5">
+      <div className="flex items-center gap-3">
         {quickActions.map((a, i) => (
           <button
             key={i}
             onClick={a.action}
-            className="card-living group flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-white/60 dark:bg-[#1a1f2e]/60 backdrop-blur-sm border border-stone-200/40 dark:border-white/[0.04] shadow-sm text-sm font-medium text-stone-700 dark:text-stone-300"
+            className="card-living group flex items-center gap-2.5 px-5 py-3 rounded-xl bg-white/60 dark:bg-[#1a1f2e]/60 backdrop-blur-sm border border-stone-200/40 dark:border-white/[0.04] shadow-sm text-sm font-medium text-stone-700 dark:text-stone-300"
           >
             <div
               className={`w-7 h-7 rounded-lg ${a.color} flex items-center justify-center text-white group-hover:scale-110 transition-transform duration-300 ease-out shadow-sm`}
@@ -136,7 +136,7 @@ export default function WorkspaceHome() {
 
       {/* ===== Low Stock — the urgency ===== */}
       {(data.lowStockProducts ?? []).length > 0 && (role === 'owner' || role === 'admin' || role === 'warehouse') && (
-        <div className="space-y-3">
+        <div className="space-y-4">
           <div className="flex items-center justify-between">
             <p className="text-xs font-semibold text-stone-400 uppercase tracking-wider">
               Perlu Restock
@@ -150,12 +150,12 @@ export default function WorkspaceHome() {
               </button>
             )}
           </div>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             {(data.lowStockProducts ?? []).slice(0, 4).map((p) => (
               <button
                 key={p.variantId}
                 onClick={() => setActivePage('products')}
-                className={`card-living flex items-center gap-2.5 p-3 rounded-xl bg-white/60 border text-left dark:bg-[#1a1f2e]/60 backdrop-blur-sm ${
+                className={`card-living flex items-center gap-2.5 p-4 rounded-xl bg-white/60 border text-left dark:bg-[#1a1f2e]/60 backdrop-blur-sm ${
                   p.stock <= 0
                     ? 'border-red-200/40 dark:border-red-800/25'
                     : 'border-stone-200/40 dark:border-white/[0.04]'
@@ -183,9 +183,9 @@ export default function WorkspaceHome() {
       )}
 
       {/* ===== Bottom: Recent + Inbox — the stories ===== */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Transactions */}
-        <div className="space-y-3">
+        <div className="space-y-4">
           <div className="flex items-center justify-between">
             <p className="text-xs font-semibold text-stone-400 uppercase tracking-wider">
               Transaksi Terakhir
@@ -242,7 +242,7 @@ export default function WorkspaceHome() {
         </div>
 
         {/* Inbox */}
-        <div className="space-y-3">
+        <div className="space-y-4">
           <div className="flex items-center justify-between">
             <p className="text-xs font-semibold text-stone-400 uppercase tracking-wider">
               Inbox

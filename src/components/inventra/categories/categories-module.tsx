@@ -68,13 +68,13 @@ function CategoriesModule() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex flex-col sm:flex-row gap-3 shrink-0">
+      <div className="flex flex-col sm:flex-row gap-4 shrink-0">
         <div className="relative flex-1"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" /><Input placeholder="Cari..." value={search} onChange={e => setSearch(e.target.value)} className="pl-10" /></div>
         <Button onClick={() => { setEditing(null); setForm({ name: '', description: '' }); setDialogOpen(true) }} className="bg-gradient-to-r from-rose-500 to-amber-500 text-white hover:from-rose-600 hover:to-amber-600"><Plus className="w-4 h-4 mr-2" />Tambah</Button>
       </div>
-      <div className="flex-1 min-h-0 overflow-y-auto mt-4">
+      <div className="flex-1 min-h-0 overflow-y-auto mt-6">
       {loading ? <div className="flex justify-center py-8"><RefreshCw className="w-6 h-6 animate-spin text-rose-500" /></div> : (
-        <Card className="border-0 shadow-sm"><CardContent className="p-0"><Table><TableHeader><TableRow><TableHead>Nama</TableHead><TableHead>Deskripsi</TableHead><TableHead className="text-center">Produk</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
+        <Card className="border-0 shadow-sm"><CardContent className="px-1"><Table><TableHeader><TableRow><TableHead>Nama</TableHead><TableHead>Deskripsi</TableHead><TableHead className="text-center">Produk</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
           <TableBody>{!categories.length ? <TableRow><TableCell colSpan={4} className="text-center py-8 text-muted-foreground">Belum ada data</TableCell></TableRow> : categories.map(c => (
             <TableRow key={c.id}><TableCell className="font-medium">{c.name}</TableCell><TableCell className="text-muted-foreground">{c.description || '-'}</TableCell><TableCell className="text-center"><Badge variant="secondary">{c._count?.products || 0}</Badge></TableCell>
               <TableCell className="text-right"><div className="flex justify-end gap-1"><Button variant="ghost" size="icon" onClick={() => { setEditing(c); setForm({ name: c.name, description: c.description || '' }); setDialogOpen(true) }}><Edit className="w-4 h-4" /></Button><Button variant="ghost" size="icon" onClick={() => setDeleteConfirm(c.id)} className="text-red-500"><Trash2 className="w-4 h-4" /></Button></div></TableCell></TableRow>
