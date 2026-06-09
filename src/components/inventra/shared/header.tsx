@@ -29,7 +29,7 @@ function Header() {
     notifications,
     markNotificationRead,
     setSearchOpen,
-    setQuickActionOpen,
+    setActivePage,
     theme,
     toggleTheme,
   } = useAppStore()
@@ -121,12 +121,12 @@ function Header() {
           </kbd>
         </button>
 
-        {/* Quick Sale */}
+        {/* Quick Sale — navigate to Penjualan page */}
         <Button
           variant="ghost"
           size="sm"
           className="hidden sm:flex text-amber-600 dark:text-amber-400 hover:text-amber-700 hover:bg-amber-50/60 dark:hover:bg-amber-950/15 gap-1.5 text-xs font-medium transition-all duration-200 ease-out rounded-xl"
-          onClick={() => setQuickActionOpen(true)}
+          onClick={() => setActivePage('sales')}
         >
           <ShoppingBag className="w-4 h-4" />
           <span className="hidden md:inline">Jual Cepat</span>

@@ -12,7 +12,6 @@ import LoginScreen from '@/components/inventra/shared/login-screen'
 import Sidebar from '@/components/inventra/shared/sidebar'
 import Header from '@/components/inventra/shared/header'
 import GlobalSearch from '@/components/inventra/shared/global-search'
-import QuickSaleDialog from '@/components/inventra/shared/quick-sale-dialog'
 
 // Business Modules
 import CategoriesModule from '@/components/inventra/categories/categories-module'
@@ -50,7 +49,7 @@ export default function InventraApp() {
     sidebarOpen,
     setSidebarOpen,
     setSearchOpen,
-    setQuickActionOpen,
+    setActivePage,
     theme,
   } = useAppStore()
 
@@ -68,12 +67,12 @@ export default function InventraApp() {
       }
       if (e.altKey && e.key === 's') {
         e.preventDefault()
-        setQuickActionOpen(true)
+        setActivePage('sales')
       }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [setSearchOpen, setQuickActionOpen])
+  }, [setSearchOpen, setActivePage])
 
   if (!currentUser) return <LoginScreen />
 
@@ -183,7 +182,6 @@ export default function InventraApp() {
         <main key={activePage} className="flex-1 p-4 sm:p-6 lg:p-8 pb-24 lg:pb-8 overflow-auto transition-colors duration-500">{renderPage()}</main>
       </div>
       <GlobalSearch />
-      <QuickSaleDialog />
       {/* Mobile Floating Action Buttons */}
       <div className="fixed bottom-6 right-6 flex flex-col gap-3 lg:hidden z-40">
         <button
@@ -193,7 +191,7 @@ export default function InventraApp() {
           <Search className="w-5 h-5" />
         </button>
         <button
-          onClick={() => setQuickActionOpen(true)}
+          onClick={() => setActivePage('sales')}
           className="w-11 h-11 rounded-full bg-gradient-to-br from-amber-400 to-amber-500 text-white shadow-lg shadow-amber-500/30 hover:shadow-xl hover:scale-105 hover:from-amber-500 hover:to-amber-600 transition-all duration-300 flex items-center justify-center"
         >
           <ShoppingBag className="w-5 h-5" />
