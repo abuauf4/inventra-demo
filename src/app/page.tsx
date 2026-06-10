@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useAppStore } from '@/lib/store'
-import { Search, Construction } from 'lucide-react'
+import { Search, Construction, Loader2 } from 'lucide-react'
 
 // Workspace
 import WorkspaceHome from '@/components/inventra/workspace/workspace-home'
@@ -55,10 +55,22 @@ export default function InventraApp() {
     theme,
   } = useAppStore()
 
+  // Hydration guard — prevent login page flash on refresh
+  // Zustand persist rehydrates async from localStorage,
+  // so currentUser is null on first render even if user is logged in.
+  // We wait until after first client-side effect to check auth.
+  const [hydrated, setHydrated] = useState(false)
+
   // Apply theme on mount and when it changes
   useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark')
   }, [theme])
+
+  // Mark hydration complete after first client render
+  // (useEffect only fires after DOM paint, so Zustand has rehydrated by now)
+  useEffect(() => {
+    setHydrated(true)
+  }, [])
 
   // Global keyboard shortcuts
   useEffect(() => {
@@ -76,6 +88,18 @@ export default function InventraApp() {
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [setSearchOpen, setActivePage, setOpenSalesForm])
+
+  // Show minimal splash while Zustand rehydrates from localStorage
+  if (!hydrated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-stone-50 dark:bg-[#0f1117]">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="w-6 h-6 text-amber-500 animate-spin" />
+          <span className="text-xs text-stone-400 dark:text-stone-500">Memuat...</span>
+        </div>
+      </div>
+    )
+  }
 
   if (!currentUser) return <LoginScreen />
 
