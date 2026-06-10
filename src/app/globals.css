@@ -42,79 +42,15 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
 
-  /* Custom animation durations */
-  --animate-breathe: breathe 4s ease-in-out infinite;
-  --animate-glow: glow 3s ease-in-out infinite;
-  --animate-ambient: ambient 8s ease-in-out infinite;
-  --animate-float: float 6s ease-in-out infinite;
-  --animate-subtle-pulse: subtle-pulse 3s ease-in-out infinite;
+  /* Custom animation durations — minimal, workspace-appropriate */
+  --animate-fade-up: fade-up 0.3s cubic-bezier(0.4, 0, 0.2, 1) both;
 }
 
-/* ===== BREATHING KEYFRAMES — The Soul ===== */
-@keyframes breathe {
-  0%, 100% {
-    transform: scale(1);
-    filter: brightness(1);
-  }
-  50% {
-    transform: scale(1.04);
-    filter: brightness(1.1);
-  }
-}
-
-@keyframes glow {
-  0%, 100% {
-    box-shadow: 0 0 8px 0 rgba(251, 191, 36, 0.15);
-  }
-  50% {
-    box-shadow: 0 0 16px 2px rgba(251, 191, 36, 0.25);
-  }
-}
-
-@keyframes ambient {
-  0%, 100% {
-    opacity: 0.3;
-    transform: translate(-50%, -50%) scale(1);
-  }
-  50% {
-    opacity: 0.5;
-    transform: translate(-50%, -50%) scale(1.1);
-  }
-}
-
-@keyframes float {
-  0%, 100% {
-    transform: translateY(0px);
-  }
-  50% {
-    transform: translateY(-2px);
-  }
-}
-
-@keyframes subtle-pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.7;
-  }
-}
-
-@keyframes slide-in-left {
-  from {
-    opacity: 0;
-    transform: translateX(-8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
+/* ===== MINIMAL KEYFRAMES — Workspace Only ===== */
 @keyframes fade-up {
   from {
     opacity: 0;
-    transform: translateY(6px);
+    transform: translateY(4px);
   }
   to {
     opacity: 1;
@@ -250,44 +186,39 @@
   }
 }
 
-/* ===== SIDEBAR STYLES ===== */
+/* ===== SIDEBAR STYLES — Clean & Functional ===== */
 .sidebar-brand-icon {
-  animation: breathe 4s ease-in-out infinite;
+  /* No animation — static, professional */
 }
 
 .sidebar-ambient-orb {
-  animation: ambient 8s ease-in-out infinite;
-  pointer-events: none;
+  display: none;
 }
 
 .sidebar-active-bar {
-  animation: subtle-pulse 3s ease-in-out infinite;
+  /* Static indicator — no pulse */
 }
 
 .sidebar-nav-item:hover {
   transform: translateX(1px);
 }
 
-/* ===== LIVING CARD STYLES ===== */
+/* ===== CARD STYLES — Subtle Hover Only ===== */
 .card-living {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background-color 0.15s ease-out, border-color 0.15s ease-out;
 }
 .card-living:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px -5px rgba(0, 0, 0, 0.08), 0 4px 10px -6px rgba(0, 0, 0, 0.04);
-}
-.dark .card-living:hover {
-  box-shadow: 0 8px 25px -5px rgba(0, 0, 0, 0.3), 0 4px 10px -6px rgba(0, 0, 0, 0.2);
+  /* No lift, no glow — just subtle border shift */
 }
 
-/* ===== NOTIFICATION BADGE BREATHING ===== */
+/* ===== NOTIFICATION BADGE — Static ===== */
 .badge-breathe {
-  animation: subtle-pulse 2s ease-in-out infinite;
+  /* No animation — badge is just a colored indicator */
 }
 
-/* ===== PAGE TRANSITION ===== */
+/* ===== PAGE TRANSITION — Minimal ===== */
 .page-enter {
-  animation: fade-up 0.4s cubic-bezier(0.4, 0, 0.2, 1) both;
+  animation: fade-up 0.25s cubic-bezier(0.4, 0, 0.2, 1) both;
 }
 
 /* ===== MOBILE RESPONSIVE ===== */

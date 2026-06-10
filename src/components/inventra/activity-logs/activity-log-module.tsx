@@ -80,7 +80,7 @@ function ActivityLogModule() {
       </div>
       <p className="text-sm text-muted-foreground">Menampilkan {logs.length} aktivitas</p>
       {loading ? <div className="flex justify-center py-8"><RefreshCw className="w-6 h-6 animate-spin text-rose-500" /></div> : (
-        <Card className="border-0 shadow-sm"><CardContent className="p-4">
+        <Card className="border-0"><CardContent className="p-4">
           {logs.length === 0 ? <p className="text-center py-8 text-muted-foreground">Belum ada aktivitas</p> : (
             <div className="space-y-3">
               {logs.map(log => (

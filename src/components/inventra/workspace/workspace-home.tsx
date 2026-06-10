@@ -77,7 +77,7 @@ function LowStockModal({ items, open, onClose }: {
               }`}
             >
               <div className={`w-9 h-9 rounded-lg flex items-center justify-center text-white text-xs font-bold shrink-0 ${
-                p.stock <= 0 ? 'bg-gradient-to-br from-red-400 to-red-500' : 'bg-gradient-to-br from-amber-400 to-amber-500'
+                p.stock <= 0 ? 'bg-red-500' : 'bg-amber-500'
               }`}>
                 {p.stock}
               </div>
@@ -217,7 +217,7 @@ function OwnerHome({ data }: { data: DashboardData }) {
               Detail <ArrowRight className="w-2.5 h-2.5" />
             </button>
           </div>
-          <div className="bg-white/60 dark:bg-[#1a1f2e]/60 rounded-xl border border-stone-200/40 dark:border-white/[0.04] backdrop-blur-sm overflow-hidden flex-1 min-h-0 overflow-y-auto">
+          <div className="bg-white/60 dark:bg-[#1a1f2e]/60 rounded-xl border border-stone-200/40 dark:border-white/[0.04] overflow-hidden flex-1 min-h-0 overflow-y-auto">
             {topProducts.length === 0 ? (
               <div className="p-4 text-center text-xs text-stone-400">Belum ada data</div>
             ) : (
@@ -251,7 +251,7 @@ function OwnerHome({ data }: { data: DashboardData }) {
               Detail <ArrowRight className="w-2.5 h-2.5" />
             </button>
           </div>
-          <div className="bg-white/60 dark:bg-[#1a1f2e]/60 rounded-xl border border-stone-200/40 dark:border-white/[0.04] backdrop-blur-sm overflow-hidden flex-1 min-h-0 overflow-y-auto">
+          <div className="bg-white/60 dark:bg-[#1a1f2e]/60 rounded-xl border border-stone-200/40 dark:border-white/[0.04] overflow-hidden flex-1 min-h-0 overflow-y-auto">
             {topCustomers.length === 0 ? (
               <div className="p-4 text-center text-xs text-stone-400">Belum ada data</div>
             ) : (
@@ -284,7 +284,7 @@ function OwnerHome({ data }: { data: DashboardData }) {
               Semua <ArrowRight className="w-2.5 h-2.5" />
             </button>
           </div>
-          <div className="bg-white/60 dark:bg-[#1a1f2e]/60 rounded-xl border border-stone-200/40 dark:border-white/[0.04] backdrop-blur-sm overflow-hidden flex-1 min-h-0 overflow-y-auto divide-y divide-stone-100/50 dark:divide-white/[0.03]">
+          <div className="bg-white/60 dark:bg-[#1a1f2e]/60 rounded-xl border border-stone-200/40 dark:border-white/[0.04] overflow-hidden flex-1 min-h-0 overflow-y-auto divide-y divide-stone-100/50 dark:divide-white/[0.03]">
             {!(data.recentTransactions ?? []).length ? (
               <div className="p-4 text-center text-xs text-stone-400">Belum ada transaksi</div>
             ) : (
@@ -341,7 +341,7 @@ function AdminHome({ data }: { data: DashboardData }) {
       <div className="shrink-0 flex flex-wrap items-center gap-2 mb-5">
         <button
           onClick={() => { setActivePage('sales'); setOpenSalesForm(true) }}
-          className="card-living flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white text-sm font-medium shadow-md shadow-amber-500/20"
+          className="card-living flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500 text-white text-sm font-medium "
         >
           <ShoppingBag className="w-4 h-4" /> Jual
         </button>
@@ -363,7 +363,7 @@ function AdminHome({ data }: { data: DashboardData }) {
       <div className="shrink-0 grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-5">
         <button
           onClick={() => setActivePage('sales')}
-          className="bg-white dark:bg-[#1a1f2e]/60 rounded-xl border border-stone-200/40 dark:border-white/[0.04] p-3 text-left hover:shadow-md transition-shadow"
+          className="bg-white dark:bg-[#1a1f2e]/60 rounded-xl border border-stone-200/40 dark:border-white/[0.04] p-3 text-left transition-colors"
         >
           <div className="flex items-center gap-2 mb-2">
             <div className="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center">
@@ -375,7 +375,7 @@ function AdminHome({ data }: { data: DashboardData }) {
         </button>
         <button
           onClick={() => setActivePage('sales')}
-          className="bg-white dark:bg-[#1a1f2e]/60 rounded-xl border border-stone-200/40 dark:border-white/[0.04] p-3 text-left hover:shadow-md transition-shadow"
+          className="bg-white dark:bg-[#1a1f2e]/60 rounded-xl border border-stone-200/40 dark:border-white/[0.04] p-3 text-left transition-colors"
         >
           <div className="flex items-center gap-2 mb-2">
             <div className="w-7 h-7 rounded-lg bg-teal-50 dark:bg-teal-900/20 flex items-center justify-center">
@@ -387,7 +387,7 @@ function AdminHome({ data }: { data: DashboardData }) {
         </button>
         <button
           onClick={() => setActivePage('purchases')}
-          className="bg-white dark:bg-[#1a1f2e]/60 rounded-xl border border-stone-200/40 dark:border-white/[0.04] p-3 text-left hover:shadow-md transition-shadow"
+          className="bg-white dark:bg-[#1a1f2e]/60 rounded-xl border border-stone-200/40 dark:border-white/[0.04] p-3 text-left transition-colors"
         >
           <div className="flex items-center gap-2 mb-2">
             <div className="w-7 h-7 rounded-lg bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center">
@@ -400,7 +400,7 @@ function AdminHome({ data }: { data: DashboardData }) {
         {lowStockCount > 0 && (
           <button
             onClick={() => setLowStockOpen(true)}
-            className="bg-white dark:bg-[#1a1f2e]/60 rounded-xl border border-amber-200/40 dark:border-amber-800/20 p-3 text-left hover:shadow-md transition-shadow"
+            className="bg-white dark:bg-[#1a1f2e]/60 rounded-xl border border-amber-200/40 dark:border-amber-800/20 p-3 text-left transition-colors"
           >
             <div className="flex items-center gap-2 mb-2">
               <div className="w-7 h-7 rounded-lg bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center">
@@ -426,7 +426,7 @@ function AdminHome({ data }: { data: DashboardData }) {
             Semua <ArrowRight className="w-2.5 h-2.5" />
           </button>
         </div>
-        <div className="bg-white/60 dark:bg-[#1a1f2e]/60 rounded-xl border border-stone-200/40 dark:border-white/[0.04] backdrop-blur-sm overflow-hidden flex-1 min-h-0 overflow-y-auto divide-y divide-stone-100/50 dark:divide-white/[0.03]">
+        <div className="bg-white/60 dark:bg-[#1a1f2e]/60 rounded-xl border border-stone-200/40 dark:border-white/[0.04] overflow-hidden flex-1 min-h-0 overflow-y-auto divide-y divide-stone-100/50 dark:divide-white/[0.03]">
           {!(data.recentTransactions ?? []).length ? (
             <div className="p-5 text-center text-xs text-stone-400">Belum ada transaksi</div>
           ) : (
@@ -471,12 +471,12 @@ function StaffWarehouseHome({ data }: { data: DashboardData }) {
 
   const quickActions = role === 'warehouse'
     ? [
-        { label: 'Terima Barang', icon: <Package className="w-4 h-4" />, color: 'bg-stone-900', action: () => setActivePage('purchases') },
+        { label: 'Terima Barang', icon: <Package className="w-4 h-4" />, color: 'bg-stone-800', action: () => setActivePage('purchases') },
         { label: 'Mutasi Stok', icon: <ArrowRightLeft className="w-4 h-4" />, color: 'bg-stone-700', action: () => setActivePage('stock-mutations') },
         { label: 'Cari', icon: <Search className="w-4 h-4" />, color: 'bg-stone-600', action: () => setSearchOpen(true) },
       ]
     : [
-        { label: 'Jual', icon: <ShoppingBag className="w-4 h-4" />, color: 'bg-gradient-to-br from-amber-500 to-orange-500', action: () => setOpenSalesForm(true) },
+        { label: 'Jual', icon: <ShoppingBag className="w-4 h-4" />, color: 'bg-amber-500', action: () => setOpenSalesForm(true) },
         { label: 'Beli', icon: <ShoppingCart className="w-4 h-4" />, color: 'bg-stone-700', action: () => setActivePage('purchases') },
         { label: 'Cari', icon: <Search className="w-4 h-4" />, color: 'bg-stone-600', action: () => setSearchOpen(true) },
       ]
@@ -521,9 +521,9 @@ function StaffWarehouseHome({ data }: { data: DashboardData }) {
           <button
             key={i}
             onClick={a.action}
-            className="card-living group flex items-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl bg-white/60 dark:bg-[#1a1f2e]/60 backdrop-blur-sm border border-stone-200/40 dark:border-white/[0.04] shadow-sm text-sm font-medium text-stone-700 dark:text-stone-300"
+            className="card-living group flex items-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl bg-white/60 dark:bg-[#1a1f2e]/60 border border-stone-200/40 dark:border-white/[0.04] text-sm font-medium text-stone-700 dark:text-stone-300"
           >
-            <div className={`w-7 h-7 rounded-lg ${a.color} flex items-center justify-center text-white group-hover:scale-110 transition-transform duration-300 shadow-sm`}>
+            <div className={`w-7 h-7 rounded-lg ${a.color} flex items-center justify-center text-white group-hover:scale-110 transition-transform duration-300`}>
               {a.icon}
             </div>
             {a.label}
@@ -544,7 +544,7 @@ function StaffWarehouseHome({ data }: { data: DashboardData }) {
             Semua <ArrowRight className="w-2.5 h-2.5" />
           </button>
         </div>
-        <div className="bg-white/60 dark:bg-[#1a1f2e]/60 rounded-xl border border-stone-200/40 dark:border-white/[0.04] backdrop-blur-sm overflow-hidden flex-1 min-h-0 overflow-y-auto divide-y divide-stone-100/50 dark:divide-white/[0.03]">
+        <div className="bg-white/60 dark:bg-[#1a1f2e]/60 rounded-xl border border-stone-200/40 dark:border-white/[0.04] overflow-hidden flex-1 min-h-0 overflow-y-auto divide-y divide-stone-100/50 dark:divide-white/[0.03]">
           {!(data.recentTransactions ?? []).length ? (
             <div className="p-5 text-center text-xs text-stone-400">Belum ada transaksi</div>
           ) : (

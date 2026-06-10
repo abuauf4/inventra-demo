@@ -85,7 +85,7 @@ export default function MobileFullscreenMenu({ open, onClose }: MobileFullscreen
       {/* ── Header ── */}
       <div className="shrink-0 flex items-center justify-between px-4 h-14 border-b border-stone-100 dark:border-white/[0.04]">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-gradient-to-br from-amber-400 via-orange-500 to-amber-600 rounded-lg flex items-center justify-center shadow-md shadow-amber-500/20">
+          <div className="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center ">
             <Package className="w-4 h-4 text-white" />
           </div>
           <span className="text-[15px] font-semibold text-stone-800 dark:text-white tracking-tight">
@@ -106,7 +106,7 @@ export default function MobileFullscreenMenu({ open, onClose }: MobileFullscreen
           <div
             className={`w-10 h-10 rounded-full bg-gradient-to-br ${
               roleColors[currentUser?.role ?? 'staff'] || 'from-gray-400 to-gray-500'
-            } flex items-center justify-center text-white font-bold text-sm ring-2 ring-white/[0.08] shadow-lg`}
+            } flex items-center justify-center text-white font-bold text-sm ring-1 ring-white/10 `}
           >
             {(currentUser?.name ?? 'U').slice(0, 2).toUpperCase()}
           </div>

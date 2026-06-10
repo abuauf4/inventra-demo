@@ -41,14 +41,14 @@ function LoginScreen() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-stone-50 via-stone-100/50 to-stone-50 dark:from-[#0f1117] dark:via-[#111520] dark:to-[#0f1117] transition-colors duration-500">
+    <div className="min-h-screen flex items-center justify-center bg-stone-50 dark:bg-[#0f1117] transition-colors duration-500">
       {/* Subtle dot pattern */}
       <div className="absolute inset-0 bg-[radial-gradient(circle,oklch(0.75_0.01_50)_0.5px,transparent_0.5px)] bg-[size:20px_20px] opacity-30 dark:opacity-[0.04]" />
 
       <div className="relative z-10 w-full max-w-sm mx-4">
         {/* Logo + Brand */}
         <div className="text-center mb-8">
-          <div className="mx-auto w-14 h-14 bg-gradient-to-br from-amber-400 via-orange-500 to-amber-600 rounded-2xl flex items-center justify-center shadow-lg shadow-amber-500/20 mb-4">
+          <div className="mx-auto w-14 h-14 bg-amber-500 rounded-2xl flex items-center justify-center  mb-4">
             <Package className="w-7 h-7 text-white" />
           </div>
           <h1 className="text-xl font-bold text-stone-900 dark:text-white tracking-tight">
@@ -60,7 +60,7 @@ function LoginScreen() {
         </div>
 
         {/* Login Card */}
-        <div className="bg-white/90 dark:bg-[#1a1f2e]/90 backdrop-blur-sm border border-stone-200/60 dark:border-white/[0.06] rounded-2xl p-7 shadow-xl shadow-stone-200/30 dark:shadow-none">
+        <div className="bg-white/90 dark:bg-[#1a1f2e]/90 border border-stone-200/60 dark:border-white/[0.06] rounded-2xl p-7 ">
           <div className="space-y-4">
             {/* Username */}
             <div className="space-y-1.5">
@@ -103,7 +103,7 @@ function LoginScreen() {
 
             {/* Submit */}
             <Button
-              className="w-full h-11 bg-gradient-to-r from-stone-800 to-stone-900 dark:from-amber-600 dark:to-amber-500 hover:from-stone-700 hover:to-stone-800 dark:hover:from-amber-500 dark:hover:to-amber-400 text-white rounded-xl font-medium shadow-lg shadow-stone-900/10 dark:shadow-amber-500/20 transition-all duration-300 ease-out group mt-2"
+              className="w-full h-11 bg-stone-800 dark:bg-amber-500 hover:from-stone-700 hover:to-stone-800 dark:hover:from-amber-500 dark:hover:to-amber-400 text-white rounded-xl font-medium shadow-lg shadow-stone-900/10 dark:shadow-amber-500/20 transition-all duration-300 ease-out group mt-2"
               onClick={handleLogin}
               disabled={loading}
             >

@@ -101,11 +101,11 @@ function CustomersModule() {
     <div className="flex flex-col h-full">
       <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 shrink-0">
         <div className="relative flex-1"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" /><Input placeholder="Cari..." value={search} onChange={e => setSearch(e.target.value)} className="pl-10" /></div>
-        <Button onClick={() => { setEditing(null); setForm(defaultForm); setDialogOpen(true) }} className="bg-gradient-to-r from-rose-500 to-amber-500 text-white"><Plus className="w-4 h-4 mr-2" />Tambah</Button>
+        <Button onClick={() => { setEditing(null); setForm(defaultForm); setDialogOpen(true) }} className="bg-primary text-primary-foreground text-white"><Plus className="w-4 h-4 mr-2" />Tambah</Button>
       </div>
       <div className="flex-1 min-h-0 overflow-y-auto mt-5">
       {loading ? <div className="flex justify-center py-8"><RefreshCw className="w-6 h-6 animate-spin text-rose-500" /></div> : (
-        <Card className="border-0 shadow-sm"><CardContent className="p-2 sm:p-3"><div className="overflow-x-auto -mx-3 sm:mx-0"><Table><TableHeader><TableRow><TableHead>Kode</TableHead><TableHead>Nama / Perusahaan</TableHead><TableHead>Kontak</TableHead><TableHead>Tipe</TableHead><TableHead className="text-center">Penjualan</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
+        <Card className="border-0"><CardContent className="p-2 sm:p-3"><div className="overflow-x-auto -mx-3 sm:mx-0"><Table><TableHeader><TableRow><TableHead>Kode</TableHead><TableHead>Nama / Perusahaan</TableHead><TableHead>Kontak</TableHead><TableHead>Tipe</TableHead><TableHead className="text-center">Penjualan</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
           <TableBody>{!customers.length ? <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Belum ada data</TableCell></TableRow> : customers.map(c => (
             <TableRow key={c.id}>
               <TableCell><Badge variant="outline" className="font-mono text-xs">{c.code}</Badge></TableCell>
@@ -219,7 +219,7 @@ function CustomersModule() {
           <Separator />
           <div className="space-y-2"><Label>Catatan</Label><Textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} /></div>
         </div>
-        <DialogFooter><Button variant="outline" onClick={() => setDialogOpen(false)} disabled={saving}>Batal</Button><Button className="bg-gradient-to-r from-rose-500 to-amber-500 text-white" onClick={handleSave} disabled={saving}>{saving ? 'Menyimpan...' : 'Simpan'}</Button></DialogFooter></DialogContent></Dialog>
+        <DialogFooter><Button variant="outline" onClick={() => setDialogOpen(false)} disabled={saving}>Batal</Button><Button className="bg-primary text-primary-foreground text-white" onClick={handleSave} disabled={saving}>{saving ? 'Menyimpan...' : 'Simpan'}</Button></DialogFooter></DialogContent></Dialog>
 
       <AlertDialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Hapus?</AlertDialogTitle></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Batal</AlertDialogCancel><AlertDialogAction onClick={() => deleteConfirm && handleDelete(deleteConfirm)} className="bg-red-600">Hapus</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
     </div>

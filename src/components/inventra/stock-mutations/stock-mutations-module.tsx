@@ -289,7 +289,7 @@ function StockMutationsModule() {
         </div>
         <Button
           onClick={openDialog}
-          className="bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-sm"
+          className="bg-gradient-to-r from-amber-500 to-orange-500 text-white"
         >
           <Plus className="w-4 h-4 mr-2" />Tambah Mutasi
         </Button>
@@ -302,7 +302,7 @@ function StockMutationsModule() {
           <RefreshCw className="w-6 h-6 animate-spin text-amber-500" />
         </div>
       ) : (
-        <Card className="border-0 shadow-sm">
+        <Card className="border-0">
           <CardContent className="p-0">
             <div className="overflow-x-auto -mx-3 sm:mx-0">
             <Table>

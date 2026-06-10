@@ -166,11 +166,11 @@ function UserManagementModule() {
     <div className="flex flex-col h-full">
       <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 shrink-0">
         <div className="relative flex-1"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" /><Input placeholder="Cari..." value={search} onChange={e => setSearch(e.target.value)} className="pl-10" /></div>
-        <Button onClick={() => { setEditing(null); setForm({ name: '', username: '', email: '', password: '', role: 'staff', isActive: true }); setDialogOpen(true) }} className="bg-gradient-to-r from-rose-500 to-amber-500 text-white"><Plus className="w-4 h-4 mr-2" />Tambah</Button>
+        <Button onClick={() => { setEditing(null); setForm({ name: '', username: '', email: '', password: '', role: 'staff', isActive: true }); setDialogOpen(true) }} className="bg-primary text-primary-foreground text-white"><Plus className="w-4 h-4 mr-2" />Tambah</Button>
       </div>
       <div className="flex-1 min-h-0 overflow-y-auto mt-5">
       {loading ? <div className="flex justify-center py-8"><RefreshCw className="w-6 h-6 animate-spin text-rose-500" /></div> : (
-        <Card className="border-0 shadow-sm"><CardContent className="p-2 sm:p-3"><div className="overflow-x-auto -mx-3 sm:mx-0"><Table><TableHeader><TableRow><TableHead>Nama</TableHead><TableHead>Username</TableHead><TableHead>Email</TableHead><TableHead>Role</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
+        <Card className="border-0"><CardContent className="p-2 sm:p-3"><div className="overflow-x-auto -mx-3 sm:mx-0"><Table><TableHeader><TableRow><TableHead>Nama</TableHead><TableHead>Username</TableHead><TableHead>Email</TableHead><TableHead>Role</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
           <TableBody>{!users.length ? <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Belum ada data</TableCell></TableRow> : users.map(u => (
             <TableRow key={u.id}><TableCell className="font-medium">{u.name}</TableCell><TableCell className="font-mono text-sm">{u.username}</TableCell><TableCell>{u.email || '-'}</TableCell><TableCell><Badge className={u.role === 'owner' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' : u.role === 'admin' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : u.role === 'warehouse' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300' : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'}>{u.role.charAt(0).toUpperCase() + u.role.slice(1)}</Badge></TableCell><TableCell><Badge variant={u.isActive ? 'default' : 'secondary'} className={u.isActive ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' : 'dark:bg-gray-800 dark:text-gray-400'}>{u.isActive ? 'Aktif' : 'Nonaktif'}</Badge></TableCell>
               <TableCell className="text-right"><div className="flex justify-end gap-1"><Button variant="ghost" size="icon" onClick={() => { setEditing(u); setForm({ name: u.name, username: u.username, email: u.email || '', password: '', role: u.role, isActive: u.isActive }); setDialogOpen(true) }}><Edit className="w-4 h-4" /></Button><Button variant="ghost" size="icon" onClick={() => { setResetPwUser(u); setResetPw(''); setResetPwConfirm('') }} title="Reset Password" className="text-amber-500"><KeyRound className="w-4 h-4" /></Button>{canDelete(u) && <Button variant="ghost" size="icon" onClick={() => setDeleteConfirm(u.id)} className="text-red-500"><Trash2 className="w-4 h-4" /></Button>}</div></TableCell></TableRow>
@@ -188,7 +188,7 @@ function UserManagementModule() {
             </SelectContent></Select>
           )}
         </div><div className="flex items-center justify-between"><Label>Aktif</Label><Switch checked={form.isActive} onCheckedChange={v => setForm({ ...form, isActive: v })} /></div></div>
-        <DialogFooter><Button variant="outline" onClick={() => setDialogOpen(false)} disabled={saving}>Batal</Button><Button className="bg-gradient-to-r from-rose-500 to-amber-500 text-white" onClick={handleSave} disabled={saving}>{saving ? 'Menyimpan...' : 'Simpan'}</Button></DialogFooter></DialogContent></Dialog>
+        <DialogFooter><Button variant="outline" onClick={() => setDialogOpen(false)} disabled={saving}>Batal</Button><Button className="bg-primary text-primary-foreground text-white" onClick={handleSave} disabled={saving}>{saving ? 'Menyimpan...' : 'Simpan'}</Button></DialogFooter></DialogContent></Dialog>
       <AlertDialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Hapus?</AlertDialogTitle></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Batal</AlertDialogCancel><AlertDialogAction onClick={() => deleteConfirm && handleDelete(deleteConfirm)} className="bg-red-600">Hapus</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
 
       {/* Reset Password Dialog */}
@@ -230,7 +230,7 @@ function UserManagementModule() {
               Batal
             </Button>
             <Button
-              className="bg-gradient-to-r from-rose-500 to-amber-500 text-white"
+              className="bg-primary text-primary-foreground text-white"
               onClick={handleResetPassword}
               disabled={resetPwSaving}
             >

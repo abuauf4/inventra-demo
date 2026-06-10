@@ -18,11 +18,11 @@ interface ProfileCardProps {
 
 export default function ProfileCard({ user, quote }: ProfileCardProps) {
   return (
-    <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-stone-900 via-stone-800 to-stone-900 text-white p-6">
+    <div className="relative overflow-hidden rounded-2xl bg-stone-900 text-white p-6">
       <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-bl from-rose-500/20 to-transparent rounded-bl-full" />
       <div className="absolute bottom-0 left-0 w-32 h-32 bg-gradient-to-tr from-amber-500/15 to-transparent rounded-tr-full" />
       <div className="relative flex items-center gap-4">
-        <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${roleColors[user.role] || 'from-gray-500 to-gray-600'} flex items-center justify-center text-2xl font-bold shadow-lg ring-2 ring-white/20`}>
+        <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${roleColors[user.role] || 'from-gray-500 to-gray-600'} flex items-center justify-center text-2xl font-bold  `}>
           {user.name.slice(0, 2).toUpperCase()}
         </div>
         <div className="flex-1 min-w-0">

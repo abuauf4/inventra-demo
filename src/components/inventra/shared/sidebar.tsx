@@ -238,7 +238,7 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 ${w} bg-[#0e1525] transform transition-all duration-[220ms] ease-[cubic-bezier(0.4,0,0.2,1)] flex flex-col shadow-2xl lg:shadow-none overflow-hidden group/sidebar lg:sticky lg:top-0 lg:h-screen lg:z-auto rounded-tr-2xl ${
+        className={`fixed inset-y-0 left-0 z-50 ${w} bg-[#0e1525] transform transition-all duration-[220ms] ease-[cubic-bezier(0.4,0,0.2,1)] flex flex-col  lg:shadow-none overflow-hidden group/sidebar lg:sticky lg:top-0 lg:h-screen lg:z-auto rounded-tr-2xl ${
           open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
       >
@@ -256,7 +256,7 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
               <div
                 className={`bg-gradient-to-br ${
                   roleColors[currentUser?.role ?? 'staff'] || 'from-gray-400 to-gray-500'
-                } flex items-center justify-center text-white font-bold ring-2 ring-white/[0.08] shadow-lg transition-all duration-[220ms] ${
+                } flex items-center justify-center text-white font-bold ring-1 ring-white/10  transition-all duration-[220ms] ${
                   sidebarCollapsed ? 'w-9 h-9 rounded-lg text-xs lg:w-9 lg:h-9 lg:rounded-lg w-12 h-12 rounded-full' : 'w-12 h-12 rounded-full text-sm'
                 }`}
               >
@@ -316,12 +316,12 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
                         : 'gap-3 px-3.5 py-2.5'
                     } ${
                       isActive
-                        ? 'bg-gradient-to-r from-amber-500/20 via-amber-500/10 to-transparent text-amber-300'
+                        ? 'bg-amber-500/10 text-amber-300'
                         : 'text-white/50 hover:bg-white/[0.04] hover:text-white/75'
                     }`}
                   >
                     {isActive && (
-                      <span className="sidebar-active-bar absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-gradient-to-b from-amber-300 to-amber-500 rounded-r-full shadow-lg shadow-amber-400/40" />
+                      <span className="sidebar-active-bar absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-amber-500 rounded-r-full " />
                     )}
                     <span className={`transition-colors duration-200 shrink-0 ${isActive ? 'text-amber-400' : 'text-white/30 group-hover:text-white/55'}`}>
                       {item.icon}
@@ -368,12 +368,12 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
                       }}
                       className={`group w-full flex items-center justify-center rounded-xl transition-all duration-200 ease-out relative px-0 py-2.5 ${
                         sectionActive
-                          ? 'bg-gradient-to-r from-amber-500/15 via-amber-500/[0.08] to-transparent text-amber-300'
+                          ? 'bg-amber-500/8 text-amber-300'
                           : 'text-white/40 hover:bg-white/[0.04] hover:text-white/65'
                       }`}
                     >
                       {sectionActive && (
-                        <span className="sidebar-active-bar absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-gradient-to-b from-amber-300 to-amber-500 rounded-r-full shadow-lg shadow-amber-400/40" />
+                        <span className="sidebar-active-bar absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-amber-500 rounded-r-full " />
                       )}
                       <span className={`transition-colors duration-200 shrink-0 ${sectionActive ? 'text-amber-400' : 'text-white/25 group-hover:text-white/50'}`}>
                         {section.catIcon}
@@ -434,12 +434,12 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
                                 item.soon
                                   ? 'text-white/20 cursor-not-allowed'
                                   : isActive
-                                    ? 'bg-gradient-to-r from-amber-500/20 via-amber-500/10 to-transparent text-amber-300'
+                                    ? 'bg-amber-500/10 text-amber-300'
                                     : 'text-white/50 hover:bg-white/[0.04] hover:text-white/75'
                               }`}
                             >
                               {isActive && (
-                                <span className="sidebar-active-bar absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-gradient-to-b from-amber-300 to-amber-500 rounded-r-full shadow-lg shadow-amber-400/40" />
+                                <span className="sidebar-active-bar absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-amber-500 rounded-r-full " />
                               )}
                               <span className={`transition-colors duration-200 shrink-0 ${
                                 item.soon
@@ -475,7 +475,7 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
           {/* Brand / Inventra */}
           <div className={`transition-all duration-[220ms] ${sidebarCollapsed ? 'px-2 lg:px-2 px-5 py-2.5' : 'px-5 py-2.5'}`}>
             <div className="flex items-center gap-2.5">
-              <div className="sidebar-brand-icon w-6 h-6 bg-gradient-to-br from-amber-400 via-orange-500 to-amber-600 rounded-md flex items-center justify-center shadow-lg shadow-amber-500/20 shrink-0">
+              <div className="sidebar-brand-icon w-6 h-6 bg-amber-500 rounded-md flex items-center justify-center  shrink-0">
                 <Package className="w-3 h-3 text-white" />
               </div>
               <div className={`flex-1 min-w-0 ${sidebarCollapsed ? 'lg:hidden' : ''}`}>
@@ -512,7 +512,7 @@ function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
       {/* ===== Floating panel for collapsed category hover ===== */}
       {sidebarCollapsed && hoveredCat !== null && menuSections[hoveredCat] && (
         <div
-          className="fixed z-[90] bg-[#111827] border border-white/[0.06] rounded-xl shadow-2xl py-2 min-w-[190px]"
+          className="fixed z-[90] bg-[#111827] border border-white/[0.06] rounded-xl  py-2 min-w-[190px]"
           style={{
             left: panelPos.x + 8,
             top: panelPos.y - 8,

@@ -161,17 +161,17 @@ function ProductsModule() {
         <div className="relative flex-1"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" /><Input placeholder="Cari produk..." value={search} onChange={e => setSearch(e.target.value)} className="pl-10" /></div>
         <Select value={filterCategory} onValueChange={setFilterCategory}><SelectTrigger className="w-44"><SelectValue placeholder="Kategori" /></SelectTrigger><SelectContent><SelectItem value="all">Semua Kategori</SelectItem>{categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select>
         <Button variant={filterLowStock ? 'default' : 'outline'} onClick={() => setFilterLowStock(!filterLowStock)} className={filterLowStock ? 'bg-amber-500 hover:bg-amber-600' : ''}><AlertTriangle className="w-4 h-4 mr-2" />Stok Menipis</Button>
-        <Button onClick={() => { setEditing(null); setForm({ name: '', sku: '', categoryId: '', supplierId: '', description: '', buyPrice: '', sellPrice: '', minStock: '0', isActive: true }); setDialogOpen(true) }} className="bg-gradient-to-r from-rose-500 to-amber-500 text-white"><Plus className="w-4 h-4 mr-2" />Tambah</Button>
+        <Button onClick={() => { setEditing(null); setForm({ name: '', sku: '', categoryId: '', supplierId: '', description: '', buyPrice: '', sellPrice: '', minStock: '0', isActive: true }); setDialogOpen(true) }} className="bg-primary text-primary-foreground text-white"><Plus className="w-4 h-4 mr-2" />Tambah</Button>
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto mt-5">
       {loading ? <div className="flex justify-center py-8"><RefreshCw className="w-6 h-6 animate-spin text-rose-500" /></div> : (
         <div className="space-y-4">
-          {products.length === 0 ? <Card className="border-0 shadow-sm"><CardContent className="text-center py-8 text-muted-foreground">Belum ada produk</CardContent></Card> : products.map(p => (
-            <Card key={p.id} className="border-0 shadow-sm">
+          {products.length === 0 ? <Card className="border-0"><CardContent className="text-center py-8 text-muted-foreground">Belum ada produk</CardContent></Card> : products.map(p => (
+            <Card key={p.id} className="border-0">
               <CardContent className="p-4 sm:p-5">
                 <div className="flex items-start gap-4 sm:gap-5">
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-rose-100 to-amber-100 flex items-center justify-center text-rose-600 shrink-0"><Package className="w-5 h-5 sm:w-6 sm:h-6" /></div>
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-stone-100 dark:bg-white/[0.06] flex items-center justify-center text-rose-600 shrink-0"><Package className="w-5 h-5 sm:w-6 sm:h-6" /></div>
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-1.5 sm:gap-2"><h3 className="font-semibold text-sm sm:text-base">{p.name}</h3><Badge variant="outline" className="font-mono text-xs">{p.sku}</Badge><Badge className="bg-rose-100 text-rose-700 text-[10px] sm:text-xs">{p.category?.name}</Badge><Badge variant={p.isActive ? 'default' : 'secondary'} className={p.isActive ? 'bg-emerald-100 text-emerald-700 text-[10px] sm:text-xs' : 'text-[10px] sm:text-xs'}>{p.isActive ? 'Aktif' : 'Nonaktif'}</Badge></div>
                     <div className="flex flex-wrap gap-x-3 sm:gap-x-4 gap-y-0.5 mt-1 text-xs sm:text-sm text-muted-foreground">
@@ -226,7 +226,7 @@ function ProductsModule() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3"><div className="space-y-2"><Label>Harga Beli</Label><Input type="number" value={form.buyPrice} onChange={e => setForm({ ...form, buyPrice: e.target.value })} /></div><div className="space-y-2"><Label>Harga Jual</Label><Input type="number" value={form.sellPrice} onChange={e => setForm({ ...form, sellPrice: e.target.value })} /></div></div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3"><div className="space-y-2"><Label>Min. Stok</Label><Input type="number" value={form.minStock} onChange={e => setForm({ ...form, minStock: e.target.value })} /></div></div>
         </div>
-        <DialogFooter><Button variant="outline" onClick={() => setDialogOpen(false)} disabled={saving}>Batal</Button><Button className="bg-gradient-to-r from-rose-500 to-amber-500 text-white" onClick={handleSave} disabled={saving}>{saving ? 'Menyimpan...' : 'Simpan'}</Button></DialogFooter></DialogContent></Dialog>
+        <DialogFooter><Button variant="outline" onClick={() => setDialogOpen(false)} disabled={saving}>Batal</Button><Button className="bg-primary text-primary-foreground text-white" onClick={handleSave} disabled={saving}>{saving ? 'Menyimpan...' : 'Simpan'}</Button></DialogFooter></DialogContent></Dialog>
 
       <Dialog open={variantDialogOpen} onOpenChange={(open) => { setVariantDialogOpen(open); if (!open) setEditingVariant(null) }}><DialogContent><DialogHeader><DialogTitle>{editingVariant ? 'Edit' : 'Tambah'} Varian — {selectedProduct?.name}</DialogTitle></DialogHeader>
         <div className="space-y-3" onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); if (editingVariant) { handleSaveVariant() } else { handleAddVariant() } } }}>
@@ -251,7 +251,7 @@ function ProductsModule() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3"><div className="space-y-2"><Label>Harga Beli</Label><Input type="number" value={variantForm.buyPrice} onChange={e => setVariantForm({ ...variantForm, buyPrice: e.target.value })} /></div><div className="space-y-2"><Label>Harga Jual</Label><Input type="number" value={variantForm.sellPrice} onChange={e => setVariantForm({ ...variantForm, sellPrice: e.target.value })} /></div></div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3"><div className="space-y-2"><Label>Stok</Label><Input type="number" value={variantForm.stock} onChange={e => setVariantForm({ ...variantForm, stock: e.target.value })} disabled={!!editingVariant} />{editingVariant && <p className="text-xs text-muted-foreground">Stok diubah melalui transaksi</p>}</div><div className="space-y-2"><Label>Min. Stok</Label><Input type="number" value={variantForm.minStock} onChange={e => setVariantForm({ ...variantForm, minStock: e.target.value })} /></div></div>
         </div>
-        <DialogFooter><Button variant="outline" onClick={() => { setVariantDialogOpen(false); setEditingVariant(null) }} disabled={saving}>Batal</Button><Button className="bg-gradient-to-r from-rose-500 to-amber-500 text-white" onClick={editingVariant ? handleSaveVariant : handleAddVariant} disabled={saving}>{saving ? 'Menyimpan...' : 'Simpan Varian'}</Button></DialogFooter></DialogContent></Dialog>
+        <DialogFooter><Button variant="outline" onClick={() => { setVariantDialogOpen(false); setEditingVariant(null) }} disabled={saving}>Batal</Button><Button className="bg-primary text-primary-foreground text-white" onClick={editingVariant ? handleSaveVariant : handleAddVariant} disabled={saving}>{saving ? 'Menyimpan...' : 'Simpan Varian'}</Button></DialogFooter></DialogContent></Dialog>
 
       <AlertDialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Hapus?</AlertDialogTitle></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Batal</AlertDialogCancel><AlertDialogAction onClick={() => deleteConfirm && handleDelete(deleteConfirm)} className="bg-red-600">Hapus</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
     </div>

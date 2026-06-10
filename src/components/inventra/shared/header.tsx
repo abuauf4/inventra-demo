@@ -93,7 +93,7 @@ function Header() {
 
   return (
     <>
-      <header className="shrink-0 z-30 bg-white/60 dark:bg-[#0f1117]/60 backdrop-blur-2xl border-b border-stone-200/30 dark:border-white/[0.03] px-4 lg:px-6 h-14 flex items-center gap-3 transition-all duration-300">
+      <header className="shrink-0 z-30 bg-white/60 dark:bg-[#0f1117]/60 backdrop-blur-md border-b border-stone-200/30 dark:border-white/[0.03] px-4 lg:px-6 h-14 flex items-center gap-3 transition-all duration-300">
         {/* Mobile hamburger — opens full-screen menu */}
         <button
           onClick={() => setMobileMenuOpen(true)}
@@ -141,7 +141,7 @@ function Header() {
             <Button variant="ghost" size="icon" className="relative transition-all duration-200 rounded-xl hover:bg-stone-100/50">
               <Bell className="w-4 h-4 text-stone-400 dark:text-stone-500" />
               {unread > 0 && (
-                <span className="badge-breathe absolute top-1 right-1 w-4 h-4 bg-amber-500 rounded-full text-[10px] text-white flex items-center justify-center font-bold shadow-md shadow-amber-500/30">
+                <span className="badge-breathe absolute top-1 right-1 w-4 h-4 bg-amber-500 rounded-full text-[10px] text-white flex items-center justify-center font-bold ">
                   {unread}
                 </span>
               )}

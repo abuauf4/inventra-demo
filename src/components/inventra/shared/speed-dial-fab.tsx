@@ -170,7 +170,7 @@ export default function SpeedDialFAB() {
                 <span
                   className="text-[13px] font-medium text-stone-700 dark:text-stone-200 bg-white dark:bg-[#1e2130] pl-3 pr-2.5 py-[7px] rounded-lg whitespace-nowrap select-none"
                   style={{
-                    boxShadow: '0 2px 8px -2px rgba(0,0,0,0.12), 0 1px 3px -1px rgba(0,0,0,0.06)',
+                    boxShadow: '0 1px 3px -1px rgba(0,0,0,0.06)',
                   }}
                 >
                   {action.label}
@@ -181,7 +181,7 @@ export default function SpeedDialFAB() {
                   onClick={() => handleAction(action)}
                   className="w-11 h-11 rounded-full bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 active:scale-90 transition-transform duration-150"
                   style={{
-                    boxShadow: '0 3px 12px -3px rgba(180,83,9,0.15), 0 1px 4px -1px rgba(0,0,0,0.06)',
+                    boxShadow: '0 1px 4px -1px rgba(0,0,0,0.08)',
                   }}
                 >
                   {action.icon}
@@ -195,12 +195,12 @@ export default function SpeedDialFAB() {
       {/* ── FAB Button ── */}
       <button
         onClick={handleToggle}
-        className="fixed z-[57] right-4 w-14 h-14 rounded-full bg-gradient-to-br from-amber-400 via-orange-500 to-amber-600 text-white flex items-center justify-center lg:hidden select-none"
+        className="fixed z-[57] right-4 w-14 h-14 rounded-full bg-amber-500 text-white flex items-center justify-center lg:hidden select-none"
         style={{
           bottom: '24px',
           boxShadow: isOpen
-            ? '0 10px 35px -5px rgba(245,158,11,0.4), 0 4px 12px -4px rgba(0,0,0,0.1)'
-            : '0 8px 25px -5px rgba(245,158,11,0.25), 0 2px 8px -2px rgba(0,0,0,0.06)',
+            ? '0 4px 12px -2px rgba(0,0,0,0.15), 0 4px 12px -4px rgba(0,0,0,0.1)'
+            : '0 2px 8px -2px rgba(0,0,0,0.1), 0 2px 8px -2px rgba(0,0,0,0.06)',
           transition: `box-shadow ${ANIM_DURATION}ms cubic-bezier(0.4,0,0.2,1)`,
         }}
       >
