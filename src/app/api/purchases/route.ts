@@ -17,7 +17,9 @@ async function resolveVariant(variantId: string | null | undefined, productId: s
   return null
 }
 
-// GET /api/purchases - List purchases with supplier info and items (paginated)
+// GET /api/purchases - Optimized: lightweight list mode for table view
+// List view only needs: transNo, supplier name, date, status, total, item count
+// Detail view (when user clicks) fetches full data via /api/purchases/[id]
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
@@ -52,10 +54,27 @@ export async function GET(request: NextRequest) {
     const [purchases, total] = await Promise.all([
       db.purchase.findMany({
         where,
-        include: {
-          supplier: true,
+        select: {
+          id: true,
+          transNo: true,
+          date: true,
+          total: true,
+          status: true,
+          notes: true,
+          supplierId: true,
+          // Only fetch supplier name (not full object)
+          supplier: {
+            select: { id: true, name: true, code: true },
+          },
+          // Only fetch item summary for display
           items: {
-            include: {
+            select: {
+              id: true,
+              variantId: true,
+              productId: true,
+              qty: true,
+              buyPrice: true,
+              // Lightweight variant/product names for display
               variant: {
                 select: { id: true, name: true, sku: true },
               },

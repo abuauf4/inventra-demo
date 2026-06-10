@@ -17,7 +17,9 @@ async function resolveVariant(variantId: string | null | undefined, productId: s
   return null
 }
 
-// GET /api/sales - List sales with customer info and items (paginated)
+// GET /api/sales - Optimized: lightweight list mode for table view
+// List view only needs: transNo, customer name, date, status, total, item count
+// Detail view (when user clicks) fetches full data via /api/sales/[id]
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
@@ -52,10 +54,27 @@ export async function GET(request: NextRequest) {
     const [sales, total] = await Promise.all([
       db.sale.findMany({
         where,
-        include: {
-          customer: true,
+        select: {
+          id: true,
+          transNo: true,
+          date: true,
+          total: true,
+          status: true,
+          notes: true,
+          customerId: true,
+          // Only fetch customer name (not full object)
+          customer: {
+            select: { id: true, name: true, code: true },
+          },
+          // Only fetch item count + summary, not full item details with nested variant/product
           items: {
-            include: {
+            select: {
+              id: true,
+              variantId: true,
+              productId: true,
+              qty: true,
+              sellPrice: true,
+              // Lightweight variant/product names for display
               variant: {
                 select: { id: true, name: true, sku: true },
               },
