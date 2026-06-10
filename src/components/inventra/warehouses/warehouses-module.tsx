@@ -64,16 +64,17 @@ function WarehousesModule() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row gap-3">
+    <div className="flex flex-col h-full">
+      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 shrink-0">
         <div className="relative flex-1"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" /><Input placeholder="Cari..." value={search} onChange={e => setSearch(e.target.value)} className="pl-10" /></div>
         <Button onClick={() => { setEditing(null); setForm({ name: '', code: '', address: '', isActive: true }); setDialogOpen(true) }} className="bg-gradient-to-r from-rose-500 to-amber-500 text-white"><Plus className="w-4 h-4 mr-2" />Tambah Gudang</Button>
       </div>
+      <div className="flex-1 min-h-0 overflow-y-auto mt-5">
       {loading ? <div className="flex justify-center py-8"><RefreshCw className="w-6 h-6 animate-spin text-rose-500" /></div> : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {warehouses.length === 0 ? <div className="col-span-full text-center py-8 text-muted-foreground">Belum ada gudang</div> : warehouses.map(w => (
             <Card key={w.id} className="border-0 shadow-sm hover:shadow-md transition-shadow">
-              <CardContent className="p-4">
+              <CardContent className="p-5">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-gradient-to-br from-rose-100 to-amber-100 rounded-lg flex items-center justify-center text-rose-600"><WarehouseIcon className="w-5 h-5" /></div>
@@ -91,6 +92,7 @@ function WarehousesModule() {
           ))}
         </div>
       )}
+      </div>
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}><DialogContent><DialogHeader><DialogTitle>{editing ? 'Edit' : 'Tambah'} Gudang</DialogTitle></DialogHeader>
         <div className="space-y-3"><div className="grid grid-cols-1 sm:grid-cols-2 gap-3"><div className="space-y-2"><Label>Nama *</Label><Input ref={nameRef} value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleSave() } }} /></div><div className="space-y-2"><Label>Kode *</Label><Input value={form.code} onChange={e => setForm({ ...form, code: e.target.value })} placeholder="cth: GDG-01" onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleSave() } }} /></div></div><div className="space-y-2"><Label>Alamat</Label><Textarea value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} /></div></div>
         <DialogFooter><Button variant="outline" onClick={() => setDialogOpen(false)} disabled={saving}>Batal</Button><Button className="bg-gradient-to-r from-rose-500 to-amber-500 text-white" onClick={handleSave} disabled={saving}>{saving ? 'Menyimpan...' : 'Simpan'}</Button></DialogFooter></DialogContent></Dialog>

@@ -28,8 +28,34 @@ import {
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import {
-  Search, Plus, Edit, Trash2, RefreshCw, ChevronRight, AlertTriangle, Package,
+  Search, Plus, Edit, Trash2, RefreshCw, ChevronRight, AlertTriangle, Package, X,
 } from 'lucide-react'
+
+// Common attribute keys for fashion/apparel
+const ATTRIBUTE_PRESETS = ['Warna', 'Ukuran', 'Bahan', 'Motif', 'Berat', 'Panjang']
+
+interface AttributePair {
+  key: string
+  value: string
+}
+
+// Convert JSON string → attribute pairs array
+function jsonToPairs(json: string): AttributePair[] {
+  try {
+    const obj = JSON.parse(json)
+    if (typeof obj === 'object' && obj !== null) {
+      return Object.entries(obj).map(([key, value]) => ({ key, value: String(value) }))
+    }
+  } catch {}
+  return []
+}
+
+// Convert attribute pairs → JSON string
+function pairsToJson(pairs: AttributePair[]): string {
+  const filtered = pairs.filter(p => p.key.trim() && p.value.trim())
+  if (!filtered.length) return '{}'
+  return JSON.stringify(Object.fromEntries(filtered.map(p => [p.key.trim(), p.value.trim()])))
+}
 
 function ProductsModule() {
   const [products, setProducts] = useState<Product[]>([])
@@ -46,6 +72,7 @@ function ProductsModule() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [form, setForm] = useState({ name: '', sku: '', categoryId: '', supplierId: '', description: '', buyPrice: '', sellPrice: '', minStock: '0', isActive: true })
   const [variantForm, setVariantForm] = useState({ name: '', sku: '', attributes: '', buyPrice: '', sellPrice: '', stock: '0', minStock: '0', isActive: true })
+  const [attrPairs, setAttrPairs] = useState<AttributePair[]>([{ key: '', value: '' }])
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
   const [expandedProducts, setExpandedProducts] = useState<Set<string>>(new Set())
   const [variantNameRef, setVariantNameRef] = useState<HTMLInputElement | null>(null)
@@ -84,10 +111,10 @@ function ProductsModule() {
     if (!selectedProduct || !variantForm.name || !variantForm.sku) { toast.error('Nama dan SKU varian wajib'); return }
     setSaving(true)
     try {
-      const body = { productId: selectedProduct.id, name: variantForm.name, sku: variantForm.sku, attributes: variantForm.attributes, buyPrice: parseFloat(variantForm.buyPrice) || selectedProduct.buyPrice, sellPrice: parseFloat(variantForm.sellPrice) || selectedProduct.sellPrice, stock: parseInt(variantForm.stock) || 0, minStock: parseInt(variantForm.minStock) || 0 }
+      const body = { productId: selectedProduct.id, name: variantForm.name, sku: variantForm.sku, attributes: pairsToJson(attrPairs), buyPrice: parseFloat(variantForm.buyPrice) || selectedProduct.buyPrice, sellPrice: parseFloat(variantForm.sellPrice) || selectedProduct.sellPrice, stock: parseInt(variantForm.stock) || 0, minStock: parseInt(variantForm.minStock) || 0 }
       const res = await fetch('/api/product-variants', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       if (!res.ok) { const d = await res.json(); toast.error(d.error || d.message || 'Gagal'); return }
-      toast.success('Varian ditambahkan'); setVariantDialogOpen(false); setEditingVariant(null); setVariantForm({ name: '', sku: '', attributes: '', buyPrice: '', sellPrice: '', stock: '0', minStock: '0', isActive: true }); load()
+      toast.success('Varian ditambahkan'); setVariantDialogOpen(false); setEditingVariant(null); setVariantForm({ name: '', sku: '', attributes: '', buyPrice: '', sellPrice: '', stock: '0', minStock: '0', isActive: true }); setAttrPairs([{ key: '', value: '' }]); load()
     } catch { toast.error('Gagal') } finally { setSaving(false) }
   }
 
@@ -103,6 +130,7 @@ function ProductsModule() {
       minStock: String(variant.minStock),
       isActive: variant.isActive,
     })
+    setAttrPairs(jsonToPairs(variant.attributes).length > 0 ? jsonToPairs(variant.attributes) : [{ key: '', value: '' }])
     setVariantDialogOpen(true)
   }
 
@@ -110,10 +138,10 @@ function ProductsModule() {
     if (!editingVariant || !variantForm.name || !variantForm.sku) { toast.error('Nama dan SKU varian wajib'); return }
     setSaving(true)
     try {
-      const body = { name: variantForm.name, sku: variantForm.sku, attributes: variantForm.attributes, buyPrice: parseFloat(variantForm.buyPrice) || 0, sellPrice: parseFloat(variantForm.sellPrice) || 0, minStock: parseInt(variantForm.minStock) || 0, isActive: variantForm.isActive }
+      const body = { name: variantForm.name, sku: variantForm.sku, attributes: pairsToJson(attrPairs), buyPrice: parseFloat(variantForm.buyPrice) || 0, sellPrice: parseFloat(variantForm.sellPrice) || 0, minStock: parseInt(variantForm.minStock) || 0, isActive: variantForm.isActive }
       const res = await fetch(`/api/product-variants/${editingVariant.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       if (!res.ok) { const d = await res.json(); toast.error(d.error || d.message || 'Gagal'); return }
-      toast.success('Varian diperbarui'); setVariantDialogOpen(false); setEditingVariant(null); setVariantForm({ name: '', sku: '', attributes: '', buyPrice: '', sellPrice: '', stock: '0', minStock: '0', isActive: true }); load()
+      toast.success('Varian diperbarui'); setVariantDialogOpen(false); setEditingVariant(null); setVariantForm({ name: '', sku: '', attributes: '', buyPrice: '', sellPrice: '', stock: '0', minStock: '0', isActive: true }); setAttrPairs([{ key: '', value: '' }]); load()
     } catch { toast.error('Gagal') } finally { setSaving(false) }
   }
 
@@ -128,20 +156,21 @@ function ProductsModule() {
   const getTotalStock = (p: Product) => p.variants?.reduce((s, v) => s + v.stock, 0) || 0
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row gap-3">
+    <div className="flex flex-col h-full">
+      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 shrink-0">
         <div className="relative flex-1"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" /><Input placeholder="Cari produk..." value={search} onChange={e => setSearch(e.target.value)} className="pl-10" /></div>
         <Select value={filterCategory} onValueChange={setFilterCategory}><SelectTrigger className="w-44"><SelectValue placeholder="Kategori" /></SelectTrigger><SelectContent><SelectItem value="all">Semua Kategori</SelectItem>{categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select>
         <Button variant={filterLowStock ? 'default' : 'outline'} onClick={() => setFilterLowStock(!filterLowStock)} className={filterLowStock ? 'bg-amber-500 hover:bg-amber-600' : ''}><AlertTriangle className="w-4 h-4 mr-2" />Stok Menipis</Button>
         <Button onClick={() => { setEditing(null); setForm({ name: '', sku: '', categoryId: '', supplierId: '', description: '', buyPrice: '', sellPrice: '', minStock: '0', isActive: true }); setDialogOpen(true) }} className="bg-gradient-to-r from-rose-500 to-amber-500 text-white"><Plus className="w-4 h-4 mr-2" />Tambah</Button>
       </div>
 
+      <div className="flex-1 min-h-0 overflow-y-auto mt-5">
       {loading ? <div className="flex justify-center py-8"><RefreshCw className="w-6 h-6 animate-spin text-rose-500" /></div> : (
-        <div className="space-y-3">
+        <div className="space-y-4">
           {products.length === 0 ? <Card className="border-0 shadow-sm"><CardContent className="text-center py-8 text-muted-foreground">Belum ada produk</CardContent></Card> : products.map(p => (
             <Card key={p.id} className="border-0 shadow-sm">
-              <CardContent className="p-3 sm:p-4">
-                <div className="flex items-start gap-3 sm:gap-4">
+              <CardContent className="p-4 sm:p-5">
+                <div className="flex items-start gap-4 sm:gap-5">
                   <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-rose-100 to-amber-100 flex items-center justify-center text-rose-600 shrink-0"><Package className="w-5 h-5 sm:w-6 sm:h-6" /></div>
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-1.5 sm:gap-2"><h3 className="font-semibold text-sm sm:text-base">{p.name}</h3><Badge variant="outline" className="font-mono text-xs">{p.sku}</Badge><Badge className="bg-rose-100 text-rose-700 text-[10px] sm:text-xs">{p.category?.name}</Badge><Badge variant={p.isActive ? 'default' : 'secondary'} className={p.isActive ? 'bg-emerald-100 text-emerald-700 text-[10px] sm:text-xs' : 'text-[10px] sm:text-xs'}>{p.isActive ? 'Aktif' : 'Nonaktif'}</Badge></div>
@@ -153,7 +182,7 @@ function ProductsModule() {
                     </div>
                     {/* Mobile action row */}
                     <div className="flex gap-1 mt-2 sm:hidden">
-                      <Button variant="ghost" size="sm" className="h-7 text-xs px-2" onClick={() => { setSelectedProduct(p); setEditingVariant(null); setVariantForm({ name: '', sku: '', attributes: '', buyPrice: String(p.buyPrice), sellPrice: String(p.sellPrice), stock: '0', minStock: '0', isActive: true }); setVariantDialogOpen(true) }}><Plus className="w-3 h-3 mr-1" />Varian</Button>
+                      <Button variant="ghost" size="sm" className="h-7 text-xs px-2" onClick={() => { setSelectedProduct(p); setEditingVariant(null); setVariantForm({ name: '', sku: '', attributes: '', buyPrice: String(p.buyPrice), sellPrice: String(p.sellPrice), stock: '0', minStock: '0', isActive: true }); setAttrPairs([{ key: '', value: '' }]); setVariantDialogOpen(true) }}><Plus className="w-3 h-3 mr-1" />Varian</Button>
                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => toggleExpand(p.id)}><ChevronRight className={`w-3.5 h-3.5 transition-transform ${expandedProducts.has(p.id) ? 'rotate-90' : ''}`} /></Button>
                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditing(p); setForm({ name: p.name, sku: p.sku, categoryId: p.categoryId, supplierId: p.supplierId || '', description: p.description || '', buyPrice: String(p.buyPrice), sellPrice: String(p.sellPrice), minStock: String(p.minStock), isActive: p.isActive }); setDialogOpen(true) }}><Edit className="w-3.5 h-3.5" /></Button>
                       <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500" onClick={() => setDeleteConfirm(p.id)}><Trash2 className="w-3.5 h-3.5" /></Button>
@@ -161,15 +190,15 @@ function ProductsModule() {
                   </div>
                   {/* Desktop action row */}
                   <div className="hidden sm:flex gap-1 shrink-0">
-                    <Button variant="ghost" size="sm" onClick={() => { setSelectedProduct(p); setEditingVariant(null); setVariantForm({ name: '', sku: '', attributes: '', buyPrice: String(p.buyPrice), sellPrice: String(p.sellPrice), stock: '0', minStock: '0', isActive: true }); setVariantDialogOpen(true) }}><Plus className="w-4 h-4 mr-1" />Varian</Button>
+                    <Button variant="ghost" size="sm" onClick={() => { setSelectedProduct(p); setEditingVariant(null); setVariantForm({ name: '', sku: '', attributes: '', buyPrice: String(p.buyPrice), sellPrice: String(p.sellPrice), stock: '0', minStock: '0', isActive: true }); setAttrPairs([{ key: '', value: '' }]); setVariantDialogOpen(true) }}><Plus className="w-4 h-4 mr-1" />Varian</Button>
                     <Button variant="ghost" size="icon" onClick={() => toggleExpand(p.id)}><ChevronRight className={`w-4 h-4 transition-transform ${expandedProducts.has(p.id) ? 'rotate-90' : ''}`} /></Button>
                     <Button variant="ghost" size="icon" onClick={() => { setEditing(p); setForm({ name: p.name, sku: p.sku, categoryId: p.categoryId, supplierId: p.supplierId || '', description: p.description || '', buyPrice: String(p.buyPrice), sellPrice: String(p.sellPrice), minStock: String(p.minStock), isActive: p.isActive }); setDialogOpen(true) }}><Edit className="w-4 h-4" /></Button>
                     <Button variant="ghost" size="icon" onClick={() => setDeleteConfirm(p.id)} className="text-red-500"><Trash2 className="w-4 h-4" /></Button>
                   </div>
                 </div>
                 {expandedProducts.has(p.id) && (p.variants ?? []).length > 0 && (
-                  <div className="mt-3 pt-3 border-t">
-                    <div className="overflow-x-auto"><Table><TableHeader><TableRow><TableHead>Varian</TableHead><TableHead>SKU</TableHead><TableHead>Atribut</TableHead><TableHead className="text-right">Harga Beli</TableHead><TableHead className="text-right">Harga Jual</TableHead><TableHead className="text-center">Stok</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
+                  <div className="mt-4 pt-4 border-t">
+                    <div className="overflow-x-auto -mx-3 sm:mx-0"><Table><TableHeader><TableRow><TableHead>Varian</TableHead><TableHead>SKU</TableHead><TableHead>Atribut</TableHead><TableHead className="text-right">Harga Beli</TableHead><TableHead className="text-right">Harga Jual</TableHead><TableHead className="text-center">Stok</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
                       <TableBody>{(p.variants ?? []).map(v => {
                         const attrs = (() => { try { return JSON.parse(v.attributes) } catch { return {} } })()
                         return <TableRow key={v.id}><TableCell className="font-medium">{v.name}</TableCell><TableCell className="font-mono text-xs">{v.sku}</TableCell><TableCell><div className="flex gap-1 flex-wrap">{Object.entries(attrs ?? {}).map(([k, val]) => <Badge key={k} variant="outline" className="text-xs">{k}: {String(val)}</Badge>)}</div></TableCell>
@@ -186,6 +215,7 @@ function ProductsModule() {
           ))}
         </div>
       )}
+      </div>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}><DialogContent className="max-w-lg"><DialogHeader><DialogTitle>{editing ? 'Edit' : 'Tambah'} Produk</DialogTitle></DialogHeader>
         <div className="space-y-3">
@@ -201,7 +231,23 @@ function ProductsModule() {
       <Dialog open={variantDialogOpen} onOpenChange={(open) => { setVariantDialogOpen(open); if (!open) setEditingVariant(null) }}><DialogContent><DialogHeader><DialogTitle>{editingVariant ? 'Edit' : 'Tambah'} Varian — {selectedProduct?.name}</DialogTitle></DialogHeader>
         <div className="space-y-3" onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); if (editingVariant) { handleSaveVariant() } else { handleAddVariant() } } }}>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3"><div className="space-y-2"><Label>Nama Varian *</Label><Input ref={setVariantNameRef} placeholder='cth: Black M' value={variantForm.name} onChange={e => setVariantForm({ ...variantForm, name: e.target.value })} autoFocus /></div><div className="space-y-2"><Label>SKU Varian *</Label><Input placeholder='cth: OVT-BLK-M' value={variantForm.sku} onChange={e => setVariantForm({ ...variantForm, sku: e.target.value })} /></div></div>
-          <div className="space-y-2"><Label>Atribut (JSON)</Label><Input placeholder='{"color":"Black","size":"M"}' value={variantForm.attributes} onChange={e => setVariantForm({ ...variantForm, attributes: e.target.value })} /><p className="text-xs text-muted-foreground">Format JSON untuk atribut seperti warna, ukuran, dll.</p></div>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between"><Label>Atribut</Label><Button variant="outline" size="sm" className="text-xs h-7" onClick={() => setAttrPairs([...attrPairs, { key: '', value: '' }])}><Plus className="w-3 h-3 mr-1" />Tambah Atribut</Button></div>
+            {attrPairs.map((pair, idx) => (
+              <div key={idx} className="flex gap-2 items-center">
+                <Select value={pair.key} onValueChange={v => { const updated = [...attrPairs]; updated[idx] = { ...updated[idx], key: v }; setAttrPairs(updated) }}>
+                  <SelectTrigger className="w-32"><SelectValue placeholder="Nama" /></SelectTrigger>
+                  <SelectContent>
+                    {ATTRIBUTE_PRESETS.map(preset => <SelectItem key={preset} value={preset}>{preset}</SelectItem>)}
+                    {pair.key && !ATTRIBUTE_PRESETS.includes(pair.key) && <SelectItem value={pair.key}>{pair.key}</SelectItem>}
+                  </SelectContent>
+                </Select>
+                <Input placeholder="Nilai" value={pair.value} onChange={e => { const updated = [...attrPairs]; updated[idx] = { ...updated[idx], value: e.target.value }; setAttrPairs(updated) }} className="flex-1" />
+                {attrPairs.length > 1 && <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-red-400" onClick={() => setAttrPairs(attrPairs.filter((_, i) => i !== idx))}><X className="w-4 h-4" /></Button>}
+              </div>
+            ))}
+            <p className="text-xs text-muted-foreground">Pilih nama atribut atau ketik custom. Cth: Warna → Hitam, Ukuran → M</p>
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3"><div className="space-y-2"><Label>Harga Beli</Label><Input type="number" value={variantForm.buyPrice} onChange={e => setVariantForm({ ...variantForm, buyPrice: e.target.value })} /></div><div className="space-y-2"><Label>Harga Jual</Label><Input type="number" value={variantForm.sellPrice} onChange={e => setVariantForm({ ...variantForm, sellPrice: e.target.value })} /></div></div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3"><div className="space-y-2"><Label>Stok</Label><Input type="number" value={variantForm.stock} onChange={e => setVariantForm({ ...variantForm, stock: e.target.value })} disabled={!!editingVariant} />{editingVariant && <p className="text-xs text-muted-foreground">Stok diubah melalui transaksi</p>}</div><div className="space-y-2"><Label>Min. Stok</Label><Input type="number" value={variantForm.minStock} onChange={e => setVariantForm({ ...variantForm, minStock: e.target.value })} /></div></div>
         </div>

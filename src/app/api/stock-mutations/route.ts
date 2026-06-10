@@ -243,24 +243,28 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        // Create mutation
-        const mutation = await db.stockMutation.create({
-          data: {
-            variantId,
-            productId: variant.productId,
-            warehouseId,
-            type: 'ADJUSTMENT',
-            qty,
-            note: note || null,
-          },
-          include: {
-            variant: { select: { id: true, name: true, sku: true, product: { select: { id: true, name: true } } } },
-            warehouse: { select: { id: true, name: true, code: true } },
-          },
-        })
+        // Create mutation + update stock in ONE transaction
+        const mutation = await db.$transaction(async (tx) => {
+          const created = await tx.stockMutation.create({
+            data: {
+              variantId,
+              productId: variant.productId,
+              warehouseId,
+              type: 'ADJUSTMENT',
+              qty,
+              note: note || null,
+            },
+            include: {
+              variant: { select: { id: true, name: true, sku: true, product: { select: { id: true, name: true } } } },
+              warehouse: { select: { id: true, name: true, code: true } },
+            },
+          })
 
-        // Update stock
-        await updateVariantStock(variantId, qty, warehouseId)
+          // Update stock (inside same transaction)
+          await updateVariantStock(variantId, qty, warehouseId, tx)
+
+          return created
+        })
 
         // Activity log
         await createActivityLog({
@@ -299,24 +303,28 @@ export async function POST(request: NextRequest) {
           )
         }
 
-        // Create mutation
-        const mutation = await db.stockMutation.create({
-          data: {
-            variantId,
-            productId: variant.productId,
-            warehouseId,
-            type: 'IN',
-            qty,
-            note: note || null,
-          },
-          include: {
-            variant: { select: { id: true, name: true, sku: true, product: { select: { id: true, name: true } } } },
-            warehouse: { select: { id: true, name: true, code: true } },
-          },
-        })
+        // Create mutation + update stock in ONE transaction
+        const mutation = await db.$transaction(async (tx) => {
+          const created = await tx.stockMutation.create({
+            data: {
+              variantId,
+              productId: variant.productId,
+              warehouseId,
+              type: 'IN',
+              qty,
+              note: note || null,
+            },
+            include: {
+              variant: { select: { id: true, name: true, sku: true, product: { select: { id: true, name: true } } } },
+              warehouse: { select: { id: true, name: true, code: true } },
+            },
+          })
 
-        // Update stock
-        await updateVariantStock(variantId, qty, warehouseId)
+          // Update stock (inside same transaction)
+          await updateVariantStock(variantId, qty, warehouseId, tx)
+
+          return created
+        })
 
         // Activity log
         await createActivityLog({
@@ -364,24 +372,28 @@ export async function POST(request: NextRequest) {
           )
         }
 
-        // Create mutation
-        const mutation = await db.stockMutation.create({
-          data: {
-            variantId,
-            productId: variant.productId,
-            warehouseId,
-            type: 'OUT',
-            qty,
-            note: note || null,
-          },
-          include: {
-            variant: { select: { id: true, name: true, sku: true, product: { select: { id: true, name: true } } } },
-            warehouse: { select: { id: true, name: true, code: true } },
-          },
-        })
+        // Create mutation + update stock in ONE transaction
+        const mutation = await db.$transaction(async (tx) => {
+          const created = await tx.stockMutation.create({
+            data: {
+              variantId,
+              productId: variant.productId,
+              warehouseId,
+              type: 'OUT',
+              qty,
+              note: note || null,
+            },
+            include: {
+              variant: { select: { id: true, name: true, sku: true, product: { select: { id: true, name: true } } } },
+              warehouse: { select: { id: true, name: true, code: true } },
+            },
+          })
 
-        // Update stock
-        await updateVariantStock(variantId, -qty, warehouseId)
+          // Update stock (inside same transaction)
+          await updateVariantStock(variantId, -qty, warehouseId, tx)
+
+          return created
+        })
 
         // Activity log
         await createActivityLog({

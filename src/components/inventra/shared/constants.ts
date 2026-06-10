@@ -6,16 +6,16 @@ export const fmtDateTime = (d: string) => new Date(d).toLocaleString('id-ID', { 
 
 // ===================== STATUS BADGES =====================
 export const purchaseStatusMap: Record<string, { label: string; color: string }> = {
-  DRAFT: { label: 'Draft', color: 'bg-slate-100 text-slate-700' },
-  APPROVED: { label: 'Disetujui', color: 'bg-blue-100 text-blue-700' },
-  RECEIVED: { label: 'Diterima', color: 'bg-emerald-100 text-emerald-700' },
-  CANCELLED: { label: 'Dibatalkan', color: 'bg-red-100 text-red-700' },
+  DRAFT: { label: 'Draft', color: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300' },
+  APPROVED: { label: 'Disetujui', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' },
+  RECEIVED: { label: 'Diterima', color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' },
+  CANCELLED: { label: 'Dibatalkan', color: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' },
 }
 export const saleStatusMap: Record<string, { label: string; color: string }> = {
-  DRAFT: { label: 'Draft', color: 'bg-slate-100 text-slate-700' },
-  PAID: { label: 'Dibayar', color: 'bg-blue-100 text-blue-700' },
-  COMPLETED: { label: 'Selesai', color: 'bg-emerald-100 text-emerald-700' },
-  CANCELLED: { label: 'Dibatalkan', color: 'bg-red-100 text-red-700' },
+  DRAFT: { label: 'Draft', color: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300' },
+  PAID: { label: 'Dibayar', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' },
+  COMPLETED: { label: 'Selesai', color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300' },
+  CANCELLED: { label: 'Dibatalkan', color: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' },
 }
 
 // ===================== ROLE CONFIG =====================

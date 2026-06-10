@@ -49,6 +49,12 @@ function QuickSaleDialog() {
 
   const handleSave = async () => {
     if (!variantId) { toast.error('Pilih produk/varian'); return }
+    const qtyNum = parseInt(qty) || 1
+    // Client-side stock check
+    if (selectedVariant && qtyNum > selectedVariant.stock) {
+      toast.error(`Stok tidak cukup. Tersedia: ${selectedVariant.stock}, Diminta: ${qtyNum}`)
+      return
+    }
     setSaving(true)
     try {
       const res = await fetch('/api/sales', {
@@ -57,7 +63,7 @@ function QuickSaleDialog() {
           customerId: customerId || undefined,
           date: new Date().toISOString().split('T')[0],
           status: 'DRAFT',
-          items: [{ variantId, qty: parseInt(qty) || 1, sellPrice: selectedVariant?.sellPrice || 0 }]
+          items: [{ variantId, qty: qtyNum, sellPrice: selectedVariant?.sellPrice || 0 }]
         })
       })
       const data = await res.json()
@@ -93,9 +99,9 @@ function QuickSaleDialog() {
                 onKeyDown={e => { if (e.key === 'Tab' && !customerId && filteredCustomers.length === 1) { setCustomerId(filteredCustomers[0].id); e.preventDefault() } }}
                 className="h-9 text-sm" ref={customerRef as any} />
               {customerSearch && !customerId && filteredCustomers.length > 0 && (
-                <div className="absolute z-50 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-40 overflow-auto">
+                <div className="absolute z-50 w-full mt-1 bg-popover border rounded-lg shadow-lg max-h-40 overflow-auto">
                   {filteredCustomers.map(c => (
-                    <button key={c.id} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-left text-sm"
+                    <button key={c.id} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-accent text-left text-sm"
                       onMouseDown={() => { setCustomerId(c.id); setCustomerSearch('') }}>
                       <Badge variant="outline" className="font-mono text-[10px]">{c.code}</Badge>
                       <span>{c.name}</span>
@@ -113,9 +119,9 @@ function QuickSaleDialog() {
                 onKeyDown={e => { if (e.key === 'Tab' && !variantId && filteredVariants.length === 1) { setVariantId(filteredVariants[0].id); e.preventDefault() } }}
                 className="h-9 text-sm" ref={variantRef as any} />
               {variantSearch && !variantId && filteredVariants.length > 0 && (
-                <div className="absolute z-50 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-48 overflow-auto">
+                <div className="absolute z-50 w-full mt-1 bg-popover border rounded-lg shadow-lg max-h-48 overflow-auto">
                   {filteredVariants.map(v => (
-                    <button key={v.id} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-left text-sm"
+                    <button key={v.id} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-accent text-left text-sm"
                       onMouseDown={() => { setVariantId(v.id); setVariantSearch('') }}>
                       <Badge variant="outline" className="font-mono text-[10px]">{v.sku}</Badge>
                       <span className="truncate">{v.productName} — {v.name}</span>
@@ -127,7 +133,7 @@ function QuickSaleDialog() {
             </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-1"><Label className="text-xs">Qty</Label><Input type="number" value={qty} onChange={e => setQty(e.target.value)} min="1" className="h-9" onKeyDown={e => e.key === 'Enter' && handleSave()} /></div>
+            <div className="space-y-1"><Label className="text-xs">Qty {selectedVariant && <span className="text-muted-foreground font-normal">(Stok: {selectedVariant.stock})</span>}</Label><Input type="number" value={qty} onChange={e => setQty(e.target.value)} min="1" className="h-9" onKeyDown={e => e.key === 'Enter' && handleSave()} />{selectedVariant && parseInt(qty) > selectedVariant.stock && (<p className="text-[10px] text-red-500 mt-0.5">Melebihi stok ({selectedVariant.stock})</p>)}</div>
             <div className="space-y-1"><Label className="text-xs">Harga</Label><div className="h-9 flex items-center text-sm font-medium">{selectedVariant ? fmtRp(selectedVariant.sellPrice) : '-'}</div></div>
           </div>
           <div className="text-right text-lg font-bold border-t pt-3">Total: {fmtRp(total)}</div>
