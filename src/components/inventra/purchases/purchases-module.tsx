@@ -7,6 +7,7 @@ import { usePurchases, useSuppliers, useProducts } from '@/components/inventra/h
 import { Purchase, PurchaseItem, Product, ProductVariant, Supplier } from '@/components/inventra/shared/types'
 import { fmtDate, fmtRp } from '@/components/inventra/shared/constants'
 import { StatusBadge } from '@/components/inventra/shared/status-badge'
+import { useAppStore } from '@/lib/store'
 
 import {
   Card, CardContent,
@@ -51,10 +52,17 @@ const parseVariantAttrs = (attrs: string): string => {
 }
 
 function PurchasesModule() {
+  const { activeModuleTab, setActiveModuleTab } = useAppStore()
   const queryClient = useQueryClient()
 
-  // Tab state
-  const [activeTab, setActiveTab] = useState<'input' | 'drafts' | 'history'>('input')
+  // Tab state — consume deep-link tab from store (one-time)
+  const [activeTab, setActiveTab] = useState<'input' | 'drafts' | 'history'>(() => {
+    if (activeModuleTab === 'drafts' || activeModuleTab === 'history') {
+      setActiveModuleTab(null) // consume once
+      return activeModuleTab
+    }
+    return 'input'
+  })
 
   // Filter state (for history tab)
   const [search, setSearch] = useState('')
@@ -70,6 +78,11 @@ function PurchasesModule() {
     : { search, status: filterStatus, page, limit: PAGE_LIMIT, mode: 'list' as const, enabled: shouldFetchPurchases }
 
   const { data: purchasesData, isLoading: purchasesLoading, isFetching: purchasesFetching } = usePurchases(purchasesParams)
+
+  // Always fetch draft count for badge (lightweight, cached by React Query)
+  const { data: draftCountData } = usePurchases({ status: 'DRAFT', limit: 1, mode: 'list' as const, enabled: true })
+  const draftCount = draftCountData?.pagination?.total ?? (activeTab === 'drafts' ? (pagination?.total ?? 0) : 0)
+
   const { data: suppliers = [] } = useSuppliers()
   const { data: products = [] } = useProducts()
 
@@ -182,17 +195,14 @@ function PurchasesModule() {
     return s.code?.toLowerCase().includes(q) || s.name.toLowerCase().includes(q)
   }).slice(0, 8)
 
-  // Draft count for badge
-  const draftCount = activeTab === 'drafts' ? (pagination?.total ?? purchases.length) : 0
-
   return (
     <>
     <div className="flex flex-col h-full">
       <Tabs value={activeTab} onValueChange={v => setActiveTab(v as 'input' | 'drafts' | 'history')} className="flex flex-col flex-1 min-h-0">
         <TabsList className="shrink-0 w-full sm:w-auto">
           <TabsTrigger value="input" className="flex-1 sm:flex-none">Input</TabsTrigger>
-          <TabsTrigger value="drafts" className="flex-1 sm:flex-none">
-            Draft{draftCount > 0 ? ` (${draftCount})` : ''}
+          <TabsTrigger value="drafts" className="flex-1 sm:flex-none gap-1">
+            Draft{draftCount > 0 ? <Badge variant="secondary" className="ml-0.5 h-5 min-w-[20px] px-1.5 text-[10px] font-bold">{draftCount}</Badge> : ''}
           </TabsTrigger>
           <TabsTrigger value="history" className="flex-1 sm:flex-none">Riwayat</TabsTrigger>
         </TabsList>

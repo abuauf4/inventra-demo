@@ -1,7 +1,10 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
+import { useAppStore } from '@/lib/store'
+import { useStockMutations, useProducts, useWarehouses } from '@/components/inventra/hooks/use-query-hooks'
 import type { StockMutation, Product, Warehouse } from '@/components/inventra/shared/types'
 import { fmtDateTime } from '@/components/inventra/shared/constants'
 
@@ -26,6 +29,7 @@ import { Separator } from '@/components/ui/separator'
 
 import {
   RefreshCw, ArrowDown, ArrowUp, Minus, Plus, ArrowLeftRight, Package,
+  ChevronLeft, ChevronRight,
 } from 'lucide-react'
 
 // --- Type for flattened variant with product name ---
@@ -55,19 +59,37 @@ const parseVariantAttrs = (attrs: string): string => {
 }
 
 function StockMutationsModule() {
-  // Tab state: Input (default) or History
-  const [activeMainTab, setActiveMainTab] = useState<'input' | 'history'>('input')
+  const { activeModuleTab, setActiveModuleTab } = useAppStore()
+  const queryClient = useQueryClient()
 
-  const [mutations, setMutations] = useState<StockMutation[]>([])
+  // Tab state — consume deep-link tab from store (one-time)
+  const [activeMainTab, setActiveMainTab] = useState<'input' | 'history'>(() => {
+    if (activeModuleTab === 'history') {
+      setActiveModuleTab(null)
+      return 'history'
+    }
+    return 'input'
+  })
+
+  // History filter state
   const [filterType, setFilterType] = useState('all')
-  const [loading, setLoading] = useState(false)
+  const [page, setPage] = useState(1)
+  const PAGE_LIMIT = 50
 
   // Sub-tab for create form
   const [activeTab, setActiveTab] = useState('transfer')
 
-  // Master data
-  const [products, setProducts] = useState<Product[]>([])
-  const [warehouses, setWarehouses] = useState<Warehouse[]>([])
+  // React Query: master data for Input tab
+  const { data: products = [] } = useProducts()
+  const { data: warehouses = [] } = useWarehouses()
+
+  // React Query: stock mutations for History tab (lazy)
+  const shouldFetchMutations = activeMainTab === 'history'
+  const { data: mutations = [], isLoading: mutationsLoading, isFetching: mutationsFetching } = useStockMutations({
+    type: filterType !== 'all' ? filterType : undefined,
+    limit: PAGE_LIMIT,
+    enabled: shouldFetchMutations,
+  })
 
   // Variant typeahead
   const [variantSearch, setVariantSearch] = useState('')
@@ -121,40 +143,6 @@ function StockMutationsModule() {
 
   const filteredVariants = getFilteredVariants(variantSearch)
 
-  // Load master data (products + warehouses) — needed for Input tab typeahead
-  const loadMasterData = useCallback(async () => {
-    try {
-      const [prRes, whRes] = await Promise.all([
-        fetch('/api/products'),
-        fetch('/api/warehouses'),
-      ])
-      setProducts((await prRes.json()).data ?? [])
-      setWarehouses((await whRes.json()).data ?? [])
-    } catch { toast.error('Gagal memuat data master') }
-  }, [])
-
-  // Load mutations list — only when History tab is active
-  const loadMutations = useCallback(async () => {
-    setLoading(true)
-    try {
-      const params = new URLSearchParams()
-      if (filterType !== 'all') params.set('type', filterType)
-      const res = await fetch(`/api/stock-mutations?${params}`)
-      setMutations((await res.json()).data ?? [])
-    } catch { toast.error('Gagal memuat data') }
-    finally { setLoading(false) }
-  }, [filterType])
-
-  // Load master data on mount (for Input tab)
-  useEffect(() => { loadMasterData() }, [loadMasterData])
-
-  // Only load mutations when History tab is active
-  useEffect(() => {
-    if (activeMainTab === 'history') {
-      loadMutations()
-    }
-  }, [activeMainTab, loadMutations])
-
   // Fetch warehouse stock for selected variant + warehouse
   const fetchWarehouseStock = useCallback(async (vId: string, whId: string) => {
     if (!vId || !whId) { setWarehouseStock(null); return }
@@ -189,6 +177,10 @@ function StockMutationsModule() {
     setInOutType('IN')
     setNote('')
     setWarehouseStock(null)
+  }
+
+  const invalidateMutations = () => {
+    queryClient.invalidateQueries({ queryKey: ['stock-mutations'] })
   }
 
   // Handle submit
@@ -240,8 +232,9 @@ function StockMutationsModule() {
       const tabLabel = activeTab === 'transfer' ? 'Transfer' : activeTab === 'adjustment' ? 'Penyesuaian' : (inOutType === 'IN' ? 'Stok masuk' : 'Stok keluar')
       toast.success(`${tabLabel} stok berhasil dicatat`)
       resetForm()
-      // Refresh mutations list if it was previously loaded
-      if (activeMainTab === 'history') loadMutations()
+      invalidateMutations()
+      // Also invalidate products since stock changed
+      queryClient.invalidateQueries({ queryKey: ['products'] })
     } catch {
       toast.error('Gagal membuat mutasi stok')
     } finally {
@@ -542,7 +535,7 @@ function StockMutationsModule() {
           {/* Filter */}
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-start sm:items-center justify-between shrink-0">
             <div className="flex gap-3 items-center">
-              <Select value={filterType} onValueChange={setFilterType}>
+              <Select value={filterType} onValueChange={v => { setFilterType(v); }}>
                 <SelectTrigger className="w-44">
                   <SelectValue />
                 </SelectTrigger>
@@ -555,12 +548,12 @@ function StockMutationsModule() {
                 </SelectContent>
               </Select>
             </div>
-            <Button onClick={loadMutations} variant="outline" size="sm"><RefreshCw className="w-4 h-4 mr-2" />Refresh</Button>
+            <Button onClick={() => invalidateMutations()} variant="outline" size="sm"><RefreshCw className="w-4 h-4 mr-2" />Refresh</Button>
           </div>
 
           {/* Table */}
           <div className="flex-1 min-h-0 overflow-y-auto mt-3">
-          {loading ? (
+          {mutationsLoading ? (
             <div className="flex justify-center py-8">
               <RefreshCw className="w-6 h-6 animate-spin text-amber-500" />
             </div>

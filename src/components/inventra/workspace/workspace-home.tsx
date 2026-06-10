@@ -1,15 +1,15 @@
 'use client'
 
-import React, { useState, useCallback, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   RefreshCw, ShoppingBag, ShoppingCart, Package, Search,
   AlertTriangle, ArrowRightLeft, ArrowRight, TrendingUp,
   Trophy, Users, Truck, X, ClipboardList, Clock,
 } from 'lucide-react'
-import { toast } from 'sonner'
 import { useAppStore } from '@/lib/store'
 import { fmtRp, fmtDate, fmt, roleColors } from '@/components/inventra/shared/constants'
 import { StatusBadge } from '@/components/inventra/shared/status-badge'
+import { useDashboard } from '@/components/inventra/hooks/use-query-hooks'
 import type { DashboardData } from '@/components/inventra/shared/types'
 
 // ─── Low Stock Detail Modal ───────────────────────────────────────
@@ -85,7 +85,7 @@ function LowStockModal({ items, open, onClose }: {
 
 // ─── Owner Home: Business Insight ─────────────────────────────────
 function OwnerHome({ data }: { data: DashboardData }) {
-  const { setActivePage, setSearchOpen, setOpenSalesForm } = useAppStore()
+  const { setActivePage, navigateToModule, setSearchOpen, setOpenSalesForm } = useAppStore()
   const [lowStockOpen, setLowStockOpen] = useState(false)
 
   const lowStockCount = data.lowStockProducts?.length ?? 0
@@ -124,7 +124,7 @@ function OwnerHome({ data }: { data: DashboardData }) {
         )}
         {(data.pendingSaleCount ?? 0) > 0 && (
           <button
-            onClick={() => setActivePage('sales')}
+            onClick={() => navigateToModule('sales', 'drafts')}
             className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-teal-50/80 dark:bg-teal-900/15 text-teal-700 dark:text-teal-300 text-xs font-medium border border-teal-200/40 dark:border-teal-800/20 transition-all duration-300"
           >
             {data.pendingSaleCount} SO belum selesai
@@ -132,7 +132,7 @@ function OwnerHome({ data }: { data: DashboardData }) {
         )}
         {(data.pendingPurchaseCount ?? 0) > 0 && (
           <button
-            onClick={() => setActivePage('purchases')}
+            onClick={() => navigateToModule('purchases', 'drafts')}
             className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-blue-50/80 dark:bg-blue-900/15 text-blue-700 dark:text-blue-300 text-xs font-medium border border-blue-200/40 dark:border-blue-800/20 transition-all duration-300"
           >
             {data.pendingPurchaseCount} PO menunggu
@@ -229,7 +229,7 @@ function OwnerHome({ data }: { data: DashboardData }) {
               Transaksi Terbaru
             </p>
             <button
-              onClick={() => setActivePage('sales')}
+              onClick={() => navigateToModule('sales', 'history')}
               className="text-[11px] text-stone-400 hover:text-stone-600 flex items-center gap-0.5"
             >
               Semua <ArrowRight className="w-2.5 h-2.5" />
@@ -271,7 +271,7 @@ function OwnerHome({ data }: { data: DashboardData }) {
 
 // ─── Admin Home: Workflow Focus ───────────────────────────────────
 function AdminHome({ data }: { data: DashboardData }) {
-  const { setActivePage, setOpenSalesForm, setSearchOpen } = useAppStore()
+  const { navigateToModule, setSearchOpen, setOpenSalesForm } = useAppStore()
   const [lowStockOpen, setLowStockOpen] = useState(false)
   const lowStockCount = data.lowStockProducts?.length ?? 0
   const userName = useAppStore().currentUser?.name || 'Admin'
@@ -291,13 +291,13 @@ function AdminHome({ data }: { data: DashboardData }) {
       {/* Quick Actions */}
       <div className="shrink-0 flex flex-wrap items-center gap-2 mb-5">
         <button
-          onClick={() => { setActivePage('sales'); setOpenSalesForm(true) }}
+          onClick={() => { navigateToModule('sales', 'input'); setOpenSalesForm(true) }}
           className="card-living flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500 text-white text-sm font-medium "
         >
           <ShoppingBag className="w-4 h-4" /> Jual
         </button>
         <button
-          onClick={() => setActivePage('purchases')}
+          onClick={() => navigateToModule('purchases', 'input')}
           className="card-living flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/60 dark:bg-[#1a1f2e]/60 border border-stone-200/40 dark:border-white/[0.04] text-stone-700 dark:text-stone-300 text-sm font-medium"
         >
           <ShoppingCart className="w-4 h-4" /> Beli
@@ -310,10 +310,10 @@ function AdminHome({ data }: { data: DashboardData }) {
         </button>
       </div>
 
-      {/* Workflow Cards: What needs attention */}
+      {/* Workflow Cards: What needs attention — deep link to correct tabs */}
       <div className="shrink-0 grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-5">
         <button
-          onClick={() => setActivePage('sales')}
+          onClick={() => navigateToModule('sales', 'drafts')}
           className="bg-white dark:bg-[#1a1f2e]/60 rounded-xl border border-stone-200/40 dark:border-white/[0.04] p-3 text-left transition-colors"
         >
           <div className="flex items-center gap-2 mb-2">
@@ -325,7 +325,7 @@ function AdminHome({ data }: { data: DashboardData }) {
           <p className="text-[10px] text-stone-400">Draft Penjualan</p>
         </button>
         <button
-          onClick={() => setActivePage('sales')}
+          onClick={() => navigateToModule('sales', 'history')}
           className="bg-white dark:bg-[#1a1f2e]/60 rounded-xl border border-stone-200/40 dark:border-white/[0.04] p-3 text-left transition-colors"
         >
           <div className="flex items-center gap-2 mb-2">
@@ -337,7 +337,7 @@ function AdminHome({ data }: { data: DashboardData }) {
           <p className="text-[10px] text-stone-400">Menunggu Bayar</p>
         </button>
         <button
-          onClick={() => setActivePage('purchases')}
+          onClick={() => navigateToModule('purchases', 'drafts')}
           className="bg-white dark:bg-[#1a1f2e]/60 rounded-xl border border-stone-200/40 dark:border-white/[0.04] p-3 text-left transition-colors"
         >
           <div className="flex items-center gap-2 mb-2">
@@ -371,7 +371,7 @@ function AdminHome({ data }: { data: DashboardData }) {
             Transaksi Terbaru
           </p>
           <button
-            onClick={() => setActivePage('sales')}
+            onClick={() => navigateToModule('sales', 'history')}
             className="text-[11px] text-stone-400 hover:text-stone-600 flex items-center gap-0.5"
           >
             Semua <ArrowRight className="w-2.5 h-2.5" />
@@ -412,7 +412,7 @@ function AdminHome({ data }: { data: DashboardData }) {
 
 // ─── Staff/Warehouse Home ─────────────────────────────────────────
 function StaffWarehouseHome({ data }: { data: DashboardData }) {
-  const { setActivePage, setSearchOpen, setOpenSalesForm, currentUser } = useAppStore()
+  const { navigateToModule, setSearchOpen, setOpenSalesForm, currentUser } = useAppStore()
   const [lowStockOpen, setLowStockOpen] = useState(false)
   const role = currentUser?.role || 'staff'
   const lowStockCount = data.lowStockProducts?.length ?? 0
@@ -422,13 +422,13 @@ function StaffWarehouseHome({ data }: { data: DashboardData }) {
 
   const quickActions = role === 'warehouse'
     ? [
-        { label: 'Terima Barang', icon: <Package className="w-4 h-4" />, color: 'bg-stone-800', action: () => setActivePage('purchases') },
-        { label: 'Mutasi Stok', icon: <ArrowRightLeft className="w-4 h-4" />, color: 'bg-stone-700', action: () => setActivePage('stock-mutations') },
+        { label: 'Terima Barang', icon: <Package className="w-4 h-4" />, color: 'bg-stone-800', action: () => navigateToModule('purchases', 'drafts') },
+        { label: 'Mutasi Stok', icon: <ArrowRightLeft className="w-4 h-4" />, color: 'bg-stone-700', action: () => navigateToModule('stock-mutations', 'input') },
         { label: 'Cari', icon: <Search className="w-4 h-4" />, color: 'bg-stone-600', action: () => setSearchOpen(true) },
       ]
     : [
-        { label: 'Jual', icon: <ShoppingBag className="w-4 h-4" />, color: 'bg-amber-500', action: () => setOpenSalesForm(true) },
-        { label: 'Beli', icon: <ShoppingCart className="w-4 h-4" />, color: 'bg-stone-700', action: () => setActivePage('purchases') },
+        { label: 'Jual', icon: <ShoppingBag className="w-4 h-4" />, color: 'bg-amber-500', action: () => { setOpenSalesForm(true); navigateToModule('sales', 'input') } },
+        { label: 'Beli', icon: <ShoppingCart className="w-4 h-4" />, color: 'bg-stone-700', action: () => navigateToModule('purchases', 'input') },
         { label: 'Cari', icon: <Search className="w-4 h-4" />, color: 'bg-stone-600', action: () => setSearchOpen(true) },
       ]
 
@@ -458,7 +458,7 @@ function StaffWarehouseHome({ data }: { data: DashboardData }) {
         )}
         {(data.pendingSaleCount ?? 0) > 0 && (
           <button
-            onClick={() => setActivePage('sales')}
+            onClick={() => navigateToModule('sales', 'drafts')}
             className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-teal-50/80 dark:bg-teal-900/15 text-teal-700 dark:text-teal-300 text-xs font-medium border border-teal-200/40 dark:border-teal-800/20 transition-all duration-300"
           >
             {data.pendingSaleCount} SO belum selesai
@@ -489,7 +489,7 @@ function StaffWarehouseHome({ data }: { data: DashboardData }) {
             Transaksi Terakhir
           </p>
           <button
-            onClick={() => setActivePage('sales')}
+            onClick={() => navigateToModule('sales', 'history')}
             className="text-[11px] text-stone-400 hover:text-stone-600 flex items-center gap-0.5"
           >
             Semua <ArrowRight className="w-2.5 h-2.5" />
@@ -528,36 +528,14 @@ function StaffWarehouseHome({ data }: { data: DashboardData }) {
   )
 }
 
-// ─── Main Workspace Home Router ───────────────────────────────────
+// ─── Main Workspace Home Router (React Query) ─────────────────────
 export default function WorkspaceHome() {
-  const [data, setData] = useState<DashboardData | null>(null)
-  const [loading, setLoading] = useState(false)
+  const { data, isLoading, error } = useDashboard()
   const { currentUser } = useAppStore()
   const role = currentUser?.role || 'staff'
 
-  const load = useCallback(async () => {
-    console.log('[DIAG workspace-home] load() called, loading:', loading, 'data:', !!data)
-    setLoading(true)
-    try {
-      const res = await fetch('/api/dashboard')
-      console.log('[DIAG workspace-home] /api/dashboard response status:', res.status)
-      const dash = await res.json()
-      console.log('[DIAG workspace-home] /api/dashboard response success:', dash.success)
-      setData(dash.data)
-    } catch (e) {
-      console.error('[DIAG workspace-home] /api/dashboard error:', e)
-      toast.error('Gagal memuat workspace')
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  useEffect(() => { load() }, [load])
-
   // Only show spinner on first load (no data yet)
-  // When refreshing, keep existing data visible (stale-while-revalidate)
   if (!data) {
-    console.log('[DIAG workspace-home] RENDERING SPINNER — data is null, loading:', loading)
     return (
       <div className="flex items-center justify-center h-64">
         <RefreshCw className="w-5 h-5 animate-spin text-stone-300" />

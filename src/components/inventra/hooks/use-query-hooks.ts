@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import type { Product, Category, Supplier, Customer, Sale, Purchase } from '@/components/inventra/shared/types'
+import type { Product, Category, Supplier, Customer, Sale, Purchase, StockMutation, Warehouse } from '@/components/inventra/shared/types'
 
 // ─── Generic fetcher ────────────────────────────────────────────
 async function fetchJson<T>(url: string): Promise<{ success: boolean; data: T; pagination?: { page: number; limit: number; total: number; totalPages: number } }> {
@@ -103,6 +103,39 @@ export function usePurchases(params?: { search?: string; status?: string; page?:
       return { data: res.data, pagination: res.pagination }
     },
     enabled: params?.enabled !== false,
+  })
+}
+
+// ─── Stock Mutations ────────────────────────────────────────────
+export function useStockMutations(params?: { type?: string; dateFrom?: string; dateTo?: string; limit?: number; enabled?: boolean }) {
+  const qs = new URLSearchParams()
+  if (params?.type && params.type !== 'all') qs.set('type', params.type)
+  if (params?.dateFrom) qs.set('dateFrom', params.dateFrom)
+  if (params?.dateTo) qs.set('dateTo', params.dateTo)
+  if (params?.limit) qs.set('limit', String(params.limit))
+
+  return useQuery({
+    queryKey: ['stock-mutations', params?.type || 'all', params?.dateFrom || '', params?.dateTo || '', params?.limit || 100],
+    queryFn: () => fetchJson<StockMutation[]>(`/api/stock-mutations?${qs}`).then(r => r.data),
+    enabled: params?.enabled !== false,
+  })
+}
+
+// ─── Warehouses ────────────────────────────────────────────────
+export function useWarehouses(enabled?: boolean) {
+  return useQuery({
+    queryKey: ['warehouses'],
+    queryFn: () => fetchJson<Warehouse[]>('/api/warehouses').then(r => r.data),
+    enabled: enabled !== false,
+  })
+}
+
+// ─── Dashboard ─────────────────────────────────────────────────
+export function useDashboard() {
+  return useQuery({
+    queryKey: ['dashboard'],
+    queryFn: () => fetchJson<import('@/components/inventra/shared/types').DashboardData>('/api/dashboard').then(r => r.data),
+    staleTime: 30 * 1000, // 30s — dashboard data can be slightly stale
   })
 }
 

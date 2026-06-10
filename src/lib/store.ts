@@ -70,6 +70,11 @@ interface Notification {
 interface AppState {
   activePage: AppPage
   setActivePage: (page: AppPage) => void
+  /** Deep-link tab for operational modules (e.g. 'drafts' or 'history' for Sales) */
+  activeModuleTab: string | null
+  setActiveModuleTab: (tab: string | null) => void
+  /** Navigate to a module page with an optional tab — consumed once by the module */
+  navigateToModule: (page: AppPage, tab?: string) => void
   sidebarOpen: boolean
   setSidebarOpen: (open: boolean) => void
   sidebarCollapsed: boolean
@@ -107,6 +112,9 @@ export const useAppStore = create<AppState>()(
       return {
       activePage: 'dashboard',
       setActivePage: (page) => set({ activePage: page }),
+      activeModuleTab: null,
+      setActiveModuleTab: (tab) => set({ activeModuleTab: tab }),
+      navigateToModule: (page, tab) => set({ activePage: page, activeModuleTab: tab ?? null }),
       sidebarOpen: true,
       setSidebarOpen: (open) => set({ sidebarOpen: open }),
       sidebarCollapsed: false,
