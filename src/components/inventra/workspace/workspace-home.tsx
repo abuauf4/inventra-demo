@@ -580,7 +580,7 @@ function StaffWarehouseHome({ data }: { data: DashboardData }) {
 // ─── Main Workspace Home Router ───────────────────────────────────
 export default function WorkspaceHome() {
   const [data, setData] = useState<DashboardData | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const { currentUser } = useAppStore()
   const role = currentUser?.role || 'staff'
 
@@ -599,7 +599,9 @@ export default function WorkspaceHome() {
 
   useEffect(() => { load() }, [load])
 
-  if (loading || !data) {
+  // Only show spinner on first load (no data yet)
+  // When refreshing, keep existing data visible (stale-while-revalidate)
+  if (!data) {
     return (
       <div className="flex items-center justify-center h-64">
         <RefreshCw className="w-5 h-5 animate-spin text-stone-300" />

@@ -77,6 +77,7 @@ interface AppState {
   toggleSidebarCollapsed: () => void
   currentUser: CurrentUser | null
   setCurrentUser: (user: CurrentUser | null) => void
+  _hasHydrated: boolean
   notifications: Notification[]
   addNotification: (notification: Notification) => void
   markNotificationRead: (id: string) => void
@@ -107,6 +108,7 @@ export const useAppStore = create<AppState>()(
       toggleSidebarCollapsed: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
       currentUser: null,
       setCurrentUser: (user) => set({ currentUser: user }),
+      _hasHydrated: false,
       notifications: [],
       addNotification: (notification) =>
         set((state) => ({ notifications: [notification, ...state.notifications] })),
@@ -146,6 +148,11 @@ export const useAppStore = create<AppState>()(
         theme: state.theme,
         sidebarCollapsed: state.sidebarCollapsed,
       }),
+      onRehydrateStorage: () => {
+        return (_state, _error) => {
+          useAppStore.setState({ _hasHydrated: true })
+        }
+      },
     }
   )
 )

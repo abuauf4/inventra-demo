@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { useAppStore } from '@/lib/store'
 import { Search, Construction, Loader2 } from 'lucide-react'
 
@@ -46,6 +46,7 @@ function ComingSoonPage({ title }: { title: string }) {
 export default function InventraApp() {
   const {
     currentUser,
+    _hasHydrated,
     activePage,
     sidebarOpen,
     setSidebarOpen,
@@ -55,22 +56,10 @@ export default function InventraApp() {
     theme,
   } = useAppStore()
 
-  // Hydration guard — prevent login page flash on refresh
-  // Zustand persist rehydrates async from localStorage,
-  // so currentUser is null on first render even if user is logged in.
-  // We wait until after first client-side effect to check auth.
-  const [hydrated, setHydrated] = useState(false)
-
   // Apply theme on mount and when it changes
   useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark')
   }, [theme])
-
-  // Mark hydration complete after first client render
-  // (useEffect only fires after DOM paint, so Zustand has rehydrated by now)
-  useEffect(() => {
-    setHydrated(true)
-  }, [])
 
   // Global keyboard shortcuts
   useEffect(() => {
@@ -90,12 +79,11 @@ export default function InventraApp() {
   }, [setSearchOpen, setActivePage, setOpenSalesForm])
 
   // Show minimal splash while Zustand rehydrates from localStorage
-  if (!hydrated) {
+  if (!_hasHydrated) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-stone-50 dark:bg-[#0f1117]">
         <div className="flex flex-col items-center gap-3">
-          <Loader2 className="w-6 h-6 text-amber-500 animate-spin" />
-          <span className="text-xs text-stone-400 dark:text-stone-500">Memuat...</span>
+          <Loader2 className="w-5 h-5 text-amber-500 animate-spin" />
         </div>
       </div>
     )
@@ -206,7 +194,7 @@ export default function InventraApp() {
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
         <Header />
-        <main key={activePage} className="flex-1 min-h-0 overflow-hidden px-3 sm:px-6 lg:px-8 pt-3 sm:pt-5 lg:pt-6 pb-4 transition-colors duration-500">{renderPage()}</main>
+        <main className="flex-1 min-h-0 overflow-hidden px-3 sm:px-6 lg:px-8 pt-3 sm:pt-5 lg:pt-6 pb-4 transition-colors duration-500">{renderPage()}</main>
       </div>
       <GlobalSearch />
       {/* Mobile Speed Dial FAB */}

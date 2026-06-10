@@ -31,7 +31,7 @@ import {
 function CategoriesModule() {
   const [categories, setCategories] = useState<Category[]>([])
   const [search, setSearch] = useState('')
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<Category | null>(null)
   const [form, setForm] = useState({ name: '', description: '' })

@@ -51,7 +51,7 @@ const defaultForm = {
 function CustomersModule() {
   const [customers, setCustomers] = useState<Customer[]>([])
   const [search, setSearch] = useState('')
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [detailOpen, setDetailOpen] = useState(false)
   const [editing, setEditing] = useState<Customer | null>(null)

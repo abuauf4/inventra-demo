@@ -60,7 +60,7 @@ const parseVariantAttrs = (attrs: string): string => {
 function StockMutationsModule() {
   const [mutations, setMutations] = useState<StockMutation[]>([])
   const [filterType, setFilterType] = useState('all')
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
 
   // Dialog state
   const [dialogOpen, setDialogOpen] = useState(false)

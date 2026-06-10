@@ -28,7 +28,7 @@ import {
 function WarehousesModule() {
   const [warehouses, setWarehouses] = useState<Warehouse[]>([])
   const [search, setSearch] = useState('')
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<Warehouse | null>(null)
   const [form, setForm] = useState({ name: '', code: '', address: '', isActive: true })

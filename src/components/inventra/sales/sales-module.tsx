@@ -55,7 +55,7 @@ function SalesModule() {
   const [products, setProducts] = useState<Product[]>([])
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState('all')
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [detailOpen, setDetailOpen] = useState(false)
   const [detail, setDetail] = useState<Sale | null>(null)

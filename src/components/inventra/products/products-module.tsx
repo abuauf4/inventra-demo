@@ -64,7 +64,7 @@ function ProductsModule() {
   const [search, setSearch] = useState('')
   const [filterCategory, setFilterCategory] = useState('all')
   const [filterLowStock, setFilterLowStock] = useState(false)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [variantDialogOpen, setVariantDialogOpen] = useState(false)
   const [editingVariant, setEditingVariant] = useState<ProductVariant | null>(null)
