@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useAppStore } from '@/lib/store'
 import { Search, Construction, Loader2 } from 'lucide-react'
 
@@ -78,8 +78,18 @@ export default function InventraApp() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [setSearchOpen, setActivePage, setOpenSalesForm])
 
+  // Timeout fallback: if hydration takes too long, force render anyway
+  const [hydrationTimedOut, setHydrationTimedOut] = useState(false)
+  useEffect(() => {
+    if (!_hasHydrated) {
+      const timer = setTimeout(() => setHydrationTimedOut(true), 3000)
+      return () => clearTimeout(timer)
+    }
+  }, [_hasHydrated])
+
   // Show minimal splash while Zustand rehydrates from localStorage
-  if (!_hasHydrated) {
+  // But don't block forever - timeout after 3 seconds
+  if (!_hasHydrated && !hydrationTimedOut) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-stone-50 dark:bg-[#0f1117]">
         <div className="flex flex-col items-center gap-3">
