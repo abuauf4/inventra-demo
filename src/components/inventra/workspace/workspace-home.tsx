@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useCallback, useEffect, useMemo } from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
 import {
   RefreshCw, ShoppingBag, ShoppingCart, Package, Search,
   AlertTriangle, ArrowRightLeft, ArrowRight, TrendingUp,
@@ -11,20 +11,6 @@ import { useAppStore } from '@/lib/store'
 import { fmtRp, fmtDate, fmt, roleColors } from '@/components/inventra/shared/constants'
 import { StatusBadge } from '@/components/inventra/shared/status-badge'
 import type { DashboardData } from '@/components/inventra/shared/types'
-
-// Helper: current month range for report API
-function getCurrentMonthRange() {
-  const now = new Date()
-  const y = now.getFullYear()
-  const m = now.getMonth()
-  const firstDay = new Date(y, m, 1)
-  const lastDay = new Date(y, m + 1, 0)
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return {
-    dateFrom: `${firstDay.getFullYear()}-${pad(firstDay.getMonth() + 1)}-${pad(firstDay.getDate())}`,
-    dateTo: `${lastDay.getFullYear()}-${pad(lastDay.getMonth() + 1)}-${pad(lastDay.getDate())}`,
-  }
-}
 
 // ─── Low Stock Detail Modal ───────────────────────────────────────
 function LowStockModal({ items, open, onClose }: {
@@ -100,7 +86,6 @@ function LowStockModal({ items, open, onClose }: {
 // ─── Owner Home: Business Insight ─────────────────────────────────
 function OwnerHome({ data }: { data: DashboardData }) {
   const { setActivePage, setSearchOpen, setOpenSalesForm } = useAppStore()
-  const [reportData, setReportData] = useState<any>(null)
   const [lowStockOpen, setLowStockOpen] = useState(false)
 
   const lowStockCount = data.lowStockProducts?.length ?? 0
@@ -108,20 +93,10 @@ function OwnerHome({ data }: { data: DashboardData }) {
   const hour = new Date().getHours()
   const timeGreeting = hour < 11 ? 'Selamat pagi' : hour < 15 ? 'Selamat siang' : hour < 18 ? 'Selamat sore' : 'Selamat malam'
 
-  // Fetch monthly sales report for top products & customers
-  useEffect(() => {
-    const range = getCurrentMonthRange()
-    fetch(`/api/reports?type=sales&period=monthly&dateFrom=${range.dateFrom}&dateTo=${range.dateTo}`)
-      .then(r => r.json())
-      .then(d => setReportData(d.data))
-      .catch(() => {})
-  }, [])
-
-  const omzet = reportData?.revenue ?? data.totalSales
+  // Use dashboard data directly — no extra report API call
+  const omzet = data.totalSales
   const modal = data.totalPurchases
   const profit = omzet - modal
-  const topProducts = reportData?.topProductsByRevenue?.slice(0, 5) ?? []
-  const topCustomers = reportData?.topCustomers?.slice(0, 5) ?? []
 
   return (
     <div className="flex flex-col h-full page-enter">
@@ -203,7 +178,7 @@ function OwnerHome({ data }: { data: DashboardData }) {
 
       {/* Bottom: Top Products + Top Customers + Recent Transactions */}
       <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5">
-        {/* Top Products */}
+        {/* Top Products — link to Reports */}
         <div className="flex flex-col min-h-0">
           <div className="flex items-center justify-between shrink-0 mb-2">
             <p className="text-xs font-semibold text-stone-400 uppercase tracking-wider flex items-center gap-1.5">
@@ -214,30 +189,18 @@ function OwnerHome({ data }: { data: DashboardData }) {
               onClick={() => setActivePage('report-sales')}
               className="text-[11px] text-stone-400 hover:text-stone-600 flex items-center gap-0.5"
             >
-              Detail <ArrowRight className="w-2.5 h-2.5" />
+              Lihat di Laporan <ArrowRight className="w-2.5 h-2.5" />
             </button>
           </div>
-          <div className="bg-white/60 dark:bg-[#1a1f2e]/60 rounded-xl border border-stone-200/40 dark:border-white/[0.04] overflow-hidden flex-1 min-h-0 overflow-y-auto">
-            {topProducts.length === 0 ? (
-              <div className="p-4 text-center text-xs text-stone-400">Belum ada data</div>
-            ) : (
-              topProducts.map((p: any, i: number) => (
-                <div key={i} className="flex items-center gap-2.5 px-3 py-2.5 border-b border-stone-100/50 dark:border-white/[0.03] last:border-b-0">
-                  <span className="w-5 h-5 rounded-full bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 flex items-center justify-center text-[10px] font-bold shrink-0">
-                    {i + 1}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-stone-800 dark:text-stone-200 truncate">{p.name}</p>
-                    <p className="text-[10px] text-stone-400">{p.qty} terjual</p>
-                  </div>
-                  <p className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 shrink-0">{fmtRp(p.revenue)}</p>
-                </div>
-              ))
-            )}
+          <div className="bg-white/60 dark:bg-[#1a1f2e]/60 rounded-xl border border-stone-200/40 dark:border-white/[0.04] flex-1 min-h-0 flex items-center justify-center">
+            <div className="text-center py-8">
+              <Trophy className="w-6 h-6 text-stone-200 mx-auto mb-2" />
+              <p className="text-xs text-muted-foreground">Lihat di Laporan Penjualan</p>
+            </div>
           </div>
         </div>
 
-        {/* Top Customers */}
+        {/* Top Customers — link to Reports */}
         <div className="flex flex-col min-h-0">
           <div className="flex items-center justify-between shrink-0 mb-2">
             <p className="text-xs font-semibold text-stone-400 uppercase tracking-wider flex items-center gap-1.5">
@@ -248,26 +211,14 @@ function OwnerHome({ data }: { data: DashboardData }) {
               onClick={() => setActivePage('report-sales')}
               className="text-[11px] text-stone-400 hover:text-stone-600 flex items-center gap-0.5"
             >
-              Detail <ArrowRight className="w-2.5 h-2.5" />
+              Lihat di Laporan <ArrowRight className="w-2.5 h-2.5" />
             </button>
           </div>
-          <div className="bg-white/60 dark:bg-[#1a1f2e]/60 rounded-xl border border-stone-200/40 dark:border-white/[0.04] overflow-hidden flex-1 min-h-0 overflow-y-auto">
-            {topCustomers.length === 0 ? (
-              <div className="p-4 text-center text-xs text-stone-400">Belum ada data</div>
-            ) : (
-              topCustomers.map((c: any, i: number) => (
-                <div key={i} className="flex items-center gap-2.5 px-3 py-2.5 border-b border-stone-100/50 dark:border-white/[0.03] last:border-b-0">
-                  <span className="w-5 h-5 rounded-full bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 flex items-center justify-center text-[10px] font-bold shrink-0">
-                    {i + 1}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-stone-800 dark:text-stone-200 truncate">{c.name}</p>
-                    <p className="text-[10px] text-stone-400">{c.orderCount} order</p>
-                  </div>
-                  <p className="text-[11px] font-semibold text-stone-700 dark:text-stone-300 shrink-0">{fmtRp(c.totalSpent)}</p>
-                </div>
-              ))
-            )}
+          <div className="bg-white/60 dark:bg-[#1a1f2e]/60 rounded-xl border border-stone-200/40 dark:border-white/[0.04] flex-1 min-h-0 flex items-center justify-center">
+            <div className="text-center py-8">
+              <Users className="w-6 h-6 text-stone-200 mx-auto mb-2" />
+              <p className="text-xs text-muted-foreground">Lihat di Laporan Penjualan</p>
+            </div>
           </div>
         </div>
 

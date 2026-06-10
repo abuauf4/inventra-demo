@@ -18,7 +18,8 @@ async function resolveVariant(variantId: string | null | undefined, productId: s
 }
 
 // GET /api/sales - Optimized: lightweight list mode for table view
-// List view only needs: transNo, customer name, date, status, total, item count
+// mode=list: no items included (just transNo, customer, date, status, total)
+// mode=full (default): include items for detail view
 // Detail view (when user clicks) fetches full data via /api/sales/[id]
 export async function GET(request: NextRequest) {
   try {
@@ -30,6 +31,7 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status') || ''
     const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10))
     const limit = Math.min(200, Math.max(1, parseInt(searchParams.get('limit') || '50', 10)))
+    const mode = searchParams.get('mode') || 'full'
 
     const where: Prisma.SaleWhereInput = {}
 
@@ -51,39 +53,44 @@ export async function GET(request: NextRequest) {
       if (dateTo) where.date.lte = new Date(dateTo)
     }
 
+    const isListMode = mode === 'list'
+
+    const saleSelect: Prisma.SaleSelect = {
+      id: true,
+      transNo: true,
+      date: true,
+      total: true,
+      status: true,
+      notes: true,
+      customerId: true,
+      customer: {
+        select: { id: true, name: true, code: true },
+      },
+    }
+
+    // Only include items in full mode
+    if (!isListMode) {
+      (saleSelect as any).items = {
+        select: {
+          id: true,
+          variantId: true,
+          productId: true,
+          qty: true,
+          sellPrice: true,
+          variant: {
+            select: { id: true, name: true, sku: true },
+          },
+          product: {
+            select: { id: true, name: true, sku: true },
+          },
+        },
+      }
+    }
+
     const [sales, total] = await Promise.all([
       db.sale.findMany({
         where,
-        select: {
-          id: true,
-          transNo: true,
-          date: true,
-          total: true,
-          status: true,
-          notes: true,
-          customerId: true,
-          // Only fetch customer name (not full object)
-          customer: {
-            select: { id: true, name: true, code: true },
-          },
-          // Only fetch item count + summary, not full item details with nested variant/product
-          items: {
-            select: {
-              id: true,
-              variantId: true,
-              productId: true,
-              qty: true,
-              sellPrice: true,
-              // Lightweight variant/product names for display
-              variant: {
-                select: { id: true, name: true, sku: true },
-              },
-              product: {
-                select: { id: true, name: true, sku: true },
-              },
-            },
-          },
-        },
+        select: saleSelect,
         orderBy: {
           date: 'desc',
         },

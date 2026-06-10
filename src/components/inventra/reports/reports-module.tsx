@@ -75,7 +75,6 @@ function TypeaheadFilter({
   const containerRef = useRef<HTMLDivElement>(null)
   const blurTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Search with debounce 200ms
   const doSearch = useCallback(async (q: string) => {
     if (!q || q.length < 1) {
       setSuggestions([])
@@ -141,7 +140,6 @@ function TypeaheadFilter({
     }, 200)
   }
 
-  // Cleanup
   useEffect(() => {
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current)
@@ -149,7 +147,6 @@ function TypeaheadFilter({
     }
   }, [])
 
-  // If selected, show chip
   if (selectedId) {
     return (
       <div className="flex items-center gap-1.5 bg-stone-100 dark:bg-white/[0.06] border border-stone-200 dark:border-white/[0.08] rounded-md px-3 py-1.5 h-9 max-w-xs">
@@ -233,7 +230,7 @@ function ProductTypeaheadFilter({
         id: d.id,
         code: d.sku || '',
         label: d.name || '',
-        sublabel: `${d.category?.name || '-'} · ${(d.variants?.length || 0)} varian`,
+        sublabel: `${d.category?.name || d.categoryName || '-'} · ${(d.variants?.length || d.variantCount || 0)} varian`,
       }))
       setSuggestions(items)
       setShowDropdown(items.length > 0)
@@ -341,6 +338,19 @@ function ProductTypeaheadFilter({
   )
 }
 
+// ─── Empty state for unrequested tabs ────────────────────────────
+function ReportEmptyState({ onClick }: { onClick: () => void }) {
+  return (
+    <div className="flex-1 flex flex-col items-center justify-center py-16 gap-4">
+      <SlidersHorizontal className="w-10 h-10 text-stone-300" />
+      <p className="text-sm text-muted-foreground">Pilih filter dan klik <b>Tampilkan Laporan</b></p>
+      <Button onClick={onClick} className="bg-primary text-primary-foreground text-white">
+        <Filter className="w-4 h-4 mr-2" />Tampilkan Laporan
+      </Button>
+    </div>
+  )
+}
+
 function ReportsModule({ defaultTab }: { defaultTab?: 'sales' | 'purchases' | 'stock' | 'stock-mutations' } = {}) {
   const [tab, setTab] = useState(defaultTab ?? 'sales')
   const [period, setPeriod] = useState('monthly')
@@ -352,6 +362,9 @@ function ReportsModule({ defaultTab }: { defaultTab?: 'sales' | 'purchases' | 's
 
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(false)
+
+  // Track which tabs have been explicitly requested
+  const [requestedTabs, setRequestedTabs] = useState<Set<string>>(new Set())
 
   // Filter state — now using IDs only (no full entity lists)
   const [filterSupplierId, setFilterSupplierId] = useState('')
@@ -398,16 +411,31 @@ function ReportsModule({ defaultTab }: { defaultTab?: 'sales' | 'purchases' | 's
       }
       const res = await fetch(`/api/reports?${params}`)
       setData((await res.json()).data ?? null)
+      // Mark this tab as requested
+      setRequestedTabs(prev => new Set(prev).add(tab))
     } catch { toast.error('Gagal memuat laporan') }
     finally { setLoading(false) }
   }, [tab, period, dateFrom, dateTo, filterSupplierId, filterCustomerId, filterCategoryId, filterStockSupplierId, filterProductId, filterLowStockOnly])
-  useEffect(() => { load() }, [load])
+
+  // NO auto-query — removed useEffect(() => { load() }, [load])
 
   // Active filter label
   const filterLabel = useMemo(() => {
     if (!dateFrom || !dateTo) return ''
     return fmtFilterLabel(dateFrom, dateTo)
   }, [dateFrom, dateTo])
+
+  // Whether current tab has been requested
+  const isRequested = requestedTabs.has(tab)
+
+  // Button in filter bar: show "Tampilkan Laporan" if not yet requested, else small refresh icon
+  const FilterButton = () => isRequested ? (
+    <Button onClick={load} variant="outline" size="icon" className="h-9 w-9 shrink-0" title="Refresh"><RefreshCw className="w-4 h-4" /></Button>
+  ) : (
+    <Button onClick={load} className="h-9 shrink-0 bg-primary text-primary-foreground text-white">
+      <Filter className="w-4 h-4 mr-2" />Tampilkan Laporan
+    </Button>
+  )
 
   return (
     <div className="flex flex-col h-full">
@@ -428,7 +456,7 @@ function ReportsModule({ defaultTab }: { defaultTab?: 'sales' | 'purchases' | 's
               <span className="text-xs text-stone-400 font-medium shrink-0">s/d</span>
               <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="flex-1 sm:max-w-[160px] h-9 text-sm" />
             </div>
-            {/* Search + Refresh row */}
+            {/* Search + Action row */}
             <div className="flex items-center gap-2">
               <div className="flex-1">
                 <TypeaheadFilter
@@ -440,12 +468,14 @@ function ReportsModule({ defaultTab }: { defaultTab?: 'sales' | 'purchases' | 's
                   chipLabel={selectedCustomer ? `${selectedCustomer.code} — ${selectedCustomer.label}${selectedCustomer.sublabel ? ` — ${selectedCustomer.sublabel}` : ''}` : undefined}
                 />
               </div>
-              <Button onClick={load} variant="outline" className="h-9 shrink-0"><RefreshCw className="w-4 h-4" /></Button>
+              <FilterButton />
             </div>
           </div>
 
           <div className="flex-1 min-h-0 overflow-y-auto space-y-5">
-          {loading ? <div className="flex justify-center py-8"><RefreshCw className="w-5 h-5 animate-spin text-stone-300" /></div> : (
+          {!isRequested && !data ? (
+            <ReportEmptyState onClick={load} />
+          ) : loading ? <div className="flex justify-center py-8"><RefreshCw className="w-5 h-5 animate-spin text-stone-300" /></div> : (
             <>
               {/* Summary Cards */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
@@ -497,7 +527,7 @@ function ReportsModule({ defaultTab }: { defaultTab?: 'sales' | 'purchases' | 's
               <span className="text-xs text-stone-400 font-medium shrink-0">s/d</span>
               <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="flex-1 sm:max-w-[160px] h-9 text-sm" />
             </div>
-            {/* Search + Refresh row */}
+            {/* Search + Action row */}
             <div className="flex items-center gap-2">
               <div className="flex-1">
                 <TypeaheadFilter
@@ -509,12 +539,14 @@ function ReportsModule({ defaultTab }: { defaultTab?: 'sales' | 'purchases' | 's
                   chipLabel={selectedSupplier ? `${selectedSupplier.code} — ${selectedSupplier.label}${selectedSupplier.sublabel ? ` — ${selectedSupplier.sublabel}` : ''}` : undefined}
                 />
               </div>
-              <Button onClick={load} variant="outline" className="h-9 shrink-0"><RefreshCw className="w-4 h-4" /></Button>
+              <FilterButton />
             </div>
           </div>
 
           <div className="flex-1 min-h-0 overflow-y-auto space-y-5">
-          {loading ? <div className="flex justify-center py-8"><RefreshCw className="w-6 h-6 animate-spin text-stone-300" /></div> : (
+          {!isRequested && !data ? (
+            <ReportEmptyState onClick={load} />
+          ) : loading ? <div className="flex justify-center py-8"><RefreshCw className="w-6 h-6 animate-spin text-stone-300" /></div> : (
             <>
               {/* Summary Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
@@ -592,7 +624,7 @@ function ReportsModule({ defaultTab }: { defaultTab?: 'sales' | 'purchases' | 's
               />
             </div>
             <Button variant={filterLowStockOnly ? 'default' : 'outline'} onClick={() => setFilterLowStockOnly(!filterLowStockOnly)} className={filterLowStockOnly ? 'bg-amber-500 hover:bg-amber-600' : ''}><AlertTriangle className="w-4 h-4 mr-2" />Stok Menipis</Button>
-            <Button onClick={load} variant="outline"><RefreshCw className="w-4 h-4 mr-2" />Refresh</Button>
+            <FilterButton />
           </div>
 
           {/* Active filter label */}
@@ -614,7 +646,9 @@ function ReportsModule({ defaultTab }: { defaultTab?: 'sales' | 'purchases' | 's
           )}
 
           <div className="flex-1 min-h-0 overflow-y-auto space-y-5">
-          {loading ? <div className="flex justify-center py-8"><RefreshCw className="w-6 h-6 animate-spin text-stone-300" /></div> : (
+          {!isRequested && !data ? (
+            <ReportEmptyState onClick={load} />
+          ) : loading ? <div className="flex justify-center py-8"><RefreshCw className="w-6 h-6 animate-spin text-stone-300" /></div> : (
             <>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                 <Card className="border"><CardContent className="p-3 sm:p-5 flex items-center gap-4">
@@ -654,7 +688,7 @@ function ReportsModule({ defaultTab }: { defaultTab?: 'sales' | 'purchases' | 's
                 <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="w-full sm:w-40" />
               </div>
             </div>
-            <Button onClick={load} variant="outline"><RefreshCw className="w-4 h-4 mr-2" />Refresh</Button>
+            <FilterButton />
           </div>
 
           {/* Active filter label */}
@@ -666,7 +700,9 @@ function ReportsModule({ defaultTab }: { defaultTab?: 'sales' | 'purchases' | 's
           )}
 
           <div className="flex-1 min-h-0 overflow-y-auto space-y-5">
-          {loading ? <div className="flex justify-center py-8"><RefreshCw className="w-6 h-6 animate-spin text-stone-300" /></div> : (
+          {!isRequested && !data ? (
+            <ReportEmptyState onClick={load} />
+          ) : loading ? <div className="flex justify-center py-8"><RefreshCw className="w-6 h-6 animate-spin text-stone-300" /></div> : (
             <>
               {/* Summary Cards by Type */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">

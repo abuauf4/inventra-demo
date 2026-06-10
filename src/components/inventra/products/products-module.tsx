@@ -65,8 +65,8 @@ function ProductsModule() {
   const [filterCategory, setFilterCategory] = useState('all')
   const [filterLowStock, setFilterLowStock] = useState(false)
 
-  // React Query — cached across navigation!
-  const { data: products = [], isLoading: loading } = useProducts({ search, categoryId: filterCategory, lowStock: filterLowStock })
+  // React Query — cached across navigation! Use mode=list for main list view
+  const { data: products = [], isLoading: loading } = useProducts({ search, categoryId: filterCategory, lowStock: filterLowStock, mode: 'list' })
   const { data: categories = [] } = useCategories()
   const { data: suppliers = [] } = useSuppliers()
   const [dialogOpen, setDialogOpen] = useState(false)

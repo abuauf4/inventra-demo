@@ -18,7 +18,8 @@ async function resolveVariant(variantId: string | null | undefined, productId: s
 }
 
 // GET /api/purchases - Optimized: lightweight list mode for table view
-// List view only needs: transNo, supplier name, date, status, total, item count
+// mode=list: no items included (just transNo, supplier, date, status, total)
+// mode=full (default): include items for detail view
 // Detail view (when user clicks) fetches full data via /api/purchases/[id]
 export async function GET(request: NextRequest) {
   try {
@@ -30,6 +31,7 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status') || ''
     const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10))
     const limit = Math.min(200, Math.max(1, parseInt(searchParams.get('limit') || '50', 10)))
+    const mode = searchParams.get('mode') || 'full'
 
     const where: Prisma.PurchaseWhereInput = {}
 
@@ -51,39 +53,44 @@ export async function GET(request: NextRequest) {
       if (dateTo) where.date.lte = new Date(dateTo)
     }
 
+    const isListMode = mode === 'list'
+
+    const purchaseSelect: Prisma.PurchaseSelect = {
+      id: true,
+      transNo: true,
+      date: true,
+      total: true,
+      status: true,
+      notes: true,
+      supplierId: true,
+      supplier: {
+        select: { id: true, name: true, code: true },
+      },
+    }
+
+    // Only include items in full mode
+    if (!isListMode) {
+      (purchaseSelect as any).items = {
+        select: {
+          id: true,
+          variantId: true,
+          productId: true,
+          qty: true,
+          buyPrice: true,
+          variant: {
+            select: { id: true, name: true, sku: true },
+          },
+          product: {
+            select: { id: true, name: true, sku: true },
+          },
+        },
+      }
+    }
+
     const [purchases, total] = await Promise.all([
       db.purchase.findMany({
         where,
-        select: {
-          id: true,
-          transNo: true,
-          date: true,
-          total: true,
-          status: true,
-          notes: true,
-          supplierId: true,
-          // Only fetch supplier name (not full object)
-          supplier: {
-            select: { id: true, name: true, code: true },
-          },
-          // Only fetch item summary for display
-          items: {
-            select: {
-              id: true,
-              variantId: true,
-              productId: true,
-              qty: true,
-              buyPrice: true,
-              // Lightweight variant/product names for display
-              variant: {
-                select: { id: true, name: true, sku: true },
-              },
-              product: {
-                select: { id: true, name: true, sku: true },
-              },
-            },
-          },
-        },
+        select: purchaseSelect,
         orderBy: {
           date: 'desc',
         },

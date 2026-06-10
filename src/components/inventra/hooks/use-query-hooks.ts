@@ -10,15 +10,17 @@ async function fetchJson<T>(url: string): Promise<{ success: boolean; data: T; p
 }
 
 // ─── Products ───────────────────────────────────────────────────
-export function useProducts(params?: { search?: string; categoryId?: string; lowStock?: boolean }) {
+export function useProducts(params?: { search?: string; categoryId?: string; lowStock?: boolean; mode?: 'list' | 'full'; enabled?: boolean }) {
   const qs = new URLSearchParams()
   if (params?.search) qs.set('search', params.search)
   if (params?.categoryId && params.categoryId !== 'all') qs.set('categoryId', params.categoryId)
   if (params?.lowStock) qs.set('lowStock', 'true')
+  if (params?.mode) qs.set('mode', params.mode)
 
   return useQuery({
-    queryKey: ['products', params?.search || '', params?.categoryId || 'all', params?.lowStock || false],
+    queryKey: ['products', params?.search || '', params?.categoryId || 'all', params?.lowStock || false, params?.mode || 'full'],
     queryFn: () => fetchJson<Product[]>(`/api/products?${qs}`).then(r => r.data),
+    enabled: params?.enabled !== false,
   })
 }
 
@@ -60,19 +62,21 @@ export interface SalesPagination {
   totalPages: number
 }
 
-export function useSales(params?: { search?: string; status?: string; page?: number; limit?: number }) {
+export function useSales(params?: { search?: string; status?: string; page?: number; limit?: number; mode?: 'list' | 'full'; enabled?: boolean }) {
   const qs = new URLSearchParams()
   if (params?.search) qs.set('search', params.search)
   if (params?.status && params.status !== 'all') qs.set('status', params.status)
   if (params?.page) qs.set('page', String(params.page))
   if (params?.limit) qs.set('limit', String(params.limit))
+  if (params?.mode) qs.set('mode', params.mode)
 
   return useQuery({
-    queryKey: ['sales', params?.search || '', params?.status || 'all', params?.page || 1, params?.limit || 50],
+    queryKey: ['sales', params?.search || '', params?.status || 'all', params?.page || 1, params?.limit || 50, params?.mode || 'full'],
     queryFn: async () => {
       const res = await fetchJson<Sale[]>(`/api/sales?${qs}`)
       return { data: res.data, pagination: res.pagination }
     },
+    enabled: params?.enabled !== false,
   })
 }
 
@@ -84,19 +88,21 @@ export interface PurchasesPagination {
   totalPages: number
 }
 
-export function usePurchases(params?: { search?: string; status?: string; page?: number; limit?: number }) {
+export function usePurchases(params?: { search?: string; status?: string; page?: number; limit?: number; mode?: 'list' | 'full'; enabled?: boolean }) {
   const qs = new URLSearchParams()
   if (params?.search) qs.set('search', params.search)
   if (params?.status && params.status !== 'all') qs.set('status', params.status)
   if (params?.page) qs.set('page', String(params.page))
   if (params?.limit) qs.set('limit', String(params.limit))
+  if (params?.mode) qs.set('mode', params.mode)
 
   return useQuery({
-    queryKey: ['purchases', params?.search || '', params?.status || 'all', params?.page || 1, params?.limit || 50],
+    queryKey: ['purchases', params?.search || '', params?.status || 'all', params?.page || 1, params?.limit || 50, params?.mode || 'full'],
     queryFn: async () => {
       const res = await fetchJson<Purchase[]>(`/api/purchases?${qs}`)
       return { data: res.data, pagination: res.pagination }
     },
+    enabled: params?.enabled !== false,
   })
 }
 

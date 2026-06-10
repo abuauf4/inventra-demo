@@ -15,6 +15,7 @@ export async function GET(request: NextRequest) {
     const supplierId = searchParams.get('supplierId') || ''
     const lowStock = searchParams.get('lowStock') === 'true'
     const limit = parseInt(searchParams.get('limit') || '100')
+    const mode = searchParams.get('mode') || 'full'
 
     // Build where clause
     const where: Record<string, any> = {}
@@ -42,69 +43,80 @@ export async function GET(request: NextRequest) {
       // We'll filter after fetch
     }
 
-    // Use select instead of include to avoid fetching full nested objects
-    // This dramatically reduces the query complexity and payload size
+    // mode=list: lightweight — no variants, just summary fields
+    // mode=full (default): include variants for typeahead/detail
+    const isListMode = mode === 'list'
+
+    const productSelect: Record<string, any> = {
+      id: true,
+      name: true,
+      sku: true,
+      buyPrice: true,
+      sellPrice: true,
+      minStock: true,
+      isActive: true,
+      description: true,
+      image: true,
+      categoryId: true,
+      supplierId: true,
+      createdAt: true,
+      updatedAt: true,
+      category: {
+        select: { id: true, name: true },
+      },
+      supplier: {
+        select: { id: true, name: true, code: true },
+      },
+    }
+
+    if (!isListMode) {
+      productSelect.variants = {
+        select: {
+          id: true,
+          name: true,
+          sku: true,
+          stock: true,
+          minStock: true,
+          buyPrice: true,
+          sellPrice: true,
+          isActive: true,
+          attributes: true,
+          barcode: true,
+        },
+        orderBy: { name: 'asc' },
+      }
+    }
+
     const products = await db.product.findMany({
       where,
       take: limit,
-      select: {
-        id: true,
-        name: true,
-        sku: true,
-        buyPrice: true,
-        sellPrice: true,
-        minStock: true,
-        isActive: true,
-        description: true,
-        image: true,
-        categoryId: true,
-        supplierId: true,
-        createdAt: true,
-        updatedAt: true,
-        // Only fetch category name (not full object)
-        category: {
-          select: { id: true, name: true },
-        },
-        // Only fetch supplier name + code (not full object)
-        supplier: {
-          select: { id: true, name: true, code: true },
-        },
-        // Fetch variant summaries only: stock, minStock for low stock detection + count
-        variants: {
-          select: {
-            id: true,
-            name: true,
-            sku: true,
-            stock: true,
-            minStock: true,
-            buyPrice: true,
-            sellPrice: true,
-            isActive: true,
-            attributes: true,
-            barcode: true,
-          },
-          orderBy: { name: 'asc' },
-        },
-      },
+      select: productSelect,
       orderBy: {
         createdAt: 'desc',
       },
     })
 
-    // Compute stock summary per product (total stock across variants)
-    // This is done in JS because Prisma doesn't support computed fields
-    // But it's fast since data is already in memory from the select above
-    let data = products.map((p) => {
-      const activeVariants = p.variants.filter((v) => v.isActive)
-      const totalStock = activeVariants.reduce((sum, v) => sum + v.stock, 0)
-      const lowStockVariantCount = activeVariants.filter((v) => v.stock <= v.minStock).length
+    // Compute stock summary per product
+    let data = products.map((p: any) => {
+      const activeVariants = (p.variants || []).filter((v: any) => v.isActive)
+      const totalStock = activeVariants.reduce((sum: number, v: any) => sum + v.stock, 0)
+      const lowStockVariantCount = activeVariants.filter((v: any) => v.stock <= v.minStock).length
 
-      return {
+      const result: Record<string, any> = {
         ...p,
         totalStock,
         lowStockVariantCount,
         variantCount: activeVariants.length,
+        categoryName: p.category?.name || null,
+        supplierName: p.supplier?.name || null,
       }
+
+      // In list mode, strip variants array to reduce payload
+      if (isListMode) {
+        delete result.variants
+      }
+
+      return result
     })
 
     // Filter low stock in JS if requested (Prisma can't compare stock <= minStock)

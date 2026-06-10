@@ -17,9 +17,6 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table'
 import {
-  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
-} from '@/components/ui/dialog'
-import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
 import {
@@ -58,13 +55,14 @@ const parseVariantAttrs = (attrs: string): string => {
 }
 
 function StockMutationsModule() {
+  // Tab state: Input (default) or History
+  const [activeMainTab, setActiveMainTab] = useState<'input' | 'history'>('input')
+
   const [mutations, setMutations] = useState<StockMutation[]>([])
   const [filterType, setFilterType] = useState('all')
   const [loading, setLoading] = useState(false)
 
-  // Dialog state
-  const [dialogOpen, setDialogOpen] = useState(false)
-  const [saving, setSaving] = useState(false)
+  // Sub-tab for create form
   const [activeTab, setActiveTab] = useState('transfer')
 
   // Master data
@@ -87,6 +85,7 @@ function StockMutationsModule() {
   const [qty, setQty] = useState('')
   const [inOutType, setInOutType] = useState<'IN' | 'OUT'>('IN')
   const [note, setNote] = useState('')
+  const [saving, setSaving] = useState(false)
 
   // Derived: all variants flattened
   const allVariants: FlatVariant[] = products.flatMap(p =>
@@ -122,25 +121,39 @@ function StockMutationsModule() {
 
   const filteredVariants = getFilteredVariants(variantSearch)
 
-  // Load data
-  const load = useCallback(async () => {
+  // Load master data (products + warehouses) — needed for Input tab typeahead
+  const loadMasterData = useCallback(async () => {
+    try {
+      const [prRes, whRes] = await Promise.all([
+        fetch('/api/products'),
+        fetch('/api/warehouses'),
+      ])
+      setProducts((await prRes.json()).data ?? [])
+      setWarehouses((await whRes.json()).data ?? [])
+    } catch { toast.error('Gagal memuat data master') }
+  }, [])
+
+  // Load mutations list — only when History tab is active
+  const loadMutations = useCallback(async () => {
     setLoading(true)
     try {
       const params = new URLSearchParams()
       if (filterType !== 'all') params.set('type', filterType)
-      const [mRes, prRes, whRes] = await Promise.all([
-        fetch(`/api/stock-mutations?${params}`),
-        fetch('/api/products'),
-        fetch('/api/warehouses'),
-      ])
-      setMutations((await mRes.json()).data ?? [])
-      setProducts((await prRes.json()).data ?? [])
-      setWarehouses((await whRes.json()).data ?? [])
+      const res = await fetch(`/api/stock-mutations?${params}`)
+      setMutations((await res.json()).data ?? [])
     } catch { toast.error('Gagal memuat data') }
     finally { setLoading(false) }
   }, [filterType])
 
-  useEffect(() => { load() }, [load])
+  // Load master data on mount (for Input tab)
+  useEffect(() => { loadMasterData() }, [loadMasterData])
+
+  // Only load mutations when History tab is active
+  useEffect(() => {
+    if (activeMainTab === 'history') {
+      loadMutations()
+    }
+  }, [activeMainTab, loadMutations])
 
   // Fetch warehouse stock for selected variant + warehouse
   const fetchWarehouseStock = useCallback(async (vId: string, whId: string) => {
@@ -165,11 +178,6 @@ function StockMutationsModule() {
     }
   }, [selectedVariantId, fromWarehouseId, warehouseId, activeTab, fetchWarehouseStock])
 
-  // Auto-focus on dialog open
-  useEffect(() => {
-    if (dialogOpen) setTimeout(() => variantInputRef.current?.focus(), 100)
-  }, [dialogOpen])
-
   // Reset form
   const resetForm = () => {
     setVariantSearch('')
@@ -181,12 +189,6 @@ function StockMutationsModule() {
     setInOutType('IN')
     setNote('')
     setWarehouseStock(null)
-  }
-
-  // Open dialog
-  const openDialog = () => {
-    resetForm()
-    setDialogOpen(true)
   }
 
   // Handle submit
@@ -237,9 +239,9 @@ function StockMutationsModule() {
 
       const tabLabel = activeTab === 'transfer' ? 'Transfer' : activeTab === 'adjustment' ? 'Penyesuaian' : (inOutType === 'IN' ? 'Stok masuk' : 'Stok keluar')
       toast.success(`${tabLabel} stok berhasil dicatat`)
-      setDialogOpen(false)
       resetForm()
-      load()
+      // Refresh mutations list if it was previously loaded
+      if (activeMainTab === 'history') loadMutations()
     } catch {
       toast.error('Gagal membuat mutasi stok')
     } finally {
@@ -271,87 +273,14 @@ function StockMutationsModule() {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header with filter + add button */}
-      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-start sm:items-center justify-between shrink-0">
-        <div className="flex gap-3 items-center">
-          <Select value={filterType} onValueChange={setFilterType}>
-            <SelectTrigger className="w-44">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Semua Tipe</SelectItem>
-              <SelectItem value="IN">Masuk</SelectItem>
-              <SelectItem value="OUT">Keluar</SelectItem>
-              <SelectItem value="ADJUSTMENT">Penyesuaian</SelectItem>
-              <SelectItem value="TRANSFER">Transfer</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <Button
-          onClick={openDialog}
-          className="bg-gradient-to-r from-amber-500 to-orange-500 text-white"
-        >
-          <Plus className="w-4 h-4 mr-2" />Tambah Mutasi
-        </Button>
-      </div>
+      <Tabs value={activeMainTab} onValueChange={v => setActiveMainTab(v as 'input' | 'history')} className="flex flex-col flex-1 min-h-0">
+        <TabsList className="shrink-0 w-full sm:w-auto">
+          <TabsTrigger value="input" className="flex-1 sm:flex-none">Input</TabsTrigger>
+          <TabsTrigger value="history" className="flex-1 sm:flex-none">Riwayat</TabsTrigger>
+        </TabsList>
 
-      {/* Table */}
-      <div className="flex-1 min-h-0 overflow-y-auto mt-5">
-      {loading ? (
-        <div className="flex justify-center py-8">
-          <RefreshCw className="w-6 h-6 animate-spin text-amber-500" />
-        </div>
-      ) : (
-        <Card className="border-0">
-          <CardContent className="p-0">
-            <div className="overflow-x-auto -mx-3 sm:mx-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Tanggal</TableHead>
-                  <TableHead>Varian / Produk</TableHead>
-                  <TableHead>Tipe</TableHead>
-                  <TableHead className="text-right">Qty</TableHead>
-                  <TableHead>Gudang</TableHead>
-                  <TableHead>Catatan</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {!mutations.length ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                      Belum ada data mutasi stok
-                    </TableCell>
-                  </TableRow>
-                ) : mutations.map(m => (
-                  <TableRow key={m.id}>
-                    <TableCell className="text-sm whitespace-nowrap">{fmtDateTime(m.createdAt)}</TableCell>
-                    <TableCell className="font-medium">{getVariantDisplayName(m)}</TableCell>
-                    <TableCell>{getTypeBadge(m.type)}</TableCell>
-                    <TableCell className="text-right font-medium">
-                      <span className={m.type === 'OUT' ? 'text-red-600' : m.type === 'IN' ? 'text-emerald-600' : ''}>
-                        {m.type === 'OUT' ? `-${m.qty}` : `+${m.qty}`}
-                      </span>
-                    </TableCell>
-                    <TableCell>{m.warehouse?.name || '-'}</TableCell>
-                    <TableCell className="text-muted-foreground text-sm max-w-[200px] truncate">{m.note || '-'}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-      </div>
-
-      {/* Create Mutation Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-xl">
-          <DialogHeader>
-            <DialogTitle>Tambah Mutasi Stok</DialogTitle>
-          </DialogHeader>
-
+        {/* ==================== INPUT TAB ==================== */}
+        <TabsContent value="input" className="flex flex-col flex-1 min-h-0 mt-3 overflow-y-auto">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="w-full">
               <TabsTrigger value="transfer" className="flex-1 text-xs">
@@ -440,7 +369,7 @@ function StockMutationsModule() {
 
             <Separator className="my-3" />
 
-            {/* ===== TRANSFER Tab ===== */}
+            {/* ===== TRANSFER Sub-Tab ===== */}
             <TabsContent value="transfer" className="space-y-3">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
@@ -466,7 +395,6 @@ function StockMutationsModule() {
                   </Select>
                 </div>
               </div>
-              {/* Warehouse stock info */}
               {fromWarehouseId && selectedVariantId && warehouseStock !== null && (
                 <div className="text-xs text-muted-foreground bg-amber-50 rounded-md px-3 py-1.5">
                   Stok di gudang asal: <span className="font-semibold text-amber-700">{warehouseStock}</span>
@@ -496,7 +424,7 @@ function StockMutationsModule() {
               </div>
             </TabsContent>
 
-            {/* ===== ADJUSTMENT Tab ===== */}
+            {/* ===== ADJUSTMENT Sub-Tab ===== */}
             <TabsContent value="adjustment" className="space-y-3">
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium">Gudang *</Label>
@@ -509,7 +437,6 @@ function StockMutationsModule() {
                   </SelectContent>
                 </Select>
               </div>
-              {/* Warehouse stock info */}
               {warehouseId && selectedVariantId && warehouseStock !== null && (
                 <div className="text-xs text-muted-foreground bg-amber-50 rounded-md px-3 py-1.5">
                   Stok saat ini di gudang: <span className="font-semibold text-amber-700">{warehouseStock}</span>
@@ -538,7 +465,7 @@ function StockMutationsModule() {
               </div>
             </TabsContent>
 
-            {/* ===== IN/OUT Tab ===== */}
+            {/* ===== IN/OUT Sub-Tab ===== */}
             <TabsContent value="inout" className="space-y-3">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
@@ -567,7 +494,6 @@ function StockMutationsModule() {
                   </Select>
                 </div>
               </div>
-              {/* Warehouse stock info */}
               {warehouseId && selectedVariantId && warehouseStock !== null && (
                 <div className="text-xs text-muted-foreground bg-amber-50 rounded-md px-3 py-1.5">
                   Stok saat ini di gudang: <span className="font-semibold text-amber-700">{warehouseStock}</span>
@@ -598,8 +524,8 @@ function StockMutationsModule() {
             </TabsContent>
           </Tabs>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={saving}>Batal</Button>
+          {/* Save button */}
+          <div className="flex justify-end gap-2 mt-4 pt-3 border-t shrink-0">
             <Button
               onClick={handleSubmit}
               disabled={saving || !selectedVariantId}
@@ -608,9 +534,81 @@ function StockMutationsModule() {
               {saving ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
               Simpan
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </div>
+        </TabsContent>
+
+        {/* ==================== HISTORY TAB ==================== */}
+        <TabsContent value="history" className="flex flex-col flex-1 min-h-0 mt-3">
+          {/* Filter */}
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-start sm:items-center justify-between shrink-0">
+            <div className="flex gap-3 items-center">
+              <Select value={filterType} onValueChange={setFilterType}>
+                <SelectTrigger className="w-44">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Semua Tipe</SelectItem>
+                  <SelectItem value="IN">Masuk</SelectItem>
+                  <SelectItem value="OUT">Keluar</SelectItem>
+                  <SelectItem value="ADJUSTMENT">Penyesuaian</SelectItem>
+                  <SelectItem value="TRANSFER">Transfer</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <Button onClick={loadMutations} variant="outline" size="sm"><RefreshCw className="w-4 h-4 mr-2" />Refresh</Button>
+          </div>
+
+          {/* Table */}
+          <div className="flex-1 min-h-0 overflow-y-auto mt-3">
+          {loading ? (
+            <div className="flex justify-center py-8">
+              <RefreshCw className="w-6 h-6 animate-spin text-amber-500" />
+            </div>
+          ) : (
+            <Card className="border-0">
+              <CardContent className="p-0">
+                <div className="overflow-x-auto -mx-3 sm:mx-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Tanggal</TableHead>
+                      <TableHead>Varian / Produk</TableHead>
+                      <TableHead>Tipe</TableHead>
+                      <TableHead className="text-right">Qty</TableHead>
+                      <TableHead>Gudang</TableHead>
+                      <TableHead>Catatan</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {!mutations.length ? (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                          Belum ada data mutasi stok
+                        </TableCell>
+                      </TableRow>
+                    ) : mutations.map(m => (
+                      <TableRow key={m.id}>
+                        <TableCell className="text-sm whitespace-nowrap">{fmtDateTime(m.createdAt)}</TableCell>
+                        <TableCell className="font-medium">{getVariantDisplayName(m)}</TableCell>
+                        <TableCell>{getTypeBadge(m.type)}</TableCell>
+                        <TableCell className="text-right font-medium">
+                          <span className={m.type === 'OUT' ? 'text-red-600' : m.type === 'IN' ? 'text-emerald-600' : ''}>
+                            {m.type === 'OUT' ? `-${m.qty}` : `+${m.qty}`}
+                          </span>
+                        </TableCell>
+                        <TableCell>{m.warehouse?.name || '-'}</TableCell>
+                        <TableCell className="text-muted-foreground text-sm max-w-[200px] truncate">{m.note || '-'}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }
