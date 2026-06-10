@@ -41,40 +41,40 @@ function InboxModule() {
     return <Bell className="w-4 h-4" />
   }
   const priorityColor = (p: string) => {
-    if (p === 'urgent') return 'bg-red-100 text-red-500'
-    if (p === 'warning') return 'bg-amber-100 text-amber-500'
-    return 'bg-blue-100 text-blue-500'
+    if (p === 'urgent') return 'bg-red-100 dark:bg-red-900/20 text-red-500 dark:text-red-400'
+    if (p === 'warning') return 'bg-amber-100 dark:bg-amber-900/20 text-amber-500 dark:text-amber-400'
+    return 'bg-blue-100 dark:bg-blue-900/20 text-blue-500 dark:text-blue-400'
   }
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-stone-900">Inbox</h2>
+          <h2 className="text-2xl font-bold text-stone-900 dark:text-white">Inbox</h2>
           <p className="text-sm text-stone-400">{unreadCount > 0 ? `${unreadCount} pesan belum dibaca` : 'Semua pesan sudah dibaca'}</p>
         </div>
         {unreadCount > 0 && <Button variant="outline" size="sm" onClick={markAllRead} className="text-xs"><Check className="w-3 h-3 mr-1" />Tandai Semua Dibaca</Button>}
       </div>
       <div className="flex items-center gap-2">
         {['all', 'unread', 'urgent', 'warning', 'info'].map(f => (
-          <button key={f} onClick={() => setFilter(f)} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${filter === f ? 'bg-stone-900 text-white' : 'bg-stone-100 text-stone-500 hover:bg-stone-200'}`}>
+          <button key={f} onClick={() => setFilter(f)} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${filter === f ? 'bg-stone-900 text-white' : 'bg-stone-100 dark:bg-white/[0.06] text-stone-500 dark:text-stone-400 hover:bg-stone-200 dark:hover:bg-white/[0.10]'}`}>
             {f === 'all' ? 'Semua' : f === 'unread' ? 'Belum Dibaca' : f.charAt(0).toUpperCase() + f.slice(1)}
           </button>
         ))}
       </div>
       {loading ? <div className="flex justify-center py-12"><RefreshCw className="w-6 h-6 animate-spin text-rose-500" /></div> : (
-        <div className="bg-white rounded-xl border border-stone-200/80 divide-y divide-stone-100 overflow-hidden">
+        <div className="bg-card dark:bg-[#1a1f2e]/60 rounded-xl border border-stone-200/80 dark:border-white/[0.04] divide-y divide-stone-100 dark:divide-white/[0.03] overflow-hidden">
           {filtered.length === 0 ? <div className="p-8 text-center"><InboxIcon className="w-12 h-12 text-stone-200 mx-auto mb-3" /><p className="text-stone-400">Tidak ada pesan</p></div> : filtered.map((item: any) => (
-            <button key={item.id} onClick={() => !item.isRead && markRead(item.id)} className={`w-full flex items-start gap-4 px-5 py-4 text-left hover:bg-stone-50/50 transition-colors ${!item.isRead ? 'bg-stone-50/80' : ''}`}>
+            <button key={item.id} onClick={() => !item.isRead && markRead(item.id)} className={`w-full flex items-start gap-4 px-5 py-4 text-left hover:bg-stone-50/50 dark:hover:bg-white/[0.02] transition-colors ${!item.isRead ? 'bg-stone-50/80 dark:bg-white/[0.03]' : ''}`}>
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${priorityColor(item.priority)}`}>{typeIcon(item.type)}</div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   {!item.isRead && <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0" />}
-                  <p className={`text-sm truncate ${!item.isRead ? 'font-semibold text-stone-800' : 'font-medium text-stone-600'}`}>{item.title}</p>
+                  <p className={`text-sm truncate ${!item.isRead ? 'font-semibold text-stone-800 dark:text-stone-100' : 'font-medium text-stone-600 dark:text-stone-300'}`}>{item.title}</p>
                 </div>
                 <p className="text-xs text-stone-400 mt-1 line-clamp-2">{item.message}</p>
                 <div className="flex items-center gap-3 mt-2">
-                  {item.entityCode && <span className="font-mono text-[10px] bg-stone-100 px-1.5 py-0.5 rounded text-stone-400">{item.entityCode}</span>}
+                  {item.entityCode && <span className="font-mono text-[10px] bg-stone-100 dark:bg-white/[0.06] px-1.5 py-0.5 rounded text-stone-400 dark:text-stone-500">{item.entityCode}</span>}
                   <span className="text-[10px] text-stone-300">{fmtDateTime(item.createdAt)}</span>
                 </div>
               </div>

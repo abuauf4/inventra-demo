@@ -34,13 +34,13 @@ export default function QuickActionCenter({ role }: QuickActionCenterProps) {
       <h3 className="text-sm font-semibold text-stone-500 uppercase tracking-wider flex items-center gap-2"><Zap className="w-4 h-4" />Quick Actions</h3>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {actions.map((a, i) => (
-          <button key={i} onClick={a.action} className="group relative overflow-hidden flex items-center gap-4 p-4 rounded-xl bg-white border border-stone-200/80 hover:border-stone-300 shadow-sm hover:shadow-md transition-all text-left">
+          <button key={i} onClick={a.action} className="group relative overflow-hidden flex items-center gap-4 p-4 rounded-xl bg-white dark:bg-[#1a1f2e]/60 border border-stone-200/80 dark:border-white/[0.04] hover:border-stone-300 dark:hover:border-white/[0.08] shadow-sm hover:shadow-md transition-all text-left">
             <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${a.color} flex items-center justify-center text-white shadow-sm group-hover:scale-105 transition-transform`}>{a.icon}</div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-stone-800">{a.label}</p>
+              <p className="text-sm font-semibold text-stone-800 dark:text-stone-100">{a.label}</p>
               <p className="text-xs text-stone-400">{a.desc}</p>
             </div>
-            {a.shortcut && <kbd className="text-[10px] bg-stone-100 px-2 py-1 rounded-md font-mono text-stone-500 border border-stone-200">{a.shortcut}</kbd>}
+            {a.shortcut && <kbd className="text-[10px] bg-stone-100 dark:bg-white/[0.06] px-2 py-1 rounded-md font-mono text-stone-500 dark:text-stone-400 border border-stone-200 dark:border-white/[0.06]">{a.shortcut}</kbd>}
           </button>
         ))}
       </div>
