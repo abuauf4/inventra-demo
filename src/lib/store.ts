@@ -155,16 +155,7 @@ export const useAppStore = create<AppState>()(
         sidebarCollapsed: state.sidebarCollapsed,
       }),
       onRehydrateStorage: () => {
-        if (typeof window !== 'undefined') {
-          console.log('[store] onRehydrateStorage — rehydration starting')
-        }
         return (_state, error) => {
-          if (typeof window !== 'undefined') {
-            console.log('[store] Rehydration complete', {
-              error: String(error),
-              hasUser: !!_state?.currentUser,
-            })
-          }
           if (error) {
             console.error('[store] Rehydration error:', error)
           }
@@ -172,9 +163,6 @@ export const useAppStore = create<AppState>()(
           // TDZ ReferenceError — useAppStore may not be assigned yet.
           if (_storeSet) {
             _storeSet({ _hasHydrated: true })
-            if (typeof window !== 'undefined') {
-              console.log('[store] _hasHydrated set to true via _storeSet')
-            }
           }
         }
       },

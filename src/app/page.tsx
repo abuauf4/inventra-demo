@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useAppStore } from '@/lib/store'
-import { Search, Construction, Loader2 } from 'lucide-react'
+import { Construction, Loader2 } from 'lucide-react'
 
 // Workspace
 import WorkspaceHome from '@/components/inventra/workspace/workspace-home'
@@ -56,14 +56,6 @@ export default function InventraApp() {
     theme,
   } = useAppStore()
 
-  // [DIAG] Temporary diagnostic logs — remove after root cause found
-  useEffect(() => {
-    console.log('[DIAG page.tsx] render:', { _hasHydrated, currentUser: currentUser ? { name: currentUser.name, role: currentUser.role } : null, activePage })
-  })
-  useEffect(() => {
-    console.log('[DIAG page.tsx] _hasHydrated changed to:', _hasHydrated)
-  }, [_hasHydrated])
-
   // Apply theme on mount and when it changes
   useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark')
@@ -89,12 +81,8 @@ export default function InventraApp() {
   // Timeout fallback: if hydration takes too long, force render anyway
   const [hydrationTimedOut, setHydrationTimedOut] = useState(false)
   useEffect(() => {
-    console.log('[DIAG page.tsx] hydration timeout effect, _hasHydrated:', _hasHydrated, 'hydrationTimedOut:', hydrationTimedOut)
     if (!_hasHydrated) {
-      const timer = setTimeout(() => {
-        console.log('[DIAG page.tsx] HYDRATION TIMEOUT — forcing render after 3s')
-        setHydrationTimedOut(true)
-      }, 3000)
+      const timer = setTimeout(() => setHydrationTimedOut(true), 3000)
       return () => clearTimeout(timer)
     }
   }, [_hasHydrated, hydrationTimedOut])
@@ -102,7 +90,6 @@ export default function InventraApp() {
   // Show minimal splash while Zustand rehydrates from localStorage
   // But don't block forever - timeout after 3 seconds
   if (!_hasHydrated && !hydrationTimedOut) {
-    console.log('[DIAG page.tsx] RENDERING SPINNER — blocked by: _hasHydrated=', _hasHydrated, 'hydrationTimedOut=', hydrationTimedOut)
     return (
       <div className="min-h-screen flex items-center justify-center bg-stone-50 dark:bg-[#0f1117]">
         <div className="flex flex-col items-center gap-3">
@@ -111,8 +98,6 @@ export default function InventraApp() {
       </div>
     )
   }
-
-  console.log('[DIAG page.tsx] PAST SPINNER — _hasHydrated:', _hasHydrated, 'hydrationTimedOut:', hydrationTimedOut, 'currentUser:', !!currentUser)
 
   if (!currentUser) return <LoginScreen />
 
