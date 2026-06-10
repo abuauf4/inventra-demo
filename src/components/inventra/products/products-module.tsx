@@ -1,7 +1,9 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
+import { useProducts, useCategories, useSuppliers } from '@/components/inventra/hooks/use-query-hooks'
 import type { Product, ProductVariant, Category, Supplier } from '@/components/inventra/shared/types'
 import { fmtRp, fmtDate, purchaseStatusMap, saleStatusMap } from '@/components/inventra/shared/constants'
 import { StatusBadge } from '@/components/inventra/shared/status-badge'
@@ -58,13 +60,15 @@ function pairsToJson(pairs: AttributePair[]): string {
 }
 
 function ProductsModule() {
-  const [products, setProducts] = useState<Product[]>([])
-  const [categories, setCategories] = useState<Category[]>([])
-  const [suppliers, setSuppliers] = useState<Supplier[]>([])
+  const queryClient = useQueryClient()
   const [search, setSearch] = useState('')
   const [filterCategory, setFilterCategory] = useState('all')
   const [filterLowStock, setFilterLowStock] = useState(false)
-  const [loading, setLoading] = useState(false)
+
+  // React Query — cached across navigation!
+  const { data: products = [], isLoading: loading } = useProducts({ search, categoryId: filterCategory, lowStock: filterLowStock })
+  const { data: categories = [] } = useCategories()
+  const { data: suppliers = [] } = useSuppliers()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [variantDialogOpen, setVariantDialogOpen] = useState(false)
   const [editingVariant, setEditingVariant] = useState<ProductVariant | null>(null)
@@ -78,19 +82,9 @@ function ProductsModule() {
   const [variantNameRef, setVariantNameRef] = useState<HTMLInputElement | null>(null)
   const [saving, setSaving] = useState(false)
 
-  const load = useCallback(async () => {
-    setLoading(true)
-    try {
-      const params = new URLSearchParams()
-      if (search) params.set('search', search)
-      if (filterCategory && filterCategory !== 'all') params.set('categoryId', filterCategory)
-      if (filterLowStock) params.set('lowStock', 'true')
-      const [pRes, cRes, sRes] = await Promise.all([fetch(`/api/products?${params}`), fetch('/api/categories'), fetch('/api/suppliers')])
-      setProducts((await pRes.json()).data ?? []); setCategories((await cRes.json()).data ?? []); setSuppliers((await sRes.json()).data ?? [])
-    } catch { toast.error('Gagal') }
-    finally { setLoading(false) }
-  }, [search, filterCategory, filterLowStock])
-  useEffect(() => { load() }, [load])
+  const invalidateProducts = () => {
+    queryClient.invalidateQueries({ queryKey: ['products'] })
+  }
 
   const handleSave = async () => {
     if (!form.name || !form.sku || !form.categoryId) { toast.error('Nama, SKU, dan Kategori wajib'); return }
@@ -100,11 +94,11 @@ function ProductsModule() {
       const url = editing ? `/api/products/${editing.id}` : '/api/products'
       const res = await fetch(url, { method: editing ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       if (!res.ok) { const d = await res.json(); toast.error(d.error || d.message || 'Gagal'); return }
-      toast.success(editing ? 'Diperbarui' : 'Ditambahkan'); setDialogOpen(false); setEditing(null); setForm({ name: '', sku: '', categoryId: '', supplierId: '', description: '', buyPrice: '', sellPrice: '', minStock: '0', isActive: true }); load()
+      toast.success(editing ? 'Diperbarui' : 'Ditambahkan'); setDialogOpen(false); setEditing(null); setForm({ name: '', sku: '', categoryId: '', supplierId: '', description: '', buyPrice: '', sellPrice: '', minStock: '0', isActive: true }); invalidateProducts()
     } catch { toast.error('Gagal') } finally { setSaving(false) }
   }
   const handleDelete = async (id: string) => {
-    try { const res = await fetch(`/api/products/${id}`, { method: 'DELETE' }); if (!res.ok) { const d = await res.json(); toast.error(d.error || d.message); return } toast.success('Dihapus'); setDeleteConfirm(null); load() } catch { toast.error('Gagal') }
+    try { const res = await fetch(`/api/products/${id}`, { method: 'DELETE' }); if (!res.ok) { const d = await res.json(); toast.error(d.error || d.message); return } toast.success('Dihapus'); setDeleteConfirm(null); invalidateProducts() } catch { toast.error('Gagal') }
   }
 
   const handleAddVariant = async () => {
@@ -114,7 +108,7 @@ function ProductsModule() {
       const body = { productId: selectedProduct.id, name: variantForm.name, sku: variantForm.sku, attributes: pairsToJson(attrPairs), buyPrice: parseFloat(variantForm.buyPrice) || selectedProduct.buyPrice, sellPrice: parseFloat(variantForm.sellPrice) || selectedProduct.sellPrice, stock: parseInt(variantForm.stock) || 0, minStock: parseInt(variantForm.minStock) || 0 }
       const res = await fetch('/api/product-variants', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       if (!res.ok) { const d = await res.json(); toast.error(d.error || d.message || 'Gagal'); return }
-      toast.success('Varian ditambahkan'); setVariantDialogOpen(false); setEditingVariant(null); setVariantForm({ name: '', sku: '', attributes: '', buyPrice: '', sellPrice: '', stock: '0', minStock: '0', isActive: true }); setAttrPairs([{ key: '', value: '' }]); load()
+      toast.success('Varian ditambahkan'); setVariantDialogOpen(false); setEditingVariant(null); setVariantForm({ name: '', sku: '', attributes: '', buyPrice: '', sellPrice: '', stock: '0', minStock: '0', isActive: true }); setAttrPairs([{ key: '', value: '' }]); invalidateProducts()
     } catch { toast.error('Gagal') } finally { setSaving(false) }
   }
 
@@ -141,12 +135,12 @@ function ProductsModule() {
       const body = { name: variantForm.name, sku: variantForm.sku, attributes: pairsToJson(attrPairs), buyPrice: parseFloat(variantForm.buyPrice) || 0, sellPrice: parseFloat(variantForm.sellPrice) || 0, minStock: parseInt(variantForm.minStock) || 0, isActive: variantForm.isActive }
       const res = await fetch(`/api/product-variants/${editingVariant.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       if (!res.ok) { const d = await res.json(); toast.error(d.error || d.message || 'Gagal'); return }
-      toast.success('Varian diperbarui'); setVariantDialogOpen(false); setEditingVariant(null); setVariantForm({ name: '', sku: '', attributes: '', buyPrice: '', sellPrice: '', stock: '0', minStock: '0', isActive: true }); setAttrPairs([{ key: '', value: '' }]); load()
+      toast.success('Varian diperbarui'); setVariantDialogOpen(false); setEditingVariant(null); setVariantForm({ name: '', sku: '', attributes: '', buyPrice: '', sellPrice: '', stock: '0', minStock: '0', isActive: true }); setAttrPairs([{ key: '', value: '' }]); invalidateProducts()
     } catch { toast.error('Gagal') } finally { setSaving(false) }
   }
 
   const handleDeleteVariant = async (id: string) => {
-    try { const res = await fetch(`/api/product-variants/${id}`, { method: 'DELETE' }); if (!res.ok) { const d = await res.json(); toast.error(d.error || d.message); return } toast.success('Varian dihapus'); load() } catch { toast.error('Gagal') }
+    try { const res = await fetch(`/api/product-variants/${id}`, { method: 'DELETE' }); if (!res.ok) { const d = await res.json(); toast.error(d.error || d.message); return } toast.success('Varian dihapus'); invalidateProducts() } catch { toast.error('Gagal') }
   }
 
   const toggleExpand = (id: string) => {

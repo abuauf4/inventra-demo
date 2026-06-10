@@ -1,7 +1,9 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
+import { useCustomers } from '@/components/inventra/hooks/use-query-hooks'
 import type { Customer } from '@/components/inventra/shared/types'
 import { fmtRp, fmtDate, saleStatusMap } from '@/components/inventra/shared/constants'
 import { StatusBadge } from '@/components/inventra/shared/status-badge'
@@ -49,9 +51,11 @@ const defaultForm = {
 }
 
 function CustomersModule() {
-  const [customers, setCustomers] = useState<Customer[]>([])
+  const queryClient = useQueryClient()
   const [search, setSearch] = useState('')
-  const [loading, setLoading] = useState(false)
+
+  // React Query — cached across navigation!
+  const { data: customers = [], isLoading: loading } = useCustomers(search)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [detailOpen, setDetailOpen] = useState(false)
   const [editing, setEditing] = useState<Customer | null>(null)
@@ -67,12 +71,9 @@ function CustomersModule() {
     }
   }, [dialogOpen])
 
-  const load = useCallback(async () => {
-    setLoading(true)
-    try { const res = await fetch(`/api/customers?search=${encodeURIComponent(search)}`); setCustomers((await res.json()).data ?? []) } catch { toast.error('Gagal') }
-    finally { setLoading(false) }
-  }, [search])
-  useEffect(() => { load() }, [load])
+  const invalidateCustomers = () => {
+    queryClient.invalidateQueries({ queryKey: ['customers'] })
+  }
 
   const handleSave = async () => {
     if (!form.name) { toast.error('Nama harus diisi'); return }
@@ -81,11 +82,11 @@ function CustomersModule() {
       const url = editing ? `/api/customers/${editing.id}` : '/api/customers'
       const res = await fetch(url, { method: editing ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) })
       if (!res.ok) { const d = await res.json(); toast.error(d.error || d.message || 'Gagal'); return }
-      toast.success(editing ? 'Diperbarui' : 'Ditambahkan'); setDialogOpen(false); setEditing(null); setForm(defaultForm); load()
+      toast.success(editing ? 'Diperbarui' : 'Ditambahkan'); setDialogOpen(false); setEditing(null); setForm(defaultForm); invalidateCustomers()
     } catch { toast.error('Gagal') } finally { setSaving(false) }
   }
   const handleDelete = async (id: string) => {
-    try { const res = await fetch(`/api/customers/${id}`, { method: 'DELETE' }); if (!res.ok) { const d = await res.json(); toast.error(d.error || d.message); return } toast.success('Dihapus'); setDeleteConfirm(null); load() } catch { toast.error('Gagal') }
+    try { const res = await fetch(`/api/customers/${id}`, { method: 'DELETE' }); if (!res.ok) { const d = await res.json(); toast.error(d.error || d.message); return } toast.success('Dihapus'); setDeleteConfirm(null); invalidateCustomers() } catch { toast.error('Gagal') }
   }
 
   const openEdit = (c: Customer) => {

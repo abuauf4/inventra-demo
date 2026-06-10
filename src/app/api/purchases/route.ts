@@ -17,7 +17,7 @@ async function resolveVariant(variantId: string | null | undefined, productId: s
   return null
 }
 
-// GET /api/purchases - List purchases with supplier info and items
+// GET /api/purchases - List purchases with supplier info and items (paginated)
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
@@ -26,6 +26,8 @@ export async function GET(request: NextRequest) {
     const dateFrom = searchParams.get('dateFrom') || ''
     const dateTo = searchParams.get('dateTo') || ''
     const status = searchParams.get('status') || ''
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10))
+    const limit = Math.min(200, Math.max(1, parseInt(searchParams.get('limit') || '50', 10)))
 
     const where: Prisma.PurchaseWhereInput = {}
 
@@ -47,27 +49,36 @@ export async function GET(request: NextRequest) {
       if (dateTo) where.date.lte = new Date(dateTo)
     }
 
-    const purchases = await db.purchase.findMany({
-      where,
-      include: {
-        supplier: true,
-        items: {
-          include: {
-            variant: {
-              select: { id: true, name: true, sku: true },
-            },
-            product: {
-              select: { id: true, name: true, sku: true },
+    const [purchases, total] = await Promise.all([
+      db.purchase.findMany({
+        where,
+        include: {
+          supplier: true,
+          items: {
+            include: {
+              variant: {
+                select: { id: true, name: true, sku: true },
+              },
+              product: {
+                select: { id: true, name: true, sku: true },
+              },
             },
           },
         },
-      },
-      orderBy: {
-        date: 'desc',
-      },
-    })
+        orderBy: {
+          date: 'desc',
+        },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      db.purchase.count({ where }),
+    ])
 
-    return NextResponse.json({ success: true, data: purchases })
+    return NextResponse.json({
+      success: true,
+      data: purchases,
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+    })
   } catch (error) {
     console.error('Get purchases error:', error)
     return NextResponse.json(

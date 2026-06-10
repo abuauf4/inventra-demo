@@ -1,7 +1,9 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
+import { useSuppliers } from '@/components/inventra/hooks/use-query-hooks'
 import type { Supplier } from '@/components/inventra/shared/types'
 import { fmtRp, fmtDate, purchaseStatusMap } from '@/components/inventra/shared/constants'
 import { StatusBadge } from '@/components/inventra/shared/status-badge'
@@ -31,9 +33,11 @@ import {
 } from 'lucide-react'
 
 function SuppliersModule() {
-  const [suppliers, setSuppliers] = useState<Supplier[]>([])
+  const queryClient = useQueryClient()
   const [search, setSearch] = useState('')
-  const [loading, setLoading] = useState(false)
+
+  // React Query — cached across navigation!
+  const { data: suppliers = [], isLoading: loading } = useSuppliers(search)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [detailOpen, setDetailOpen] = useState(false)
   const [editing, setEditing] = useState<Supplier | null>(null)
@@ -51,12 +55,9 @@ function SuppliersModule() {
     }
   }, [dialogOpen])
 
-  const load = useCallback(async () => {
-    setLoading(true)
-    try { const res = await fetch(`/api/suppliers?search=${encodeURIComponent(search)}`); setSuppliers((await res.json()).data ?? []) } catch { toast.error('Gagal') }
-    finally { setLoading(false) }
-  }, [search])
-  useEffect(() => { load() }, [load])
+  const invalidateSuppliers = () => {
+    queryClient.invalidateQueries({ queryKey: ['suppliers'] })
+  }
 
   const openDetail = async (id: string) => {
     try {
@@ -81,11 +82,11 @@ function SuppliersModule() {
       const url = editing ? `/api/suppliers/${editing.id}` : '/api/suppliers'
       const res = await fetch(url, { method: editing ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) })
       if (!res.ok) { const d = await res.json(); toast.error(d.error || d.message || 'Gagal'); return }
-      toast.success(editing ? 'Diperbarui' : 'Ditambahkan'); setDialogOpen(false); setEditing(null); setForm({ name: '', pic: '', phone: '', email: '', address: '', notes: '' }); load()
+      toast.success(editing ? 'Diperbarui' : 'Ditambahkan'); setDialogOpen(false); setEditing(null); setForm({ name: '', pic: '', phone: '', email: '', address: '', notes: '' }); invalidateSuppliers()
     } catch { toast.error('Gagal') } finally { setSaving(false) }
   }
   const handleDelete = async (id: string) => {
-    try { const res = await fetch(`/api/suppliers/${id}`, { method: 'DELETE' }); if (!res.ok) { const d = await res.json(); toast.error(d.error || d.message); return } toast.success('Dihapus'); setDeleteConfirm(null); load() } catch { toast.error('Gagal') }
+    try { const res = await fetch(`/api/suppliers/${id}`, { method: 'DELETE' }); if (!res.ok) { const d = await res.json(); toast.error(d.error || d.message); return } toast.success('Dihapus'); setDeleteConfirm(null); invalidateSuppliers() } catch { toast.error('Gagal') }
   }
 
   return (

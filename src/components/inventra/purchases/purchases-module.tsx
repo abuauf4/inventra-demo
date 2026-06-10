@@ -1,7 +1,9 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
+import { usePurchases, useSuppliers, useProducts } from '@/components/inventra/hooks/use-query-hooks'
 import { Purchase, PurchaseItem, Product, ProductVariant, Supplier } from '@/components/inventra/shared/types'
 import { fmtDate, fmtRp } from '@/components/inventra/shared/constants'
 import { StatusBadge } from '@/components/inventra/shared/status-badge'
@@ -29,7 +31,7 @@ import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
 
 import {
-  Search, Plus, Eye, Trash2, RefreshCw,
+  Search, Plus, Eye, Trash2, RefreshCw, ChevronLeft, ChevronRight,
 } from 'lucide-react'
 
 const today = () => new Date().toISOString().split('T')[0]
@@ -48,12 +50,25 @@ const parseVariantAttrs = (attrs: string): string => {
 }
 
 function PurchasesModule() {
-  const [purchases, setPurchases] = useState<Purchase[]>([])
-  const [suppliers, setSuppliers] = useState<Supplier[]>([])
-  const [products, setProducts] = useState<Product[]>([])
+  const queryClient = useQueryClient()
+
+  // Filter state
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState('all')
-  const [loading, setLoading] = useState(false)
+  const [page, setPage] = useState(1)
+  const PAGE_LIMIT = 50
+
+  // React Query data hooks — cached across navigation!
+  const { data: purchasesData, isLoading: purchasesLoading, isFetching: purchasesFetching } = usePurchases({
+    search, status: filterStatus, page, limit: PAGE_LIMIT,
+  })
+  const { data: suppliers = [] } = useSuppliers()
+  const { data: products = [] } = useProducts()
+
+  const purchases = purchasesData?.data ?? []
+  const pagination = purchasesData?.pagination
+
+  // Dialog state
   const [dialogOpen, setDialogOpen] = useState(false)
   const [detailOpen, setDetailOpen] = useState(false)
   const [detail, setDetail] = useState<Purchase | null>(null)
@@ -66,22 +81,16 @@ function PurchasesModule() {
   const [statusSaving, setStatusSaving] = useState(false)
   const supplierInputRef = useRef<HTMLInputElement>(null)
 
-  const load = useCallback(async () => {
-    setLoading(true)
-    try {
-      const params = new URLSearchParams()
-      if (search) params.set('search', search)
-      if (filterStatus !== 'all') params.set('status', filterStatus)
-      const [pRes, sRes, prRes] = await Promise.all([fetch(`/api/purchases?${params}`), fetch('/api/suppliers'), fetch('/api/products')])
-      setPurchases((await pRes.json()).data ?? []); setSuppliers((await sRes.json()).data ?? []); setProducts((await prRes.json()).data ?? [])
-    } catch { toast.error('Gagal') }
-    finally { setLoading(false) }
-  }, [search, filterStatus])
-  useEffect(() => { load() }, [load])
+  // Reset page when filters change
+  useEffect(() => { setPage(1) }, [search, filterStatus])
 
   useEffect(() => {
     if (dialogOpen) setTimeout(() => supplierInputRef.current?.focus(), 100)
   }, [dialogOpen])
+
+  const invalidatePurchases = () => {
+    queryClient.invalidateQueries({ queryKey: ['purchases'] })
+  }
 
   const handleSave = async () => {
     if (!form.supplierId) { toast.error('Supplier wajib dipilih'); return }
@@ -91,7 +100,7 @@ function PurchasesModule() {
       if (!body.items.length) { toast.error('Tambahkan minimal 1 item'); return }
       const res = await fetch('/api/purchases', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       if (!res.ok) { const d = await res.json(); toast.error(d.error || d.message || 'Gagal'); return }
-      toast.success('Pembelian dicatat'); setDialogOpen(false); resetForm(); load()
+      toast.success('Pembelian dicatat'); setDialogOpen(false); resetForm(); invalidatePurchases()
     } catch { toast.error('Gagal') } finally { setSaving(false) }
   }
 
@@ -100,12 +109,12 @@ function PurchasesModule() {
     try {
       const res = await fetch(`/api/purchases/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: newStatus }) })
       if (!res.ok) { const d = await res.json(); toast.error(d.error || d.message || 'Gagal'); return }
-      toast.success('Status diperbarui'); setDetailOpen(false); load()
+      toast.success('Status diperbarui'); setDetailOpen(false); invalidatePurchases()
     } catch { toast.error('Gagal') } finally { setStatusSaving(false) }
   }
 
   const handleDelete = async (id: string) => {
-    try { const res = await fetch(`/api/purchases/${id}`, { method: 'DELETE' }); if (!res.ok) { const d = await res.json(); toast.error(d.error || d.message); return } toast.success('Dihapus'); setDeleteConfirm(null); load() } catch { toast.error('Gagal') }
+    try { const res = await fetch(`/api/purchases/${id}`, { method: 'DELETE' }); if (!res.ok) { const d = await res.json(); toast.error(d.error || d.message); return } toast.success('Dihapus'); setDeleteConfirm(null); invalidatePurchases() } catch { toast.error('Gagal') }
   }
 
   const handleCancel = async () => {
@@ -114,7 +123,7 @@ function PurchasesModule() {
     try {
       const res = await fetch(`/api/purchases/${cancelConfirm.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'CANCELLED' }) })
       if (!res.ok) { const d = await res.json(); toast.error(d.error || d.message || 'Gagal'); return }
-      toast.success('Pembelian dibatalkan'); setCancelConfirm(null); setDetailOpen(false); load()
+      toast.success('Pembelian dibatalkan'); setCancelConfirm(null); setDetailOpen(false); invalidatePurchases()
     } catch { toast.error('Gagal') } finally { setStatusSaving(false) }
   }
 
@@ -179,7 +188,7 @@ function PurchasesModule() {
         <Button onClick={() => { resetForm(); setDialogOpen(true) }} className="bg-primary text-primary-foreground text-white"><Plus className="w-4 h-4 mr-1 sm:mr-2" /><span className="hidden sm:inline">Tambah</span></Button></div>
       </div>
       <div className="flex-1 min-h-0 overflow-y-auto mt-5">
-      {loading ? <div className="flex justify-center py-8"><RefreshCw className="w-6 h-6 animate-spin text-rose-500" /></div> : (
+      {purchasesLoading ? <div className="flex justify-center py-8"><RefreshCw className="w-6 h-6 animate-spin text-rose-500" /></div> : (
         <Card className="border-0"><CardContent className="p-2 sm:p-3"><div className="overflow-x-auto -mx-3 sm:mx-0"><Table><TableHeader><TableRow><TableHead>No. Transaksi</TableHead><TableHead>Supplier</TableHead><TableHead>Tanggal</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Total</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
           <TableBody>{!purchases.length ? <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Belum ada data</TableCell></TableRow> : purchases.map(p => (
             <TableRow key={p.id}><TableCell className="font-mono text-sm">{p.transNo}</TableCell><TableCell>{p.supplier?.name}</TableCell><TableCell>{fmtDate(p.date)}</TableCell><TableCell><StatusBadge status={p.status} map="purchase" /></TableCell><TableCell className="text-right font-medium">{fmtRp(p.total)}</TableCell>
@@ -193,6 +202,21 @@ function PurchasesModule() {
           ))}</TableBody></Table></div></CardContent></Card>
       )}
       </div>
+
+      {/* Pagination Controls */}
+      {pagination && pagination.totalPages > 1 && (
+        <div className="flex items-center justify-between py-3 px-1 border-t shrink-0">
+          <span className="text-sm text-muted-foreground">
+            {purchasesFetching && <RefreshCw className="w-3 h-3 animate-spin inline mr-1" />}
+            {(pagination.page - 1) * pagination.limit + 1}–{Math.min(pagination.page * pagination.limit, pagination.total)} dari {pagination.total}
+          </span>
+          <div className="flex gap-1">
+            <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}><ChevronLeft className="w-4 h-4" /></Button>
+            <span className="flex items-center px-2 text-sm">Hal {pagination.page} / {pagination.totalPages}</span>
+            <Button variant="outline" size="sm" disabled={page >= pagination.totalPages} onClick={() => setPage(p => p + 1)}><ChevronRight className="w-4 h-4" /></Button>
+          </div>
+        </div>
+      )}
 
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}><DialogContent className="max-w-2xl"><DialogHeader><DialogTitle>Detail Pembelian</DialogTitle></DialogHeader>
         {detail && <div className="space-y-4"><div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm"><div><span className="text-muted-foreground">No. Transaksi:</span> <span className="font-mono font-medium ml-2">{detail.transNo}</span></div><div><span className="text-muted-foreground">Supplier:</span> <span className="ml-2">{detail.supplier?.name}</span></div><div><span className="text-muted-foreground">Tanggal:</span> <span className="ml-2">{fmtDate(detail.date)}</span></div><div><span className="text-muted-foreground">Status:</span> <span className="ml-2"><StatusBadge status={detail.status} map="purchase" /></span></div><div><span className="text-muted-foreground">Total:</span> <span className="font-bold ml-2">{fmtRp(detail.total)}</span></div></div><Separator />

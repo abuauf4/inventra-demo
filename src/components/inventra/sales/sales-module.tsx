@@ -1,8 +1,10 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { useAppStore } from '@/lib/store'
+import { useSales, useCustomers, useProducts } from '@/components/inventra/hooks/use-query-hooks'
 import { Sale, SaleItem, Product, ProductVariant, Customer } from '@/components/inventra/shared/types'
 import { fmtDate, fmtRp } from '@/components/inventra/shared/constants'
 import { StatusBadge } from '@/components/inventra/shared/status-badge'
@@ -30,7 +32,7 @@ import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
 
 import {
-  Search, Plus, Eye, Trash2, RefreshCw,
+  Search, Plus, Eye, Trash2, RefreshCw, ChevronLeft, ChevronRight,
 } from 'lucide-react'
 
 const today = () => new Date().toISOString().split('T')[0]
@@ -50,12 +52,25 @@ const parseVariantAttrs = (attrs: string): string => {
 
 function SalesModule() {
   const { openSalesForm, setOpenSalesForm } = useAppStore()
-  const [sales, setSales] = useState<Sale[]>([])
-  const [customers, setCustomers] = useState<Customer[]>([])
-  const [products, setProducts] = useState<Product[]>([])
+  const queryClient = useQueryClient()
+
+  // Filter state
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState('all')
-  const [loading, setLoading] = useState(false)
+  const [page, setPage] = useState(1)
+  const PAGE_LIMIT = 50
+
+  // React Query data hooks — cached across navigation!
+  const { data: salesData, isLoading: salesLoading, isFetching: salesFetching } = useSales({
+    search, status: filterStatus, page, limit: PAGE_LIMIT,
+  })
+  const { data: customers = [] } = useCustomers()
+  const { data: products = [] } = useProducts()
+
+  const sales = salesData?.data ?? []
+  const pagination = salesData?.pagination
+
+  // Dialog state
   const [dialogOpen, setDialogOpen] = useState(false)
   const [detailOpen, setDetailOpen] = useState(false)
   const [detail, setDetail] = useState<Sale | null>(null)
@@ -69,18 +84,8 @@ function SalesModule() {
   const customerInputRef = useRef<HTMLInputElement>(null)
   const saveButtonRef = useRef<HTMLButtonElement>(null)
 
-  const load = useCallback(async () => {
-    setLoading(true)
-    try {
-      const params = new URLSearchParams()
-      if (search) params.set('search', search)
-      if (filterStatus !== 'all') params.set('status', filterStatus)
-      const [sRes, cRes, pRes] = await Promise.all([fetch(`/api/sales?${params}`), fetch('/api/customers'), fetch('/api/products')])
-      setSales((await sRes.json()).data ?? []); setCustomers((await cRes.json()).data ?? []); setProducts((await pRes.json()).data ?? [])
-    } catch { toast.error('Gagal') }
-    finally { setLoading(false) }
-  }, [search, filterStatus])
-  useEffect(() => { load() }, [load])
+  // Reset page when filters change
+  useEffect(() => { setPage(1) }, [search, filterStatus])
 
   // Auto-open "Tambah Penjualan" dialog when coming from Jual Cepat
   useEffect(() => {
@@ -97,6 +102,10 @@ function SalesModule() {
       setTimeout(() => customerInputRef.current?.focus(), 100)
     }
   }, [dialogOpen])
+
+  const invalidateSales = () => {
+    queryClient.invalidateQueries({ queryKey: ['sales'] })
+  }
 
   const handleSave = async () => {
     // Client-side stock validation before API call
@@ -130,17 +139,17 @@ function SalesModule() {
       const body = { customerId: form.customerId || undefined, date: form.date, notes: form.notes || undefined, status: form.status, items: mappedItems.map(({ stock, name, ...rest }) => rest) }
       const res = await fetch('/api/sales', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       if (!res.ok) { const d = await res.json(); toast.error(d.error || d.message || 'Gagal'); return }
-      toast.success('Penjualan dicatat'); setDialogOpen(false); resetForm(); load()
+      toast.success('Penjualan dicatat'); setDialogOpen(false); resetForm(); invalidateSales()
     } catch { toast.error('Gagal') } finally { setSaving(false) }
   }
 
   const handleStatusChange = async (id: string, newStatus: string) => {
     setStatusSaving(true)
-    try { const res = await fetch(`/api/sales/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: newStatus }) }); if (!res.ok) { const d = await res.json(); toast.error(d.error || d.message); return } toast.success('Status diperbarui'); setDetailOpen(false); load() } catch { toast.error('Gagal') } finally { setStatusSaving(false) }
+    try { const res = await fetch(`/api/sales/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: newStatus }) }); if (!res.ok) { const d = await res.json(); toast.error(d.error || d.message); return } toast.success('Status diperbarui'); setDetailOpen(false); invalidateSales() } catch { toast.error('Gagal') } finally { setStatusSaving(false) }
   }
 
   const handleDelete = async (id: string) => {
-    try { const res = await fetch(`/api/sales/${id}`, { method: 'DELETE' }); if (!res.ok) { const d = await res.json(); toast.error(d.error || d.message); return } toast.success('Dihapus'); setDeleteConfirm(null); load() } catch { toast.error('Gagal') }
+    try { const res = await fetch(`/api/sales/${id}`, { method: 'DELETE' }); if (!res.ok) { const d = await res.json(); toast.error(d.error || d.message); return } toast.success('Dihapus'); setDeleteConfirm(null); invalidateSales() } catch { toast.error('Gagal') }
   }
 
   const handleCancel = async () => {
@@ -149,7 +158,7 @@ function SalesModule() {
     try {
       const res = await fetch(`/api/sales/${cancelConfirm.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'CANCELLED' }) })
       if (!res.ok) { const d = await res.json(); toast.error(d.error || d.message || 'Gagal'); return }
-      toast.success('Penjualan dibatalkan'); setCancelConfirm(null); setDetailOpen(false); load()
+      toast.success('Penjualan dibatalkan'); setCancelConfirm(null); setDetailOpen(false); invalidateSales()
     } catch { toast.error('Gagal') } finally { setStatusSaving(false) }
   }
 
@@ -209,7 +218,7 @@ function SalesModule() {
         <Button onClick={() => { resetForm(); setDialogOpen(true) }} className="bg-primary text-primary-foreground text-white"><Plus className="w-4 h-4 mr-1 sm:mr-2" /><span className="hidden sm:inline">Tambah</span></Button></div>
       </div>
       <div className="flex-1 min-h-0 overflow-y-auto mt-5">
-      {loading ? <div className="flex justify-center py-8"><RefreshCw className="w-6 h-6 animate-spin text-rose-500" /></div> : (
+      {salesLoading ? <div className="flex justify-center py-8"><RefreshCw className="w-6 h-6 animate-spin text-rose-500" /></div> : (
         <Card className="border-0"><CardContent className="p-2 sm:p-3"><div className="overflow-x-auto -mx-3 sm:mx-0"><Table><TableHeader><TableRow><TableHead>No. Transaksi</TableHead><TableHead>Customer</TableHead><TableHead>Tanggal</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Total</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
           <TableBody>{!sales.length ? <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Belum ada data</TableCell></TableRow> : sales.map(s => (
             <TableRow key={s.id}><TableCell className="font-mono text-sm">{s.transNo}</TableCell><TableCell>{s.customer?.name || 'Umum'}</TableCell><TableCell>{fmtDate(s.date)}</TableCell><TableCell><StatusBadge status={s.status} map="sale" /></TableCell><TableCell className="text-right font-medium">{fmtRp(s.total)}</TableCell>
@@ -223,6 +232,21 @@ function SalesModule() {
           ))}</TableBody></Table></div></CardContent></Card>
       )}
       </div>
+
+      {/* Pagination Controls */}
+      {pagination && pagination.totalPages > 1 && (
+        <div className="flex items-center justify-between py-3 px-1 border-t shrink-0">
+          <span className="text-sm text-muted-foreground">
+            {salesFetching && <RefreshCw className="w-3 h-3 animate-spin inline mr-1" />}
+            {(pagination.page - 1) * pagination.limit + 1}–{Math.min(pagination.page * pagination.limit, pagination.total)} dari {pagination.total}
+          </span>
+          <div className="flex gap-1">
+            <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}><ChevronLeft className="w-4 h-4" /></Button>
+            <span className="flex items-center px-2 text-sm">Hal {pagination.page} / {pagination.totalPages}</span>
+            <Button variant="outline" size="sm" disabled={page >= pagination.totalPages} onClick={() => setPage(p => p + 1)}><ChevronRight className="w-4 h-4" /></Button>
+          </div>
+        </div>
+      )}
 
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}><DialogContent className="max-w-2xl"><DialogHeader><DialogTitle>Detail Penjualan</DialogTitle></DialogHeader>
         {detail && <div className="space-y-4"><div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm"><div><span className="text-muted-foreground">No. Transaksi:</span> <span className="font-mono font-medium ml-2">{detail.transNo}</span></div><div><span className="text-muted-foreground">Customer:</span> <span className="ml-2">{detail.customer?.name || 'Umum'}</span></div><div><span className="text-muted-foreground">Tanggal:</span> <span className="ml-2">{fmtDate(detail.date)}</span></div><div><span className="text-muted-foreground">Status:</span> <span className="ml-2"><StatusBadge status={detail.status} map="sale" /></span></div><div><span className="text-muted-foreground">Total:</span> <span className="font-bold ml-2">{fmtRp(detail.total)}</span></div></div><Separator />
