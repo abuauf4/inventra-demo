@@ -1,106 +1,127 @@
-# NAUKA INVENTRA - Worklog
-
-## Git Author Config
-- **Username**: abuauf4
-- **Email**: mochamadbagussuhada@gmail.com
-- **Reason**: Vercel deployment requires verified git author. All commits must use this identity to avoid build blocks.
+# Inventra Sprint A+B Worklog
 
 ---
-Task ID: phase4-workspace
-Agent: Main
-Task: Implement Phase 4 - Workspace Experience transformation
+Task ID: A2
+Agent: Main Agent
+Task: Fix stock-mutations ADJUSTMENT/IN/OUT — wrap in $transaction
 
 Work Log:
-- Refactored monolithic page.tsx (1748 lines) → modular component structure
-- Created ProfileCard, DailyPriorities, QuickActionCenter, WorkspaceHome
-- Role-based rendering: Owner (business summary), Staff (pending orders), Warehouse (stock movement)
-- InboxModule with priority filtering
-- Mobile floating action buttons
-- Visual upgrade: stone/neutral palette, rounded-xl corners
+- Analyzed `/src/app/api/stock-mutations/route.ts`
+- Found TRANSFER case already used $transaction, but ADJUSTMENT, IN, OUT cases created mutation then updated stock separately
+- Wrapped all three cases in `db.$transaction(async (tx) => { ... })` with `tx` passed to `updateVariantStock`
+- Build verified successfully
 
 Stage Summary:
-- Complete workspace paradigm: Dashboard→Statistics → Workspace→Identity→Priorities→Actions
-- Production build successful, APIs verified working
+- ADJUSTMENT, IN, OUT stock mutations now atomic — mutation creation + stock update happen in one transaction
+- If stock update fails, mutation creation is also rolled back
 
 ---
-Task ID: supabase-migration
-Agent: Super Z (main)
-Task: Migrate Inventra from SQLite to Supabase PostgreSQL
+Task ID: B4
+Agent: Main Agent
+Task: Report enhancements — top products, profit, detail breakdown, stock filters
 
 Work Log:
-- Switched Prisma provider from sqlite to postgresql
-- Added directUrl for Supabase connection pooling
-- Fixed Attachment model: removed dual @relation on entityId
-- Added mode: 'insensitive' to all 32 contains filters across 10 API routes
-- Created prisma/seed.ts for direct database seeding
-- Updated build script and postinstall
-- Pushed schema to Supabase, seeded data, build passed
+- Enhanced `/src/app/api/reports/route.ts`:
+  - Sales report: Added topProductsByRevenue, topProductsByQty, topCustomers, totalCost, estimatedProfit, profit margin
+  - Purchases report: Added topProductsByCost, topProductsByQty, topSuppliers
+  - Stock report: Added categoryId, supplierId, lowStockOnly filters
+- Rewrote `/src/components/inventra/reports/reports-module.tsx`:
+  - Sales: 4 summary cards (Pendapatan, Modal, Estimasi Profit with margin %, Total Transaksi), period table, top products table with profit per product, top customers table
+  - Purchases: 3 summary cards, period table, top products by cost, top suppliers ranking
+  - Stock: Added category filter, supplier filter, low stock only toggle, buy price column
+- Build verified successfully
 
 Stage Summary:
-- SQLite → PostgreSQL migration complete
-- Data seeded in Supabase
-- Build passes, pushed to GitHub
-- User needs to set env vars in Vercel dashboard
+- Reports now provide actionable analysis: which products make money, which customers buy most, which suppliers cost most
+- Profit estimation shows margin percentage
+- Stock report can be filtered by category and supplier
 
 ---
-Task ID: sprint-identity-experience
-Agent: Super Z (main)
-Task: Sprint Identity & Experience — Login, Home, Sidebar, Branding, Dark Mode, Mobile
+Task ID: 1
+Agent: Main Agent
+Task: Fix Report Date Range Filter for Inventra
 
 Work Log:
-- Starting...
----
-Task ID: identity-experience-sprint
-Agent: Main Agent (Super Z)
-Task: Sprint: Identity & Experience — Full visual overhaul inspired by aviation dashboard + smart home dark mode reference designs
-
-Work Log:
-- Analyzed two reference screenshots using VLM: aviation dashboard (dark teal sidebar, orange accent, light content) and smart home (deep charcoal dark mode, blue accent)
-- Explored full codebase structure: 8 key files identified for modification
-- Rewrote globals.css: light mode uses cool blue-gray oklch(0.96 0.005 260), dark mode deep blue-black oklch(0.13 0.015 260), sidebar variables ALWAYS dark teal in both modes
-- Changed store.ts default theme from 'light' to 'dark'
-- Updated constants.ts role colors: owner=amber/orange, admin=blue/cyan, staff=teal/emerald, warehouse=orange/amber
-- Complete sidebar redesign: always-dark bg-[#162032], amber active accent with left border, white/teal text, amber inbox badge, no dark: variants
-- Login screen overhaul: deep blue-black bg-[#0a0e1a], amber+teal blur decorations, amber-to-orange gradient logo & button, teal-tinted glass card
-- Workspace home redesign: space-y-10 for breathing room, "Halo {name} 👋 Mau ngerjain apa nih?" greeting, amber/blue/teal quick actions, custom dark card backgrounds
-- Header updated: dark:bg-[#0f1117]/80, amber quick sale button, amber notification badge
-- Page container updated: bg-[#f4f6fb] dark:bg-[#0f1117], amber-to-orange mobile FAB
-- Build passes, pushed to GitHub (commit dac3266)
+- Added `getCurrentMonthRange()` and `resolveDateRange()` helpers to `/src/app/api/reports/route.ts`
+- API now defaults `dateFrom`/`dateTo` to current month start/end when not provided (for sales, purchases, and stock-mutations cases)
+- Period selector (daily/weekly/monthly) now only controls grouping, NOT the date range — date range always applies as boundary filter
+- Added `dateFrom`/`dateTo` fields to API response for sales and purchases cases
+- Added new `type=stock-mutations` case to reports API:
+  - Queries `db.stockMutation.findMany` with `createdAt` date filter (includes end-of-day for dateTo)
+  - Returns mutations grouped by type (IN, OUT, ADJUSTMENT, TRANSFER) with counts and totalQty
+  - Returns mapped mutations with productName, variantName, warehouseName, qty, note, createdAt
+- Updated `/src/components/inventra/reports/reports-module.tsx`:
+  - Removed `{period === 'custom' && ...}` condition — date inputs (Dari Tanggal / Sampai Tanggal) now always visible for ALL tabs
+  - Default `dateFrom`/`dateTo` to current month on first load using `useMemo` + `getCurrentMonthRange()`
+  - Added active filter label "Filter: 1 Jun — 30 Jun 2026" with amber styling on all tabs
+  - Added "Mutasi Stok" tab with:
+    - Date range filter (Dari Tanggal / Sampai Tanggal)
+    - 4 summary cards: Stok Masuk (IN), Stok Keluar (OUT), Penyesuaian (ADJ), Transfer
+    - Detail table with columns: Tanggal, Tipe, Produk, Varian, Qty, Gudang, Catatan
+    - Type badges with color coding (emerald for IN, rose for OUT, amber for ADJ, blue for Transfer)
+  - Stock tab now also shows date range inputs and filter label
+  - Added category/supplier filters for stock tab (was already in inventra-demo but missing in root project)
+  - Added Separator import for future use
+  - Added fmtDateTime import from shared constants
+- Also synced changes to `/home/z/my-project/inventra-demo/` copies of both files
+- Lint passed with no errors
+- API tested: stock-mutations endpoint returns correct data with date defaults; sales/purchases now filter by date range
 
 Stage Summary:
-- Complete visual identity transformation from rose/stone → amber/teal/dark-navy
-- Dark mode is now DEFAULT and PRIMARY experience
-- Sidebar is ALWAYS dark (aviation dashboard signature element)
-- "Mau ngerjain apa nih?" greeting captures the "bikin orang betah" philosophy
-- All functionality preserved — purely visual transformation
-- 8 files modified, 158 insertions, 154 deletions
+- Date range filters always visible on all report tabs (Penjualan, Pembelian, Stok, Mutasi Stok)
+- Default to current month (1 Jun — 30 Jun 2026) on first load
+- Period selector only controls grouping, date range always applies as boundary
+- Active filter label shows current date range clearly
+- New "Mutasi Stok" tab with summary cards and detail table
+- No database schema changes required
 
 ---
-Task ID: product-stabilization-sprint
-Agent: Main Agent (Super Z)
-Task: Sprint: Product Stabilization — Critical fixes & operational readiness
+Task ID: 2+3
+Agent: Main Agent
+Task: Fix Typeahead Bug + Add Readonly Detail Fields for Inventra
 
 Work Log:
-- Completed comprehensive audit of all 14 modules + 22 API routes
-- Identified 8 critical bugs and 10 high-priority improvements
-- Fixed Stock Report: data.products → data.variants (empty table bug)
-- Built full Stock Mutations CREATE system: POST API + UI with Transfer/Adjustment/In-Out tabs
-- Added variant include to stock-mutations API (variant name was always undefined)
-- Fixed WarehouseStock creation on product creation (warehouse-level tracking was broken)
-- Hashed all passwords with bcryptjs (was plain text)
-- Added warehouse role + isActive to User API and UI
-- Added variant edit UI to Products module (was only create/delete)
-- Added Tab/Enter navigation across all dialog forms (5 modules)
-- Added auto-focus on first field when dialog opens (all modules)
-- Created /api/warehouse-stock endpoint for real-time stock display
-- Re-seeded database with bcrypt-hashed passwords
-- Build passes, pushed to GitHub (commit 8ea7ddd)
+- Added `parseVariantAttrs()` helper function to all three modules — parses variant attributes JSON into readable "key: value, key: value" string
+
+**Part A: Fix Typeahead Bug (all typeahead fields)**
+
+Root cause: When user selected an item, the input showed the full display text (code + name). Clearing the input set search text to '' and cleared the selected ID, but the dropdown condition `searchText && !selectedId` meant the dropdown wouldn't re-appear when search was empty. The fundamental issue was that after selection, clicking the input didn't switch to "edit mode" — the full display text was shown and the user had to manually delete it all before typing.
+
+Fix applied to ALL typeahead fields:
+1. Changed input `value` to show only the **code/SKU** when an item is selected (e.g., "SUP00001" instead of "SUP00001 PT Maju Bersama")
+2. Added `onFocus` handler that, when a selection is active, **clears the selected ID** and **puts the code/SKU back into the search field** so the user can immediately edit and see suggestions
+3. This ensures: click → code appears in search → backspace/type → suggestions re-appear immediately → no stuck state
+
+Specific fields fixed:
+- **Purchases**: Supplier code input, Variant SKU input in each item row
+- **Sales**: Customer code input, Variant SKU input in each item row
+- **Stock Mutations**: Variant SKU input
+
+**Part B: Separate Code Input and Readonly Detail Fields**
+
+**Purchase Dialog:**
+- Supplier section: Code/search input + readonly "Nama Supplier" field + readonly "Telepon / Alamat" field
+- Item rows: Each row now a bordered card with:
+  - Row 1: SKU search input + Nama Produk (readonly)
+  - Row 2: Varian/Ukuran (readonly, includes parsed attributes) + Harga Beli (readonly, formatted Rp) + Qty (editable) + Delete button
+
+**Sales Dialog:**
+- Customer section: Code/search input + readonly "Nama Customer" field + readonly "Telepon / Alamat" field
+- Item rows: Same card layout as purchases, with Harga Jual (readonly, formatted Rp) instead of buy price
+
+**Stock Mutations Dialog:**
+- Variant section: After selection, shows a 3-column grid of readonly fields: Nama Produk, Varian/Ukuran (with parsed attributes), Total Stok
+- Replaced the old single-line "selected variant info" amber box with proper readonly Input fields using `bg-muted text-muted-foreground` styling
+
+All readonly fields use `<Input readOnly className="bg-muted text-muted-foreground" />` as specified.
+When the code/SKU field is cleared, all readonly fields reset to empty.
+
+- Build verified: `npx next build` passes successfully
+- Lint: only pre-existing errors in qa-direct.js and qa_test_direct.js (unrelated to changes)
 
 Stage Summary:
-- All 8 critical bugs fixed
-- Stock Mutations now fully functional (was read-only)
-- Passwords properly hashed with bcrypt
-- All CRUD dialogs have Tab/Enter navigation + auto-focus
-- Variant edit now works in Products module
-- Warehouse role fully supported in User Management
-- 19 files modified across API, UI, and seed
+- Typeahead bug fixed: clicking a selected field switches to edit mode with code/SKU in search, suggestions re-appear on edit
+- Purchase dialog: Supplier code + readonly name/phone/address; item rows with readonly product name, variant/size, price
+- Sales dialog: Customer code + readonly name/phone/address; item rows with readonly product name, variant/size, price
+- Stock mutations dialog: Variant SKU + readonly product name, variant/size, total stock
+- No database schema changes
