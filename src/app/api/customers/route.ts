@@ -8,25 +8,23 @@ export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
     const search = searchParams.get('search') || ''
-    const limit = parseInt(searchParams.get('limit') || '0')
 
     const where = search
       ? {
           OR: [
-            { code: { contains: search, mode: 'insensitive' as const } },
-            { name: { contains: search, mode: 'insensitive' as const } },
-            { phone: { contains: search, mode: 'insensitive' as const } },
-            { email: { contains: search, mode: 'insensitive' as const } },
-            { companyName: { contains: search, mode: 'insensitive' as const } },
-            { npwp: { contains: search, mode: 'insensitive' as const } },
-            { contactPerson: { contains: search, mode: 'insensitive' as const } },
+            { code: { contains: search } },
+            { name: { contains: search } },
+            { phone: { contains: search } },
+            { email: { contains: search } },
+            { companyName: { contains: search } },
+            { npwp: { contains: search } },
+            { contactPerson: { contains: search } },
           ],
         }
       : {}
 
     const customers = await db.customer.findMany({
       where,
-      ...(limit > 0 && { take: limit }),
       include: {
         _count: {
           select: { sales: true },

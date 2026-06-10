@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { toast } from 'sonner'
-import { useAppStore } from '@/lib/store'
 import { Sale, SaleItem, Product, ProductVariant, Customer } from '@/components/inventra/shared/types'
 import { fmtDate, fmtRp } from '@/components/inventra/shared/constants'
 import { StatusBadge } from '@/components/inventra/shared/status-badge'
@@ -35,21 +34,7 @@ import {
 
 const today = () => new Date().toISOString().split('T')[0]
 
-/** Parse variant attributes JSON into a readable string */
-const parseVariantAttrs = (attrs: string): string => {
-  try {
-    const parsed = JSON.parse(attrs)
-    if (parsed && typeof parsed === 'object') {
-      return Object.entries(parsed).map(([k, v]) => `${k}: ${v}`).join(', ')
-    }
-    return ''
-  } catch {
-    return ''
-  }
-}
-
 function SalesModule() {
-  const { openSalesForm, setOpenSalesForm } = useAppStore()
   const [sales, setSales] = useState<Sale[]>([])
   const [customers, setCustomers] = useState<Customer[]>([])
   const [products, setProducts] = useState<Product[]>([])
@@ -82,15 +67,6 @@ function SalesModule() {
   }, [search, filterStatus])
   useEffect(() => { load() }, [load])
 
-  // Auto-open "Tambah Penjualan" dialog when coming from Jual Cepat
-  useEffect(() => {
-    if (openSalesForm) {
-      resetForm()
-      setDialogOpen(true)
-      setOpenSalesForm(false)
-    }
-  }, [openSalesForm])
-
   // Auto-focus customer input when dialog opens
   useEffect(() => {
     if (dialogOpen) {
@@ -99,35 +75,10 @@ function SalesModule() {
   }, [dialogOpen])
 
   const handleSave = async () => {
-    // Client-side stock validation before API call
-    const mappedItems = form.items.filter(i => i.variantId).map(i => {
-      const v = allVariants.find(v => v.id === i.variantId)
-      return { variantId: i.variantId, qty: parseInt(i.qty) || 0, sellPrice: parseFloat(i.sellPrice) || 0, stock: v?.productStock ?? 0, name: v ? `${v.productName} — ${v.name}` : '' }
-    })
-    if (!mappedItems.length) { toast.error('Tambahkan minimal 1 item'); return }
-
-    // Validate stock for COMPLETED sales
-    if (form.status === 'COMPLETED') {
-      for (const item of mappedItems) {
-        if (item.qty > item.stock) {
-          toast.error(`Stok tidak cukup: ${item.name}. Tersedia: ${item.stock}, Diminta: ${item.qty}`)
-          return
-        }
-      }
-    }
-    // Warn for PAID sales (stock will be deducted later at COMPLETED)
-    if (form.status === 'PAID') {
-      for (const item of mappedItems) {
-        if (item.qty > item.stock) {
-          toast.error(`Stok tidak cukup: ${item.name}. Tersedia: ${item.stock}, Diminta: ${item.qty}. Stok akan dicek saat penjualan diselesaikan.`)
-          return
-        }
-      }
-    }
-
     setSaving(true)
     try {
-      const body = { customerId: form.customerId || undefined, date: form.date, notes: form.notes || undefined, status: form.status, items: mappedItems.map(({ stock, name, ...rest }) => rest) }
+      const body = { customerId: form.customerId || undefined, date: form.date, notes: form.notes || undefined, status: form.status, items: form.items.filter(i => i.variantId).map(i => ({ variantId: i.variantId, qty: parseInt(i.qty) || 0, sellPrice: parseFloat(i.sellPrice) || 0 })) }
+      if (!body.items.length) { toast.error('Tambahkan minimal 1 item'); return }
       const res = await fetch('/api/sales', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       if (!res.ok) { const d = await res.json(); toast.error(d.error || d.message || 'Gagal'); return }
       toast.success('Penjualan dicatat'); setDialogOpen(false); resetForm(); load()
@@ -156,7 +107,6 @@ function SalesModule() {
   const resetForm = () => {
     setForm({ customerId: '', date: today(), notes: '', status: 'DRAFT', items: [{ variantId: '', qty: '1', sellPrice: '0' }] })
     setVariantSearches([''])
-    setCustomerSearch('')
   }
 
   const addItem = () => {
@@ -202,15 +152,14 @@ function SalesModule() {
 
   return (
     <>
-    <div className="flex flex-col h-full">
-      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 shrink-0">
+    <div className="space-y-4">
+      <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" /><Input placeholder="Cari no. transaksi..." value={search} onChange={e => setSearch(e.target.value)} className="pl-10" /></div>
         <div className="flex gap-2"><Select value={filterStatus} onValueChange={setFilterStatus}><SelectTrigger className="w-32 sm:w-40"><SelectValue placeholder="Status" /></SelectTrigger><SelectContent><SelectItem value="all">Semua</SelectItem><SelectItem value="DRAFT">Draft</SelectItem><SelectItem value="PAID">Dibayar</SelectItem><SelectItem value="COMPLETED">Selesai</SelectItem><SelectItem value="CANCELLED">Dibatalkan</SelectItem></SelectContent></Select>
-        <Button onClick={() => { resetForm(); setDialogOpen(true) }} className="bg-gradient-to-r from-rose-500 to-amber-500 text-white"><Plus className="w-4 h-4 mr-1 sm:mr-2" /><span className="hidden sm:inline">Tambah</span></Button></div>
+        <Button onClick={() => { resetForm(); setCustomerSearch(''); setDialogOpen(true) }} className="bg-gradient-to-r from-rose-500 to-amber-500 text-white"><Plus className="w-4 h-4 mr-1 sm:mr-2" /><span className="hidden sm:inline">Tambah</span></Button></div>
       </div>
-      <div className="flex-1 min-h-0 overflow-y-auto mt-5">
       {loading ? <div className="flex justify-center py-8"><RefreshCw className="w-6 h-6 animate-spin text-rose-500" /></div> : (
-        <Card className="border-0 shadow-sm"><CardContent className="p-2 sm:p-3"><div className="overflow-x-auto -mx-3 sm:mx-0"><Table><TableHeader><TableRow><TableHead>No. Transaksi</TableHead><TableHead>Customer</TableHead><TableHead>Tanggal</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Total</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
+        <Card className="border-0 shadow-sm"><CardContent className="p-0"><Table><TableHeader><TableRow><TableHead>No. Transaksi</TableHead><TableHead>Customer</TableHead><TableHead>Tanggal</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Total</TableHead><TableHead className="text-right">Aksi</TableHead></TableRow></TableHeader>
           <TableBody>{!sales.length ? <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Belum ada data</TableCell></TableRow> : sales.map(s => (
             <TableRow key={s.id}><TableCell className="font-mono text-sm">{s.transNo}</TableCell><TableCell>{s.customer?.name || 'Umum'}</TableCell><TableCell>{fmtDate(s.date)}</TableCell><TableCell><StatusBadge status={s.status} map="sale" /></TableCell><TableCell className="text-right font-medium">{fmtRp(s.total)}</TableCell>
               <TableCell className="text-right"><div className="flex justify-end gap-1">
@@ -220,36 +169,29 @@ function SalesModule() {
                 {['DRAFT', 'PAID', 'COMPLETED'].includes(s.status) && <Button variant="ghost" size="sm" className="text-red-500 text-xs" onClick={() => setCancelConfirm({ id: s.id, status: s.status })} disabled={statusSaving}>Batalkan</Button>}
                 {s.status === 'DRAFT' && <Button variant="ghost" size="icon" onClick={() => setDeleteConfirm(s.id)} className="text-red-400"><Trash2 className="w-4 h-4" /></Button>}
               </div></TableCell></TableRow>
-          ))}</TableBody></Table></div></CardContent></Card>
+          ))}</TableBody></Table></CardContent></Card>
       )}
-      </div>
 
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}><DialogContent className="max-w-2xl"><DialogHeader><DialogTitle>Detail Penjualan</DialogTitle></DialogHeader>
         {detail && <div className="space-y-4"><div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm"><div><span className="text-muted-foreground">No. Transaksi:</span> <span className="font-mono font-medium ml-2">{detail.transNo}</span></div><div><span className="text-muted-foreground">Customer:</span> <span className="ml-2">{detail.customer?.name || 'Umum'}</span></div><div><span className="text-muted-foreground">Tanggal:</span> <span className="ml-2">{fmtDate(detail.date)}</span></div><div><span className="text-muted-foreground">Status:</span> <span className="ml-2"><StatusBadge status={detail.status} map="sale" /></span></div><div><span className="text-muted-foreground">Total:</span> <span className="font-bold ml-2">{fmtRp(detail.total)}</span></div></div><Separator />
-          <div className="overflow-x-auto -mx-3 sm:mx-0"><Table><TableHeader><TableRow><TableHead>Produk/Varian</TableHead><TableHead className="text-right">Qty</TableHead><TableHead className="text-right">Harga Jual</TableHead><TableHead className="text-right">Subtotal</TableHead></TableRow></TableHeader>
-            <TableBody>{detail.items?.map((item: any) => <TableRow key={item.id}><TableCell>{item.variant?.name || item.product?.name || '-'}</TableCell><TableCell className="text-right">{item.qty}</TableCell><TableCell className="text-right">{fmtRp(item.sellPrice)}</TableCell><TableCell className="text-right">{fmtRp(item.qty * item.sellPrice)}</TableCell></TableRow>)}</TableBody></Table></div>
+          <Table><TableHeader><TableRow><TableHead>Produk/Varian</TableHead><TableHead className="text-right">Qty</TableHead><TableHead className="text-right">Harga Jual</TableHead><TableHead className="text-right">Subtotal</TableHead></TableRow></TableHeader>
+            <TableBody>{detail.items?.map((item: any) => <TableRow key={item.id}><TableCell>{item.variant?.name || item.product?.name || '-'}</TableCell><TableCell className="text-right">{item.qty}</TableCell><TableCell className="text-right">{fmtRp(item.sellPrice)}</TableCell><TableCell className="text-right">{fmtRp(item.qty * item.sellPrice)}</TableCell></TableRow>)}</TableBody></Table>
         </div>}
       </DialogContent></Dialog>
 
-      {/* New Sale Dialog */}
+      {/* New Sale Dialog — Fast UX */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}><DialogContent className="max-w-2xl"><DialogHeader><DialogTitle>Tambah Penjualan</DialogTitle></DialogHeader>
         <div className="space-y-3">
-          {/* Row 1: Customer code/search + Tanggal */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {/* Customer — typeahead search */}
             <div className="space-y-1.5">
-              <Label className="text-xs">Kode Customer / Cari</Label>
+              <Label className="text-xs">Customer</Label>
               <div className="relative">
                 <Input
                   ref={customerInputRef}
-                  placeholder="Ketik kode / nama customer..."
-                  value={form.customerId ? (selectedCustomer?.code || '') : customerSearch}
+                  placeholder="Ketik nama / kode... (Tab → lanjut)"
+                  value={selectedCustomer ? `${selectedCustomer.code} ${selectedCustomer.name}` : customerSearch}
                   onChange={e => { setCustomerSearch(e.target.value); if (form.customerId) setForm({ ...form, customerId: '' }) }}
-                  onFocus={() => {
-                    if (form.customerId && selectedCustomer) {
-                      setForm({ ...form, customerId: '' })
-                      setCustomerSearch(selectedCustomer.code)
-                    }
-                  }}
                   onKeyDown={e => {
                     if (e.key === 'Tab' && !form.customerId && filteredCustomers.length === 1) {
                       setForm({ ...form, customerId: filteredCustomers[0].id }); setCustomerSearch(''); e.preventDefault()
@@ -257,9 +199,9 @@ function SalesModule() {
                   }}
                 />
                 {customerSearch && !form.customerId && filteredCustomers.length > 0 && (
-                  <div className="absolute z-50 w-full mt-1 bg-popover border rounded-lg shadow-lg max-h-40 overflow-auto">
+                  <div className="absolute z-50 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-40 overflow-auto">
                     {filteredCustomers.map(c => (
-                      <button key={c.id} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-accent text-left text-sm"
+                      <button key={c.id} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 text-left text-sm"
                         onMouseDown={() => { setForm({ ...form, customerId: c.id }); setCustomerSearch('') }}>
                         <Badge variant="outline" className="font-mono text-[10px]">{c.code}</Badge>
                         <span>{c.name}</span>
@@ -271,17 +213,6 @@ function SalesModule() {
             </div>
             <div className="space-y-1.5"><Label className="text-xs">Tanggal</Label><Input type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} /></div>
           </div>
-          {/* Row 2: Customer Name readonly + Phone/Address readonly */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Nama Customer</Label>
-              <Input readOnly className="bg-muted text-muted-foreground h-9" value={selectedCustomer?.name || ''} placeholder="—" />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Telepon / Alamat</Label>
-              <Input readOnly className="bg-muted text-muted-foreground h-9" value={selectedCustomer ? [selectedCustomer.phone, selectedCustomer.address].filter(Boolean).join(' — ') || '' : ''} placeholder="—" />
-            </div>
-          </div>
           <Separator />
           <div className="space-y-2">
             <div className="flex items-center justify-between"><Label className="text-xs">Item</Label><Button variant="outline" size="sm" onClick={addItem} className="text-xs h-7"><Plus className="w-3 h-3 mr-1" />Tambah</Button></div>
@@ -289,83 +220,49 @@ function SalesModule() {
               const selectedVariant = allVariants.find(v => v.id === item.variantId)
               const filteredVariants = getFilteredVariants(variantSearches[idx] || '')
               return (
-                <div key={idx} className="border rounded-lg p-3 space-y-2">
-                  {/* Row 1: SKU search + Product Name readonly */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <div className="relative">
-                      <Label className="text-xs mb-1 block">SKU / Cari Varian</Label>
-                      <Input
-                        placeholder="Ketik SKU / nama varian..."
-                        value={item.variantId ? (selectedVariant?.sku || '') : (variantSearches[idx] || '')}
-                        onChange={e => {
-                          const newSearches = [...variantSearches]; newSearches[idx] = e.target.value; setVariantSearches(newSearches)
-                          if (item.variantId) { const newItems = [...form.items]; newItems[idx] = { ...newItems[idx], variantId: '', sellPrice: '0' }; setForm({ ...form, items: newItems }) }
-                        }}
-                        onFocus={() => {
-                          if (item.variantId && selectedVariant) {
-                            const newItems = [...form.items]
-                            newItems[idx] = { ...newItems[idx], variantId: '', sellPrice: '0' }
-                            setForm({ ...form, items: newItems })
-                            const newSearches = [...variantSearches]
-                            newSearches[idx] = selectedVariant.sku
-                            setVariantSearches(newSearches)
-                          }
-                        }}
-                        onKeyDown={e => {
-                          // Tab to auto-select if only 1 result
-                          if (e.key === 'Tab' && !item.variantId && filteredVariants.length === 1) {
-                            updateItem(idx, 'variantId', filteredVariants[0].id)
-                            const newSearches = [...variantSearches]; newSearches[idx] = ''; setVariantSearches(newSearches)
-                            e.preventDefault()
-                          }
-                          // Enter to save
-                          if (e.key === 'Enter' && item.variantId) { handleSave(); e.preventDefault() }
-                        }}
-                        className="h-8 text-sm"
-                      />
-                      {(variantSearches[idx] || '') && !item.variantId && filteredVariants.length > 0 && (
-                        <div className="absolute z-50 w-full mt-1 bg-popover border rounded-lg shadow-lg max-h-48 overflow-auto">
-                          {filteredVariants.map(v => (
-                            <button key={v.id} className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-accent text-left text-sm"
-                              onMouseDown={() => {
-                                updateItem(idx, 'variantId', v.id)
-                                const newSearches = [...variantSearches]; newSearches[idx] = ''; setVariantSearches(newSearches)
-                              }}>
-                              <Badge variant="outline" className="font-mono text-[10px]">{v.sku}</Badge>
-                              <span className="truncate">{v.productName} — {v.name}</span>
-                              <span className="ml-auto text-[10px] text-muted-foreground shrink-0">Stok: {v.productStock}</span>
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    <div>
-                      <Label className="text-xs mb-1 block text-muted-foreground">Nama Produk</Label>
-                      <Input readOnly className="bg-muted text-muted-foreground h-8 text-sm" value={selectedVariant?.productName || ''} placeholder="—" />
-                    </div>
+                <div key={idx} className="flex flex-col sm:grid sm:grid-cols-12 gap-2 items-start sm:items-center">
+                  {/* Variant search input */}
+                  <div className="w-full sm:col-span-5 relative">
+                    <Input
+                      placeholder="SKU / nama varian..."
+                      value={selectedVariant ? `${selectedVariant.sku} ${selectedVariant.productName} — ${selectedVariant.name}` : (variantSearches[idx] || '')}
+                      onChange={e => {
+                        const newSearches = [...variantSearches]; newSearches[idx] = e.target.value; setVariantSearches(newSearches)
+                        if (item.variantId) { const newItems = [...form.items]; newItems[idx] = { ...newItems[idx], variantId: '', sellPrice: '0' }; setForm({ ...form, items: newItems }) }
+                      }}
+                      onKeyDown={e => {
+                        // Tab to auto-select if only 1 result
+                        if (e.key === 'Tab' && !item.variantId && filteredVariants.length === 1) {
+                          updateItem(idx, 'variantId', filteredVariants[0].id)
+                          const newSearches = [...variantSearches]; newSearches[idx] = ''; setVariantSearches(newSearches)
+                          e.preventDefault()
+                        }
+                        // Enter to save
+                        if (e.key === 'Enter' && item.variantId) { handleSave(); e.preventDefault() }
+                      }}
+                      className="h-8 text-sm"
+                    />
+                    {(variantSearches[idx] || '') && !item.variantId && filteredVariants.length > 0 && (
+                      <div className="absolute z-50 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-48 overflow-auto">
+                        {filteredVariants.map(v => (
+                          <button key={v.id} className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-gray-50 text-left text-sm"
+                            onMouseDown={() => {
+                              updateItem(idx, 'variantId', v.id)
+                              const newSearches = [...variantSearches]; newSearches[idx] = ''; setVariantSearches(newSearches)
+                            }}>
+                            <Badge variant="outline" className="font-mono text-[10px]">{v.sku}</Badge>
+                            <span className="truncate">{v.productName} — {v.name}</span>
+                            <span className="ml-auto text-[10px] text-muted-foreground shrink-0">Stok: {v.productStock}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                  {/* Row 2: Variant/Size readonly + Price readonly + Qty editable + Delete */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                    <div>
-                      <Label className="text-xs mb-1 block text-muted-foreground">Varian / Ukuran</Label>
-                      <Input readOnly className="bg-muted text-muted-foreground h-8 text-sm" value={selectedVariant ? `${selectedVariant.name}${parseVariantAttrs(selectedVariant.attributes) ? ' — ' + parseVariantAttrs(selectedVariant.attributes) : ''}` : ''} placeholder="—" />
-                    </div>
-                    <div>
-                      <Label className="text-xs mb-1 block text-muted-foreground">Harga Jual</Label>
-                      <Input readOnly className="bg-muted text-muted-foreground h-8 text-sm" value={selectedVariant ? fmtRp(selectedVariant.sellPrice) : ''} placeholder="—" />
-                    </div>
-                    <div>
-                      <Label className="text-xs mb-1 block">Qty {selectedVariant && <span className="text-muted-foreground font-normal">(Stok: {selectedVariant.productStock})</span>}</Label>
-                      <Input type="number" placeholder="Qty" value={item.qty} onChange={e => updateItem(idx, 'qty', e.target.value)} className="h-8 text-sm"
-                        onKeyDown={e => { if (e.key === 'Enter' && item.variantId) { handleSave(); e.preventDefault() } }} />
-                      {selectedVariant && parseInt(item.qty) > selectedVariant.productStock && (
-                        <p className="text-[10px] text-red-500 mt-0.5">Melebihi stok ({selectedVariant.productStock})</p>
-                      )}
-                    </div>
-                    <div className="flex items-end">
-                      {form.items.length > 1 && <Button variant="ghost" size="icon" onClick={() => removeItem(idx)} className="text-red-500 h-7 w-7"><Trash2 className="w-3.5 h-3.5" /></Button>}
-                    </div>
-                  </div>
+                  <div className="w-full sm:w-auto sm:col-span-2"><Input type="number" placeholder="Qty" value={item.qty} onChange={e => updateItem(idx, 'qty', e.target.value)} className="h-8 text-sm w-full"
+                    onKeyDown={e => { if (e.key === 'Enter' && item.variantId) { handleSave(); e.preventDefault() } }} /></div>
+                  <div className="w-full sm:w-auto sm:col-span-3"><Input type="number" placeholder="Harga" value={item.sellPrice} onChange={e => updateItem(idx, 'sellPrice', e.target.value)} className="h-8 text-sm w-full"
+                    onKeyDown={e => { if (e.key === 'Enter' && item.variantId) { handleSave(); e.preventDefault() } }} /></div>
+                  <div className="sm:col-span-2 flex justify-end">{form.items.length > 1 && <Button variant="ghost" size="icon" onClick={() => removeItem(idx)} className="text-red-500 h-7 w-7"><Trash2 className="w-3.5 h-3.5" /></Button>}</div>
                 </div>
               )
             })}

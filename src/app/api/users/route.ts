@@ -4,13 +4,6 @@ import bcrypt from 'bcryptjs'
 
 const VALID_ROLES = ['owner', 'admin', 'staff', 'warehouse']
 
-// Helper: get current user from request headers
-function getCurrentUser(request: NextRequest) {
-  const userId = request.headers.get('x-current-user-id')
-  const userRole = request.headers.get('x-current-user-role')
-  return { userId, userRole }
-}
-
 // GET /api/users - List all users (exclude password)
 export async function GET(request: NextRequest) {
   try {
@@ -57,7 +50,6 @@ export async function GET(request: NextRequest) {
 // POST /api/users - Create new user
 export async function POST(request: NextRequest) {
   try {
-    const { userId, userRole } = getCurrentUser(request)
     const body = await request.json()
     const { name, username, email, password, role } = body
 
@@ -73,14 +65,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { success: false, message: 'Role harus salah satu dari: owner, admin, staff, warehouse' },
         { status: 400 }
-      )
-    }
-
-    // Role protection: only owner can create users with owner role
-    if (role === 'owner' && userRole !== 'owner') {
-      return NextResponse.json(
-        { success: false, message: 'Hanya owner yang dapat membuat user dengan role owner' },
-        { status: 403 }
       )
     }
 

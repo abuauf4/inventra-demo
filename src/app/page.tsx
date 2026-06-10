@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 import { useAppStore } from '@/lib/store'
-import { Search, Construction } from 'lucide-react'
+import { Search, ShoppingBag, Construction } from 'lucide-react'
 
 // Workspace
 import WorkspaceHome from '@/components/inventra/workspace/workspace-home'
@@ -12,7 +12,7 @@ import LoginScreen from '@/components/inventra/shared/login-screen'
 import Sidebar from '@/components/inventra/shared/sidebar'
 import Header from '@/components/inventra/shared/header'
 import GlobalSearch from '@/components/inventra/shared/global-search'
-import SpeedDialFAB from '@/components/inventra/shared/speed-dial-fab'
+import QuickSaleDialog from '@/components/inventra/shared/quick-sale-dialog'
 
 // Business Modules
 import CategoriesModule from '@/components/inventra/categories/categories-module'
@@ -29,14 +29,14 @@ import UserManagementModule from '@/components/inventra/user-management/user-man
 // ===================== COMING SOON PLACEHOLDER =====================
 function ComingSoonPage({ title }: { title: string }) {
   return (
-    <div className="flex flex-col items-center justify-center h-full text-center">
-      <div className="w-14 h-14 rounded-2xl bg-stone-100 dark:bg-white/[0.05] flex items-center justify-center mb-4">
-        <Construction className="w-7 h-7 text-stone-300 dark:text-stone-600" />
+    <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
+      <div className="w-16 h-16 rounded-2xl bg-amber-100 dark:bg-amber-900/20 flex items-center justify-center mb-4">
+        <Construction className="w-8 h-8 text-amber-500" />
       </div>
-      <h2 className="text-lg font-semibold text-stone-800 dark:text-stone-200 mb-1">
+      <h2 className="text-xl font-bold text-stone-800 dark:text-stone-200 mb-2">
         {title}
       </h2>
-      <p className="text-sm text-stone-400 max-w-sm">
+      <p className="text-sm text-stone-500 dark:text-stone-400 max-w-md">
         Fitur ini sedang dalam pengembangan dan akan tersedia di update mendatang.
       </p>
     </div>
@@ -50,8 +50,7 @@ export default function InventraApp() {
     sidebarOpen,
     setSidebarOpen,
     setSearchOpen,
-    setActivePage,
-    setOpenSalesForm,
+    setQuickActionOpen,
     theme,
   } = useAppStore()
 
@@ -69,13 +68,12 @@ export default function InventraApp() {
       }
       if (e.altKey && e.key === 's') {
         e.preventDefault()
-        setActivePage('sales')
-        setOpenSalesForm(true)
+        setQuickActionOpen(true)
       }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [setSearchOpen, setActivePage, setOpenSalesForm])
+  }, [setSearchOpen, setQuickActionOpen])
 
   if (!currentUser) return <LoginScreen />
 
@@ -155,7 +153,7 @@ export default function InventraApp() {
 
       // Pengaturan
       case 'user-management':
-        return currentUser.role === 'owner' ? <UserManagementModule /> : <ComingSoonPage title="User Management" />
+        return <UserManagementModule />
       case 'branch':
         return <ComingSoonPage title="Cabang" />
       case 'branding':
@@ -163,7 +161,7 @@ export default function InventraApp() {
       case 'doc-numbering':
         return <ComingSoonPage title="Nomor Dokumen" />
 
-      // Legacy redirects
+      // Legacy redirects (old page keys that may persist in localStorage)
       case 'dashboard-analytics':
       case 'reports':
         return <ReportsModule />
@@ -178,18 +176,29 @@ export default function InventraApp() {
   }
 
   return (
-    <div className="h-screen overflow-hidden flex bg-stone-50/80 dark:bg-[#0f1117] transition-colors duration-300">
-      {/* Sidebar — hidden on mobile, only shows on desktop */}
-      <div className="hidden lg:block">
-        <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      </div>
-      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
+    <div className="min-h-screen flex lg:items-start bg-[#f4f6fb] dark:bg-[#0f1117]">
+      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <div className="flex-1 flex flex-col min-w-0">
         <Header />
-        <main key={activePage} className="flex-1 min-h-0 overflow-hidden px-3 sm:px-6 lg:px-8 pt-3 sm:pt-5 lg:pt-6 pb-4 transition-colors duration-500">{renderPage()}</main>
+        <main className="flex-1 p-3 sm:p-4 lg:p-8 pb-20 lg:pb-8">{renderPage()}</main>
       </div>
       <GlobalSearch />
-      {/* Mobile Speed Dial FAB */}
-      <SpeedDialFAB />
+      <QuickSaleDialog />
+      {/* Mobile Floating Action Buttons */}
+      <div className="fixed bottom-6 right-6 flex flex-col gap-3 lg:hidden z-40">
+        <button
+          onClick={() => setSearchOpen(true)}
+          className="w-12 h-12 rounded-full bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900 shadow-lg hover:shadow-xl transition-all flex items-center justify-center"
+        >
+          <Search className="w-5 h-5" />
+        </button>
+        <button
+          onClick={() => setQuickActionOpen(true)}
+          className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 text-white shadow-lg hover:shadow-xl transition-all flex items-center justify-center"
+        >
+          <ShoppingBag className="w-5 h-5" />
+        </button>
+      </div>
     </div>
   )
 }

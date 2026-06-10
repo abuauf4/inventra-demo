@@ -8,22 +8,20 @@ export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
     const search = searchParams.get('search') || ''
-    const limit = parseInt(searchParams.get('limit') || '0')
 
     const where = search
       ? {
           OR: [
-            { code: { contains: search, mode: 'insensitive' as const } },
-            { name: { contains: search, mode: 'insensitive' as const } },
-            { pic: { contains: search, mode: 'insensitive' as const } },
-            { phone: { contains: search, mode: 'insensitive' as const } },
+            { code: { contains: search, mode: 'insensitive' } },
+            { name: { contains: search, mode: 'insensitive' } },
+            { pic: { contains: search, mode: 'insensitive' } },
+            { phone: { contains: search, mode: 'insensitive' } },
           ],
         }
       : {}
 
     const suppliers = await db.supplier.findMany({
       where,
-      ...(limit > 0 && { take: limit }),
       include: {
         _count: {
           select: { purchases: true, products: true },

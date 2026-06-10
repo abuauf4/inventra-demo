@@ -113,7 +113,7 @@ export async function GET(request: NextRequest) {
 
     if (!type) {
       return NextResponse.json(
-        { success: false, message: 'Parameter type wajib diisi (sales, purchases, stock)' },
+        { success: false, message: 'Parameter type wajib diisi (sales, purchases, stock, stock-mutations)' },
         { status: 400 }
       )
     }
@@ -343,16 +343,14 @@ export async function GET(request: NextRequest) {
       case 'stock': {
         const categoryId = searchParams.get('categoryId') || ''
         const supplierId = searchParams.get('supplierId') || ''
-        const productId = searchParams.get('productId') || ''
         const lowStockOnly = searchParams.get('lowStockOnly') === 'true'
 
         const variantWhere: Prisma.ProductVariantWhereInput = { isActive: true }
-        const productWhere: Prisma.ProductWhereInput = { isActive: true }
+        const productWhere: Prisma.ProductWhereInput = {}
         if (categoryId) productWhere.categoryId = categoryId
         if (supplierId) productWhere.supplierId = supplierId
-        if (productId) productWhere.id = productId
-        if (Object.keys(productWhere).length > 1) { // >1 because isActive is always set
-          variantWhere.product = productWhere
+        if (Object.keys(productWhere).length > 0) {
+          variantWhere.product = { ...productWhere, isActive: true }
         }
 
         const variants = await db.productVariant.findMany({
