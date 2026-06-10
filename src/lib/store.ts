@@ -150,20 +150,28 @@ export const useAppStore = create<AppState>()(
       }),
       onRehydrateStorage: () => {
         if (typeof window !== 'undefined') {
-          console.log('[Zustand] onRehydrateStorage called - rehydration starting')
+          console.log('[DIAG store.ts] onRehydrateStorage called - rehydration starting')
         }
         return (_state, error) => {
           if (typeof window !== 'undefined') {
-            console.log('[Zustand] Rehydration complete', { error: String(error) })
+            console.log('[DIAG store.ts] Rehydration complete', {
+              error: String(error),
+              currentState: _state ? { _hasHydrated: _state._hasHydrated, currentUser: _state.currentUser ? 'present' : 'null' } : 'null state'
+            })
           }
           if (error) {
-            console.error('[Zustand] Rehydration error:', error)
+            console.error('[DIAG store.ts] Rehydration error:', error)
           }
           // Use setTimeout to avoid TDZ (temporal dead zone) issue:
           // useAppStore cannot be referenced during module initialization
           // because the const hasn't been assigned yet.
           setTimeout(() => {
+            console.log('[DIAG store.ts] About to set _hasHydrated = true')
             useAppStore.setState({ _hasHydrated: true })
+            console.log('[DIAG store.ts] _hasHydrated set to true. Store state now:', {
+              _hasHydrated: useAppStore.getState()._hasHydrated,
+              currentUser: useAppStore.getState().currentUser ? 'present' : 'null'
+            })
           }, 0)
         }
       },

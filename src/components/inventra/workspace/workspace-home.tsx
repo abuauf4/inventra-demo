@@ -585,12 +585,16 @@ export default function WorkspaceHome() {
   const role = currentUser?.role || 'staff'
 
   const load = useCallback(async () => {
+    console.log('[DIAG workspace-home] load() called, loading:', loading, 'data:', !!data)
     setLoading(true)
     try {
       const res = await fetch('/api/dashboard')
+      console.log('[DIAG workspace-home] /api/dashboard response status:', res.status)
       const dash = await res.json()
+      console.log('[DIAG workspace-home] /api/dashboard response success:', dash.success)
       setData(dash.data)
-    } catch {
+    } catch (e) {
+      console.error('[DIAG workspace-home] /api/dashboard error:', e)
       toast.error('Gagal memuat workspace')
     } finally {
       setLoading(false)
@@ -602,6 +606,7 @@ export default function WorkspaceHome() {
   // Only show spinner on first load (no data yet)
   // When refreshing, keep existing data visible (stale-while-revalidate)
   if (!data) {
+    console.log('[DIAG workspace-home] RENDERING SPINNER — data is null, loading:', loading)
     return (
       <div className="flex items-center justify-center h-64">
         <RefreshCw className="w-5 h-5 animate-spin text-stone-300" />
