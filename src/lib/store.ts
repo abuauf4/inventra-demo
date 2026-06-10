@@ -96,9 +96,15 @@ interface AppState {
   toggleTheme: () => void
 }
 
+// Capture set() outside the persist config so onRehydrateStorage can use it
+// without referencing useAppStore (which would be a TDZ ReferenceError).
+let _storeSet: ((partial: Partial<AppState> | ((state: AppState) => Partial<AppState>)) => void) | null = null
+
 export const useAppStore = create<AppState>()(
   persist(
-    (set, get) => ({
+    (set, get) => {
+      _storeSet = set
+      return {
       activePage: 'dashboard',
       setActivePage: (page) => set({ activePage: page }),
       sidebarOpen: true,
@@ -139,7 +145,7 @@ export const useAppStore = create<AppState>()(
         const newTheme = get().theme === 'light' ? 'dark' : 'light'
         get().setTheme(newTheme)
       },
-    }),
+    }},
     {
       name: 'inventra-store',
       partialize: (state) => ({
@@ -150,29 +156,26 @@ export const useAppStore = create<AppState>()(
       }),
       onRehydrateStorage: () => {
         if (typeof window !== 'undefined') {
-          console.log('[DIAG store.ts] onRehydrateStorage called - rehydration starting')
+          console.log('[store] onRehydrateStorage — rehydration starting')
         }
         return (_state, error) => {
           if (typeof window !== 'undefined') {
-            console.log('[DIAG store.ts] Rehydration complete', {
+            console.log('[store] Rehydration complete', {
               error: String(error),
-              currentState: _state ? { _hasHydrated: _state._hasHydrated, currentUser: _state.currentUser ? 'present' : 'null' } : 'null state'
+              hasUser: !!_state?.currentUser,
             })
           }
           if (error) {
-            console.error('[DIAG store.ts] Rehydration error:', error)
+            console.error('[store] Rehydration error:', error)
           }
-          // Use setTimeout to avoid TDZ (temporal dead zone) issue:
-          // useAppStore cannot be referenced during module initialization
-          // because the const hasn't been assigned yet.
-          setTimeout(() => {
-            console.log('[DIAG store.ts] About to set _hasHydrated = true')
-            useAppStore.setState({ _hasHydrated: true })
-            console.log('[DIAG store.ts] _hasHydrated set to true. Store state now:', {
-              _hasHydrated: useAppStore.getState()._hasHydrated,
-              currentUser: useAppStore.getState().currentUser ? 'present' : 'null'
-            })
-          }, 0)
+          // Use captured _storeSet instead of useAppStore.setState to avoid
+          // TDZ ReferenceError — useAppStore may not be assigned yet.
+          if (_storeSet) {
+            _storeSet({ _hasHydrated: true })
+            if (typeof window !== 'undefined') {
+              console.log('[store] _hasHydrated set to true via _storeSet')
+            }
+          }
         }
       },
     }
