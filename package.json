@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev -p 3000 2>&1 | tee dev.log",
     "postinstall": "prisma generate",
-    "build": "prisma generate && next build && cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/ && cp .env .next/standalone/.env && cp start-production.sh .next/standalone/start-production.sh",
+    "build": "prisma generate && next build && cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/ && (test -f .env && cp .env .next/standalone/.env || true) && (test -f start-production.sh && cp start-production.sh .next/standalone/start-production.sh || true)",
     "start": "bash start-production.sh 2>&1 | tee server.log",
     "lint": "eslint .",
     "db:push": "prisma db push",
