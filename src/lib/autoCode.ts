@@ -118,6 +118,8 @@ async function checkExists(model: string, code: string, client: TransactionClien
       return !!(await client.product.findUnique({ where: { sku: code } }))
     case 'warehouse':
       return !!(await client.warehouse.findUnique({ where: { code } }))
+    case 'stockopname':
+      return !!(await client.stockOpname.findUnique({ where: { transNo: code } }))
     default:
       return false
   }

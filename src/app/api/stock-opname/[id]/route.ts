@@ -70,6 +70,14 @@ export async function PUT(
       )
     }
 
+    // D2: Cannot modify soft-deleted records
+    if (opname.deletedAt) {
+      return NextResponse.json(
+        { success: false, message: 'Stock opname yang sudah dihapus tidak dapat diubah' },
+        { status: 400 }
+      )
+    }
+
     if (opname.status !== 'DRAFT') {
       return NextResponse.json(
         { success: false, message: `Stock opname dengan status ${opname.status} tidak dapat diubah` },
@@ -178,7 +186,7 @@ export async function PUT(
   }
 }
 
-// DELETE /api/stock-opname/[id] - Delete draft stock opname
+// DELETE /api/stock-opname/[id] - Delete draft stock opname (soft delete)
 export async function DELETE(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -202,7 +210,19 @@ export async function DELETE(
       )
     }
 
-    await db.stockOpname.delete({ where: { id } })
+    // D2: Soft delete — set deletedAt instead of hard delete
+    await db.stockOpname.update({
+      where: { id },
+      data: { deletedAt: new Date() },
+    })
+
+    await createActivityLog({
+      action: 'DELETE',
+      entity: 'StockOpname',
+      entityId: id,
+      entityCode: opname.transNo,
+      details: `Menghapus Stock Opname ${opname.transNo} (DRAFT)`,
+    })
 
     return NextResponse.json({
       success: true,

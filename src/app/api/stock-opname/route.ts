@@ -12,6 +12,9 @@ export async function GET(request: NextRequest) {
 
     const where: Record<string, unknown> = {}
 
+    // D2: Filter out soft-deleted records by default
+    where.deletedAt = null
+
     if (warehouseId) where.warehouseId = warehouseId
     if (status) where.status = status
 
@@ -41,6 +44,7 @@ export async function GET(request: NextRequest) {
 }
 
 // POST /api/stock-opname - Create stock opname
+// C2: generateCode INSIDE tx so counter rolls back on failure (no gaps)
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
@@ -72,10 +76,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Generate transNo: OP-XXXXXX
-    const transNo = await generateCode('OP', 'stockopname', 6)
-
-    // Build items with system stock snapshot
+    // Pre-resolve variant data and warehouse stock snapshots BEFORE transaction
+    // (validation reads don't need to be in the tx, only the writes do)
     const opnameItems: Array<{
       variantId: string
       systemStock: number
@@ -112,34 +114,41 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    const opname = await db.stockOpname.create({
-      data: {
-        transNo,
-        warehouseId,
-        date: new Date(date),
-        notes: notes || null,
-        items: {
-          create: opnameItems,
+    // C2: Wrap generateCode + create inside $transaction so counter rolls back on failure
+    const opname = await db.$transaction(async (tx) => {
+      const transNo = await generateCode('OP', 'stockopname', 6, tx)
+
+      const created = await tx.stockOpname.create({
+        data: {
+          transNo,
+          warehouseId,
+          date: new Date(date),
+          notes: notes || null,
+          items: {
+            create: opnameItems,
+          },
         },
-      },
-      include: {
-        warehouse: { select: { id: true, name: true, code: true } },
-        items: {
-          include: {
-            variant: {
-              select: { id: true, name: true, sku: true, product: { select: { id: true, name: true } } },
+        include: {
+          warehouse: { select: { id: true, name: true, code: true } },
+          items: {
+            include: {
+              variant: {
+                select: { id: true, name: true, sku: true, product: { select: { id: true, name: true } } },
+              },
             },
           },
         },
-      },
+      })
+
+      return created
     })
 
     await createActivityLog({
       action: 'CREATE',
       entity: 'StockOpname',
       entityId: opname.id,
-      entityCode: transNo,
-      details: `Stock opname ${transNo} dibuat untuk gudang ${warehouse.name}. ${opnameItems.length} item.`,
+      entityCode: opname.transNo,
+      details: `Stock opname ${opname.transNo} dibuat untuk gudang ${warehouse.name}. ${opnameItems.length} item.`,
       newData: JSON.stringify({ warehouseId, date, itemCount: opnameItems.length }),
     })
 

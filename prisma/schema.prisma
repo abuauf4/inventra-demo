@@ -281,6 +281,7 @@ model StockOpname {
   date        DateTime
   status      String            @default("DRAFT") // DRAFT, CONFIRMED, CANCELLED
   notes       String?
+  deletedAt   DateTime?         // D2: soft delete — null = active, set = trashed
   warehouse   Warehouse         @relation(fields: [warehouseId], references: [id])
   items       StockOpnameItem[]
   createdAt   DateTime          @default(now())
