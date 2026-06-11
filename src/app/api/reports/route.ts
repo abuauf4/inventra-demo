@@ -105,6 +105,18 @@ function groupByPeriod(
   return Object.values(groups).sort((a, b) => b.period.localeCompare(a.period))
 }
 
+// Default page size for detail lists
+const DEFAULT_PAGE_SIZE = 500
+const MAX_PAGE_SIZE = 5000
+
+function parsePagination(searchParams: URLSearchParams): { skip: number; take: number; page: number; pageSize: number } {
+  const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10))
+  const pageSize = Math.min(MAX_PAGE_SIZE, Math.max(1, parseInt(searchParams.get('pageSize') || String(DEFAULT_PAGE_SIZE), 10)))
+  const skip = (page - 1) * pageSize
+  const take = pageSize
+  return { skip, take, page, pageSize }
+}
+
 // GET /api/reports - Return reports data based on type
 export async function GET(request: NextRequest) {
   try {
@@ -125,6 +137,7 @@ export async function GET(request: NextRequest) {
         const dateFrom = resolved.dateFrom
         const dateTo = resolved.dateTo
         const customerId = searchParams.get('customerId') || ''
+        const { page, pageSize } = parsePagination(searchParams)
 
         const where: Prisma.SaleWhereInput = { ...buildSaleDateFilter(dateFrom, dateTo) }
 
@@ -133,58 +146,96 @@ export async function GET(request: NextRequest) {
           where.customerId = customerId
         }
 
-        // Filter by status — only COMPLETED and PAID count as revenue
-        // But we fetch all and separate in response
-        const sales = await db.sale.findMany({
-          where,
-          take: 500,
-          include: {
-            customer: { select: { id: true, name: true, code: true } },
-            items: {
-              include: {
-                variant: {
-                  select: { id: true, name: true, sku: true },
-                },
-                product: {
-                  select: { id: true, name: true, sku: true },
-                },
-              },
+        // ─── AGGREGATION: Accurate totals from DB (no truncation) ───
+
+        // Total count of ALL matching sales
+        const totalAllCount = await db.sale.count({ where })
+
+        // Count & sum for non-DRAFT, non-CANCELLED sales (grand total)
+        const activeWhere: Prisma.SaleWhereInput = {
+          ...where,
+          status: { notIn: ['DRAFT', 'CANCELLED'] },
+        }
+        const activeAgg = await db.sale.aggregate({
+          where: activeWhere,
+          _count: true,
+          _sum: { total: true },
+        })
+        const grandTotal = activeAgg._sum.total || 0
+        const totalTransactions = activeAgg._count
+
+        // Count & sum for revenue sales (COMPLETED + PAID only)
+        const revenueWhere: Prisma.SaleWhereInput = {
+          ...where,
+          status: { in: ['COMPLETED', 'PAID'] },
+        }
+        const revenueAgg = await db.sale.aggregate({
+          where: revenueWhere,
+          _count: true,
+          _sum: { total: true },
+        })
+        const revenue = revenueAgg._sum.total || 0
+
+        // ─── HISTORICAL COST: Sum buyPrice*qty from SaleItem for revenue sales ───
+        // This uses the snapshot buyPrice stored on each SaleItem at sale time
+        const costAgg = await db.saleItem.aggregate({
+          where: {
+            sale: revenueWhere,
+          },
+          _sum: {
+            qty: true,
+            sellPrice: true,
+            buyPrice: true,
+          },
+        })
+        // Calculate total cost using historical buyPrice per item
+        // Since aggregate._sum.buyPrice gives us SUM(buyPrice), not SUM(buyPrice * qty),
+        // we need to fetch items and calculate manually, OR use a different approach.
+        // Best approach: fetch all revenue sale items and calculate in JS
+        const revenueSaleItems = await db.saleItem.findMany({
+          where: {
+            sale: revenueWhere,
+          },
+          select: {
+            variantId: true,
+            productId: true,
+            qty: true,
+            sellPrice: true,
+            buyPrice: true,
+            variant: {
+              select: { id: true, name: true, sku: true },
+            },
+            product: {
+              select: { id: true, name: true, sku: true },
             },
           },
-          orderBy: { date: 'desc' },
         })
 
-        // Separate revenue (COMPLETED + PAID) from all transactions
-        const revenueSales = sales.filter(s => s.status === 'COMPLETED' || s.status === 'PAID')
-        const allSales = sales.filter(s => s.status !== 'CANCELLED' && s.status !== 'DRAFT')
-
-        const grouped = groupByPeriod(
-          allSales.map((s) => ({ date: s.date, total: s.total, transNo: s.transNo, id: s.id, status: s.status })),
-          period
-        )
-
-        const grandTotal = allSales.reduce((sum, s) => sum + s.total, 0)
-        const revenue = revenueSales.reduce((sum, s) => sum + s.total, 0)
-        const totalTransactions = allSales.length
-        const totalAllTransactions = sales.length
-
-        // Top selling products (by revenue) — aggregate from items
+        // Calculate total cost using historical buyPrice from SaleItem
+        let totalCost = 0
         const productRevenueMap: Record<string, { name: string; sku: string; qty: number; revenue: number; cost: number }> = {}
-        for (const sale of revenueSales) {
-          for (const item of sale.items) {
-            const key = item.variantId || item.productId || 'unknown'
-            const label = item.variant?.name || item.product?.name || 'Unknown'
-            const sku = item.variant?.sku || item.product?.sku || '-'
-            if (!productRevenueMap[key]) {
-              productRevenueMap[key] = { name: label, sku, qty: 0, revenue: 0, cost: 0 }
-            }
-            productRevenueMap[key].qty += item.qty
-            productRevenueMap[key].revenue += item.qty * item.sellPrice
-            // Estimate cost from buyPrice if available
-            const buyPrice = (item.variant as any)?.buyPrice || (item.product as any)?.buyPrice || 0
-            productRevenueMap[key].cost += item.qty * buyPrice
+        for (const item of revenueSaleItems) {
+          const key = item.variantId || item.productId || 'unknown'
+          const label = item.variant?.name || item.product?.name || 'Unknown'
+          const sku = item.variant?.sku || item.product?.sku || '-'
+
+          // Use historical buyPrice from SaleItem (captured at sale time)
+          const historicalBuyPrice = item.buyPrice
+          const lineRevenue = item.qty * item.sellPrice
+          const lineCost = item.qty * historicalBuyPrice
+
+          totalCost += lineCost
+
+          if (!productRevenueMap[key]) {
+            productRevenueMap[key] = { name: label, sku, qty: 0, revenue: 0, cost: 0 }
           }
+          productRevenueMap[key].qty += item.qty
+          productRevenueMap[key].revenue += lineRevenue
+          productRevenueMap[key].cost += lineCost
         }
+
+        const estimatedProfit = revenue - totalCost
+
         const topProductsByRevenue = Object.values(productRevenueMap)
           .sort((a, b) => b.revenue - a.revenue)
           .slice(0, 10)
@@ -192,13 +243,17 @@ export async function GET(request: NextRequest) {
           .sort((a, b) => b.qty - a.qty)
           .slice(0, 10)
 
-        // Total estimated cost for profit calculation
-        const totalCost = Object.values(productRevenueMap).reduce((sum, p) => sum + p.cost, 0)
-        const estimatedProfit = revenue - totalCost
-
-        // Customer ranking
+        // ─── Customer ranking (from aggregated revenue sales) ───
+        const revenueSalesForCustomers = await db.sale.findMany({
+          where: revenueWhere,
+          select: {
+            customerId: true,
+            total: true,
+            customer: { select: { id: true, name: true, code: true } },
+          },
+        })
         const customerMap: Record<string, { name: string; code: string; totalSpent: number; orderCount: number }> = {}
-        for (const sale of revenueSales) {
+        for (const sale of revenueSalesForCustomers) {
           const cId = sale.customerId || 'walk-in'
           if (!customerMap[cId]) {
             customerMap[cId] = {
@@ -215,6 +270,23 @@ export async function GET(request: NextRequest) {
           .sort((a, b) => b.totalSpent - a.totalSpent)
           .slice(0, 10)
 
+        // ─── Grouped period data (paginated detail list) ───
+        // Fetch active (non-DRAFT/CANCELLED) sales for period grouping with pagination
+        const activeSales = await db.sale.findMany({
+          where: activeWhere,
+          include: {
+            customer: { select: { id: true, name: true, code: true } },
+          },
+          orderBy: { date: 'desc' },
+          skip: (page - 1) * pageSize,
+          take: pageSize,
+        })
+
+        const grouped = groupByPeriod(
+          activeSales.map((s) => ({ date: s.date, total: s.total, transNo: s.transNo, id: s.id, status: s.status })),
+          period
+        )
+
         return NextResponse.json({
           success: true,
           data: {
@@ -225,12 +297,19 @@ export async function GET(request: NextRequest) {
             grandTotal,
             revenue,
             totalTransactions,
-            totalAllTransactions,
+            totalAllTransactions: totalAllCount,
             totalCost,
             estimatedProfit,
             topProductsByRevenue,
             topProductsByQty,
             topCustomers,
+            // Pagination metadata
+            pagination: {
+              page,
+              pageSize,
+              totalRecords: totalTransactions,
+              totalPages: Math.ceil(totalTransactions / pageSize),
+            },
           },
         })
       }
@@ -241,6 +320,7 @@ export async function GET(request: NextRequest) {
         const dateFrom = resolved.dateFrom
         const dateTo = resolved.dateTo
         const supplierId = searchParams.get('supplierId') || ''
+        const { page, pageSize } = parsePagination(searchParams)
 
         const where: Prisma.PurchaseWhereInput = { ...buildPurchaseDateFilter(dateFrom, dateTo) }
 
@@ -249,52 +329,64 @@ export async function GET(request: NextRequest) {
           where.supplierId = supplierId
         }
 
-        const purchases = await db.purchase.findMany({
-          where,
-          take: 500,
-          include: {
-            supplier: { select: { id: true, name: true, code: true } },
-            items: {
-              include: {
-                variant: {
-                  select: { id: true, name: true, sku: true },
-                },
-                product: {
-                  select: { id: true, name: true, sku: true },
-                },
-              },
+        // ─── AGGREGATION: Accurate totals from DB (no truncation) ───
+
+        const totalAllCount = await db.purchase.count({ where })
+
+        // Count & sum for non-DRAFT, non-CANCELLED purchases
+        const activeWhere: Prisma.PurchaseWhereInput = {
+          ...where,
+          status: { notIn: ['DRAFT', 'CANCELLED'] },
+        }
+        const activeAgg = await db.purchase.aggregate({
+          where: activeWhere,
+          _count: true,
+          _sum: { total: true },
+        })
+        const grandTotal = activeAgg._sum.total || 0
+        const totalTransactions = activeAgg._count
+
+        // Count & sum for RECEIVED purchases only (actual cost)
+        const receivedWhere: Prisma.PurchaseWhereInput = {
+          ...where,
+          status: 'RECEIVED',
+        }
+        const receivedAgg = await db.purchase.aggregate({
+          where: receivedWhere,
+          _count: true,
+          _sum: { total: true },
+        })
+        const cost = receivedAgg._sum.total || 0
+
+        // ─── Top purchased products (from RECEIVED purchase items) ───
+        const receivedPurchaseItems = await db.purchaseItem.findMany({
+          where: {
+            purchase: receivedWhere,
+          },
+          select: {
+            variantId: true,
+            productId: true,
+            qty: true,
+            buyPrice: true,
+            variant: {
+              select: { id: true, name: true, sku: true },
+            },
+            product: {
+              select: { id: true, name: true, sku: true },
             },
           },
-          orderBy: { date: 'desc' },
         })
 
-        // Only RECEIVED purchases count as actual costs
-        const receivedPurchases = purchases.filter(p => p.status === 'RECEIVED')
-        const allPurchases = purchases.filter(p => p.status !== 'CANCELLED' && p.status !== 'DRAFT')
-
-        const grouped = groupByPeriod(
-          allPurchases.map((p) => ({ date: p.date, total: p.total, transNo: p.transNo, id: p.id, status: p.status })),
-          period
-        )
-
-        const grandTotal = allPurchases.reduce((sum, p) => sum + p.total, 0)
-        const cost = receivedPurchases.reduce((sum, p) => sum + p.total, 0)
-        const totalTransactions = allPurchases.length
-        const totalAllTransactions = purchases.length
-
-        // Top purchased products (by cost) — aggregate from items
         const productCostMap: Record<string, { name: string; sku: string; qty: number; cost: number }> = {}
-        for (const purchase of receivedPurchases) {
-          for (const item of purchase.items) {
-            const key = item.variantId || item.productId || 'unknown'
-            const label = item.variant?.name || item.product?.name || 'Unknown'
-            const sku = item.variant?.sku || item.product?.sku || '-'
-            if (!productCostMap[key]) {
-              productCostMap[key] = { name: label, sku, qty: 0, cost: 0 }
-            }
-            productCostMap[key].qty += item.qty
-            productCostMap[key].cost += item.qty * item.buyPrice
+        for (const item of receivedPurchaseItems) {
+          const key = item.variantId || item.productId || 'unknown'
+          const label = item.variant?.name || item.product?.name || 'Unknown'
+          const sku = item.variant?.sku || item.product?.sku || '-'
+          if (!productCostMap[key]) {
+            productCostMap[key] = { name: label, sku, qty: 0, cost: 0 }
           }
+          productCostMap[key].qty += item.qty
+          productCostMap[key].cost += item.qty * item.buyPrice
         }
         const topProductsByCost = Object.values(productCostMap)
           .sort((a, b) => b.cost - a.cost)
@@ -303,9 +395,17 @@ export async function GET(request: NextRequest) {
           .sort((a, b) => b.qty - a.qty)
           .slice(0, 10)
 
-        // Supplier ranking
+        // ─── Supplier ranking (from active purchases) ───
+        const activePurchasesForSuppliers = await db.purchase.findMany({
+          where: activeWhere,
+          select: {
+            supplierId: true,
+            total: true,
+            supplier: { select: { id: true, name: true, code: true } },
+          },
+        })
         const supplierMap: Record<string, { name: string; code: string; totalSpent: number; orderCount: number }> = {}
-        for (const purchase of allPurchases) {
+        for (const purchase of activePurchasesForSuppliers) {
           const sId = purchase.supplierId || 'unknown'
           if (!supplierMap[sId]) {
             supplierMap[sId] = {
@@ -322,6 +422,22 @@ export async function GET(request: NextRequest) {
           .sort((a, b) => b.totalSpent - a.totalSpent)
           .slice(0, 10)
 
+        // ─── Grouped period data (paginated) ───
+        const activePurchases = await db.purchase.findMany({
+          where: activeWhere,
+          include: {
+            supplier: { select: { id: true, name: true, code: true } },
+          },
+          orderBy: { date: 'desc' },
+          skip: (page - 1) * pageSize,
+          take: pageSize,
+        })
+
+        const grouped = groupByPeriod(
+          activePurchases.map((p) => ({ date: p.date, total: p.total, transNo: p.transNo, id: p.id, status: p.status })),
+          period
+        )
+
         return NextResponse.json({
           success: true,
           data: {
@@ -332,10 +448,17 @@ export async function GET(request: NextRequest) {
             grandTotal,
             cost,
             totalTransactions,
-            totalAllTransactions,
+            totalAllTransactions: totalAllCount,
             topProductsByCost,
             topProductsByQty,
             topSuppliers,
+            // Pagination metadata
+            pagination: {
+              page,
+              pageSize,
+              totalRecords: totalTransactions,
+              totalPages: Math.ceil(totalTransactions / pageSize),
+            },
           },
         })
       }
@@ -345,6 +468,7 @@ export async function GET(request: NextRequest) {
         const supplierId = searchParams.get('supplierId') || ''
         const productId = searchParams.get('productId') || ''
         const lowStockOnly = searchParams.get('lowStockOnly') === 'true'
+        const { page, pageSize } = parsePagination(searchParams)
 
         const variantWhere: Prisma.ProductVariantWhereInput = { isActive: true }
         const productWhere: Prisma.ProductWhereInput = { isActive: true }
@@ -355,9 +479,29 @@ export async function GET(request: NextRequest) {
           variantWhere.product = productWhere
         }
 
+        // ─── AGGREGATION: Accurate totals from DB ───
+        const totalVariants = await db.productVariant.count({ where: variantWhere })
+
+        // Use aggregate for total inventory value (stock * buyPrice for ALL matching variants)
+        // Prisma doesn't support computed columns in aggregate, so we use raw approach
+        const allVariantsForValue = await db.productVariant.findMany({
+          where: variantWhere,
+          select: { stock: true, buyPrice: true, minStock: true },
+        })
+        const totalInventoryValue = allVariantsForValue.reduce((sum, v) => sum + v.stock * v.buyPrice, 0)
+        const lowStockCount = allVariantsForValue.filter(v => v.stock <= v.minStock).length
+
+        // Unique products count
+        const uniqueProductIds = await db.productVariant.findMany({
+          where: variantWhere,
+          select: { productId: true },
+          distinct: ['productId'],
+        })
+        const totalProducts = uniqueProductIds.length
+
+        // ─── Detail list (paginated) ───
         const variants = await db.productVariant.findMany({
           where: variantWhere,
-          take: 500,
           include: {
             product: {
               include: {
@@ -368,6 +512,8 @@ export async function GET(request: NextRequest) {
             },
           },
           orderBy: { name: 'asc' },
+          skip: (page - 1) * pageSize,
+          take: pageSize,
         })
 
         const stockData = variants.map((v) => ({
@@ -387,23 +533,28 @@ export async function GET(request: NextRequest) {
           isLowStock: v.stock <= v.minStock,
         }))
 
-        const lowStockItems = stockData.filter((v) => v.isLowStock)
-        const filteredStockData = lowStockOnly ? stockData.filter((v) => v.isLowStock) : stockData
-        const totalInventoryValue = stockData.reduce((sum, v) => sum + v.stockValue, 0)
-        const totalVariants = stockData.length
+        const lowStockItems = allVariantsForValue
+          .map((v, idx) => ({ ...v, index: idx }))
+          .filter((v) => v.stock <= v.minStock)
 
-        const uniqueProductIds = new Set(variants.map((v) => v.productId))
-        const totalProducts = uniqueProductIds.size
+        const filteredStockData = lowStockOnly ? stockData.filter((v) => v.isLowStock) : stockData
 
         return NextResponse.json({
           success: true,
           data: {
             variants: filteredStockData,
-            lowStockItems,
+            lowStockItems: [],
             totalInventoryValue,
             totalProducts,
             totalVariants,
-            lowStockCount: lowStockItems.length,
+            lowStockCount,
+            // Pagination metadata
+            pagination: {
+              page,
+              pageSize,
+              totalRecords: totalVariants,
+              totalPages: Math.ceil(totalVariants / pageSize),
+            },
           },
         })
       }
@@ -412,6 +563,7 @@ export async function GET(request: NextRequest) {
         const resolved = resolveDateRange(searchParams.get('dateFrom'), searchParams.get('dateTo'))
         const dateFrom = resolved.dateFrom
         const dateTo = resolved.dateTo
+        const { page, pageSize } = parsePagination(searchParams)
 
         const where: Prisma.StockMutationWhereInput = {}
         where.createdAt = {}
@@ -423,9 +575,35 @@ export async function GET(request: NextRequest) {
           where.createdAt.lte = endDate
         }
 
+        // ─── AGGREGATION: Accurate counts by type from DB ───
+        const totalMutations = await db.stockMutation.count({ where })
+
+        const typeAggResults = await db.stockMutation.groupBy({
+          by: ['type'],
+          where,
+          _count: true,
+          _sum: { qty: true },
+        })
+
+        const byType: Record<string, { count: number; totalQty: number; mutations: any[] }> = {
+          IN: { count: 0, totalQty: 0, mutations: [] },
+          OUT: { count: 0, totalQty: 0, mutations: [] },
+          ADJUSTMENT: { count: 0, totalQty: 0, mutations: [] },
+          TRANSFER: { count: 0, totalQty: 0, mutations: [] },
+        }
+
+        for (const row of typeAggResults) {
+          const t = row.type as string
+          byType[t] = {
+            count: row._count,
+            totalQty: Math.abs(row._sum.qty || 0),
+            mutations: [],
+          }
+        }
+
+        // ─── Detail list (paginated) ───
         const mutations = await db.stockMutation.findMany({
           where,
-          take: 500,
           include: {
             product: {
               select: { id: true, name: true, sku: true },
@@ -438,25 +616,9 @@ export async function GET(request: NextRequest) {
             },
           },
           orderBy: { createdAt: 'desc' },
+          skip: (page - 1) * pageSize,
+          take: pageSize,
         })
-
-        // Group by type for summary
-        const byType: Record<string, { count: number; totalQty: number; mutations: any[] }> = {
-          IN: { count: 0, totalQty: 0, mutations: [] },
-          OUT: { count: 0, totalQty: 0, mutations: [] },
-          ADJUSTMENT: { count: 0, totalQty: 0, mutations: [] },
-          TRANSFER: { count: 0, totalQty: 0, mutations: [] },
-        }
-
-        for (const m of mutations) {
-          const t = m.type as string
-          if (!byType[t]) {
-            byType[t] = { count: 0, totalQty: 0, mutations: [] }
-          }
-          byType[t].count += 1
-          byType[t].totalQty += Math.abs(m.qty)
-          byType[t].mutations.push(m)
-        }
 
         const mappedMutations = mutations.map((m) => ({
           id: m.id,
@@ -477,7 +639,14 @@ export async function GET(request: NextRequest) {
             dateTo,
             byType,
             mutations: mappedMutations,
-            totalMutations: mutations.length,
+            totalMutations,
+            // Pagination metadata
+            pagination: {
+              page,
+              pageSize,
+              totalRecords: totalMutations,
+              totalPages: Math.ceil(totalMutations / pageSize),
+            },
           },
         })
       }

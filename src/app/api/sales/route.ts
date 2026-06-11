@@ -162,6 +162,7 @@ export async function POST(request: NextRequest) {
         productId: variant.productId,
         qty: item.qty,
         sellPrice: item.sellPrice,
+        buyPrice: variant.buyPrice, // snapshot historical buy price at sale time
         variantStock: variant.stock,
         variantName: variant.name,
       })
@@ -209,6 +210,7 @@ export async function POST(request: NextRequest) {
               productId: item.productId,
               qty: item.qty,
               sellPrice: item.sellPrice,
+              buyPrice: item.buyPrice,
             })),
           },
         },
