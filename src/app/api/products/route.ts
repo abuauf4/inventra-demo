@@ -20,6 +20,9 @@ export async function GET(request: NextRequest) {
     // Build where clause
     const where: Record<string, any> = {}
 
+    // D2: Filter out soft-deleted records by default
+    where.deletedAt = null
+
     if (search) {
       where.OR = [
         { name: { contains: search, mode: 'insensitive' } },

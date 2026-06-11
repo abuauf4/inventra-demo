@@ -21,6 +21,7 @@ export async function PUT(
       minStock,
       isActive,
       variants,
+      version, // D4: optimistic locking — client must send current version
     } = body
 
     // Check if product exists
@@ -32,6 +33,18 @@ export async function PUT(
       return NextResponse.json(
         { success: false, message: 'Produk tidak ditemukan' },
         { status: 404 }
+      )
+    }
+
+    // D4: Optimistic locking — check version matches
+    if (version !== undefined && version !== existingProduct.version) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'Produk telah diubah oleh pengguna lain. Silakan refresh dan coba lagi.',
+          currentVersion: existingProduct.version,
+        },
+        { status: 409 }
       )
     }
 
@@ -129,7 +142,10 @@ export async function PUT(
 
     const product = await db.product.update({
       where: { id },
-      data: updateData,
+      data: {
+        ...updateData,
+        version: { increment: 1 }, // D4: increment version on every update
+      },
       include: {
         category: true,
         supplier: true,
@@ -205,9 +221,10 @@ export async function DELETE(
       )
     }
 
-    // Delete product (cascade will delete variants)
-    await db.product.delete({
+    // D2: Soft delete — set deletedAt instead of hard delete
+    await db.product.update({
       where: { id },
+      data: { deletedAt: new Date() },
     })
 
     return NextResponse.json({

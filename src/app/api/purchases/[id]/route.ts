@@ -272,8 +272,10 @@ export async function DELETE(
       )
     }
 
-    await db.purchase.delete({
+    // D2: Soft delete — set deletedAt instead of hard delete
+    await db.purchase.update({
       where: { id },
+      data: { deletedAt: new Date() },
     })
 
     await createActivityLog({

@@ -10,8 +10,12 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search') || ''
     const limit = parseInt(searchParams.get('limit') || '0')
 
+    // D2: Filter out soft-deleted records
+    const softDeleteFilter = { deletedAt: null }
+
     const where = search
       ? {
+          ...softDeleteFilter,
           OR: [
             { code: { contains: search, mode: 'insensitive' as const } },
             { name: { contains: search, mode: 'insensitive' as const } },
@@ -19,7 +23,7 @@ export async function GET(request: NextRequest) {
             { phone: { contains: search, mode: 'insensitive' as const } },
           ],
         }
-      : {}
+      : softDeleteFilter
 
     const suppliers = await db.supplier.findMany({
       where,

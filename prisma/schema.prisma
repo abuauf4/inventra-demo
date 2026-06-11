@@ -47,6 +47,8 @@ model Supplier {
   email     String?
   address   String?
   notes     String?
+  deletedAt DateTime?      // D2: soft delete
+  version   Int            @default(0) // D4: optimistic locking
   products  Product[]
   purchases Purchase[]
   createdAt DateTime       @default(now())
@@ -66,6 +68,8 @@ model Customer {
   contactPerson String?   // Nama PIC / kontak person
   paymentTerms  String?   // Syarat pembayaran (COD, NET30, dll)
   customerType  String?   // Jenis: individual, company, government
+  deletedAt     DateTime? // D2: soft delete
+  version       Int       @default(0) // D4: optimistic locking
   sales         Sale[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -81,6 +85,7 @@ model Warehouse {
   isActive Boolean          @default(true)
   stocks   WarehouseStock[]
   mutations StockMutation[]
+  opnames  StockOpname[]
   createdAt DateTime        @default(now())
   updatedAt DateTime        @updatedAt
 }
@@ -112,6 +117,8 @@ model Product {
   sellPrice     Float            @default(0) // base sell price
   minStock      Int              @default(0)
   isActive      Boolean          @default(true)
+  deletedAt     DateTime?        // D2: soft delete
+  version       Int              @default(0) // D4: optimistic locking
   category      Category         @relation(fields: [categoryId], references: [id])
   supplier      Supplier?        @relation(fields: [supplierId], references: [id])
   variants      ProductVariant[]
@@ -139,6 +146,7 @@ model ProductVariant {
   purchaseItems PurchaseItem[]
   saleItems    SaleItem[]
   stockMutations StockMutation[]
+  opnameItems  StockOpnameItem[]
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @updatedAt
 
@@ -148,17 +156,19 @@ model ProductVariant {
 // ===================== PURCHASE =====================
 
 model Purchase {
-  id         String         @id @default(cuid())
-  transNo    String         @unique
-  supplierId String
-  date       DateTime
-  total      Float          @default(0)
-  status     String         @default("DRAFT") // DRAFT, APPROVED, RECEIVED, CANCELLED
-  notes      String?
-  supplier   Supplier       @relation(fields: [supplierId], references: [id])
-  items      PurchaseItem[]
-  createdAt  DateTime       @default(now())
-  updatedAt  DateTime       @updatedAt
+  id              String         @id @default(cuid())
+  transNo         String         @unique
+  supplierId      String
+  date            DateTime
+  total           Float          @default(0)
+  status          String         @default("DRAFT") // DRAFT, APPROVED, RECEIVED, CANCELLED
+  notes           String?
+  idempotencyKey  String?        @unique // D1: prevent duplicate submissions
+  deletedAt       DateTime?      // D2: soft delete — null = active, set = trashed
+  supplier        Supplier       @relation(fields: [supplierId], references: [id])
+  items           PurchaseItem[]
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
 }
 
 model PurchaseItem {
@@ -176,17 +186,19 @@ model PurchaseItem {
 // ===================== SALE =====================
 
 model Sale {
-  id         String       @id @default(cuid())
-  transNo    String       @unique
-  customerId String?
-  date       DateTime
-  total      Float        @default(0)
-  status     String       @default("DRAFT") // DRAFT, PAID, COMPLETED, CANCELLED
-  notes      String?
-  customer   Customer?    @relation(fields: [customerId], references: [id])
-  items      SaleItem[]
-  createdAt  DateTime     @default(now())
-  updatedAt  DateTime     @updatedAt
+  id              String       @id @default(cuid())
+  transNo         String       @unique
+  customerId      String?
+  date            DateTime
+  total           Float        @default(0)
+  status          String       @default("DRAFT") // DRAFT, PAID, COMPLETED, CANCELLED
+  notes           String?
+  idempotencyKey  String?      @unique // D1: prevent duplicate submissions
+  deletedAt       DateTime?    // D2: soft delete — null = active, set = trashed
+  customer        Customer?    @relation(fields: [customerId], references: [id])
+  items           SaleItem[]
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
 }
 
 model SaleItem {
@@ -258,6 +270,34 @@ model Inbox {
 model Counter {
   id    String @id   // e.g. "SO-20260610", "CUS"
   seq   Int    @default(0)
+}
+
+// ===================== STOCK OPNAME (D3: Formal Stock Counting) =====================
+
+model StockOpname {
+  id          String            @id @default(cuid())
+  transNo     String            @unique
+  warehouseId String
+  date        DateTime
+  status      String            @default("DRAFT") // DRAFT, CONFIRMED, CANCELLED
+  notes       String?
+  warehouse   Warehouse         @relation(fields: [warehouseId], references: [id])
+  items       StockOpnameItem[]
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+}
+
+model StockOpnameItem {
+  id              String       @id @default(cuid())
+  opnameId        String
+  variantId       String
+  systemStock     Int          // stock in system before opname
+  physicalStock   Int          // actual counted stock
+  diff            Int          // physicalStock - systemStock (auto-calculated)
+  variant         ProductVariant @relation(fields: [variantId], references: [id])
+  opname          StockOpname  @relation(fields: [opnameId], references: [id], onDelete: Cascade)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
 }
 
 // ===================== ATTACHMENT =====================

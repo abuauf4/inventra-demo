@@ -58,7 +58,7 @@ export async function PUT(
   try {
     const { id } = await params
     const body = await request.json()
-    const { name, phone, email, address, notes, companyName, npwp, contactPerson, paymentTerms, customerType } = body
+    const { name, phone, email, address, notes, companyName, npwp, contactPerson, paymentTerms, customerType, version } = body
 
     // Check if customer exists
     const existingCustomer = await db.customer.findUnique({
@@ -69,6 +69,18 @@ export async function PUT(
       return NextResponse.json(
         { success: false, message: 'Pelanggan tidak ditemukan' },
         { status: 404 }
+      )
+    }
+
+    // D4: Optimistic locking — check version matches
+    if (version !== undefined && version !== existingCustomer.version) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'Pelanggan telah diubah oleh pengguna lain. Silakan refresh dan coba lagi.',
+          currentVersion: existingCustomer.version,
+        },
+        { status: 409 }
       )
     }
 
@@ -87,7 +99,10 @@ export async function PUT(
 
     const customer = await db.customer.update({
       where: { id },
-      data: updateData,
+      data: {
+        ...updateData,
+        version: { increment: 1 }, // D4: increment version on every update
+      },
       include: {
         _count: {
           select: { sales: true },
@@ -141,8 +156,10 @@ export async function DELETE(
       )
     }
 
-    await db.customer.delete({
+    // D2: Soft delete — set deletedAt instead of hard delete
+    await db.customer.update({
       where: { id },
+      data: { deletedAt: new Date() },
     })
 
     return NextResponse.json({

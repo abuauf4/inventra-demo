@@ -35,6 +35,9 @@ export async function GET(request: NextRequest) {
 
     const where: Prisma.PurchaseWhereInput = {}
 
+    // D2: Filter out soft-deleted records by default
+    where.deletedAt = null
+
     if (search) {
       where.transNo = { contains: search, mode: 'insensitive' }
     }
@@ -118,7 +121,26 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { supplierId, date, notes, status, items } = body
+    const { supplierId, date, notes, status, items, idempotencyKey } = body
+
+    // D1: Idempotency — if same key was used before, return existing record
+    if (idempotencyKey) {
+      const existing = await db.purchase.findUnique({
+        where: { idempotencyKey },
+        include: {
+          supplier: true,
+          items: {
+            include: {
+              variant: { select: { id: true, name: true, sku: true } },
+              product: { select: { id: true, name: true, sku: true } },
+            },
+          },
+        },
+      })
+      if (existing) {
+        return NextResponse.json({ success: true, data: existing, idempotent: true }, { status: 200 })
+      }
+    }
 
     // Validation
     if (!supplierId || !date || !items || !Array.isArray(items) || items.length === 0) {
@@ -190,6 +212,7 @@ export async function POST(request: NextRequest) {
           total,
           status: purchaseStatus,
           notes: notes || null,
+          idempotencyKey: idempotencyKey || null, // D1: store key to prevent duplicates
           items: {
             create: resolvedItems.map((item) => ({
               variantId: item.variantId,

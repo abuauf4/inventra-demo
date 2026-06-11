@@ -61,7 +61,7 @@ export async function PUT(
   try {
     const { id } = await params
     const body = await request.json()
-    const { name, pic, phone, email, address, notes } = body
+    const { name, pic, phone, email, address, notes, version } = body
 
     // Check if supplier exists
     const existingSupplier = await db.supplier.findUnique({
@@ -72,6 +72,18 @@ export async function PUT(
       return NextResponse.json(
         { success: false, message: 'Supplier tidak ditemukan' },
         { status: 404 }
+      )
+    }
+
+    // D4: Optimistic locking — check version matches
+    if (version !== undefined && version !== existingSupplier.version) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'Supplier telah diubah oleh pengguna lain. Silakan refresh dan coba lagi.',
+          currentVersion: existingSupplier.version,
+        },
+        { status: 409 }
       )
     }
 
@@ -86,7 +98,10 @@ export async function PUT(
 
     const supplier = await db.supplier.update({
       where: { id },
-      data: updateData,
+      data: {
+        ...updateData,
+        version: { increment: 1 }, // D4: increment version on every update
+      },
       include: {
         _count: {
           select: { purchases: true },
@@ -151,8 +166,10 @@ export async function DELETE(
       )
     }
 
-    await db.supplier.delete({
+    // D2: Soft delete — set deletedAt instead of hard delete
+    await db.supplier.update({
       where: { id },
+      data: { deletedAt: new Date() },
     })
 
     return NextResponse.json({
