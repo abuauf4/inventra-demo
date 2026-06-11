@@ -149,45 +149,44 @@ export async function PUT(
 
       // When status changes to "CANCELLED" from "RECEIVED", reverse stock
       if (newStatus === 'CANCELLED' && currentStatus === 'RECEIVED') {
-        // ★ C3: Look up original IN mutations to find correct warehouse
+        // ★ C3: Look up original IN mutations directly and reverse each one.
+        // Using mutations directly (instead of a Map) correctly handles the case
+        // where the same variantId appears in multiple purchase items — each IN
+        // mutation has its own warehouseId and qty, and we reverse them 1:1.
         const originalInMutations = await tx.stockMutation.findMany({
           where: {
             referenceId: purchase.id,
             type: 'IN',
           },
+          orderBy: { createdAt: 'asc' },
         })
 
-        // Build map: variantId → warehouseId from original mutations
-        const variantWarehouseMap = new Map<string, string | null>()
         for (const mut of originalInMutations) {
-          variantWarehouseMap.set(mut.variantId!, mut.warehouseId)
-        }
-
-        for (const item of purchase.items) {
-          const variant = item.variantId
-            ? await tx.productVariant.findUnique({ where: { id: item.variantId } })
-            : await tx.productVariant.findFirst({ where: { productId: item.productId!, isActive: true } })
+          const variant = mut.variantId
+            ? await tx.productVariant.findUnique({ where: { id: mut.variantId } })
+            : null
 
           if (!variant) {
-            throw new Error(`Variant tidak ditemukan untuk item pembelian`)
+            throw new Error(`Variant tidak ditemukan untuk mutasi IN ${mut.id}`)
           }
 
-          // ★ C3: Use the SAME warehouse that stock was added to originally
-          const originalWarehouseId = variantWarehouseMap.get(item.variantId!) || undefined
+          // ★ C3: Deduct from the SAME warehouse that stock was added to
+          const originalWarehouseId = mut.warehouseId || undefined
 
           // C1: atomic stock update (deducting, so WHERE stock >= qty guard applies)
-          const stockResult = await updateVariantStock(variant.id, -item.qty, originalWarehouseId, tx)
+          const stockResult = await updateVariantStock(variant.id, -mut.qty, originalWarehouseId, tx)
 
+          // Create reversal mutation
           await tx.stockMutation.create({
             data: {
               variantId: variant.id,
               productId: variant.productId,
-              warehouseId: originalWarehouseId || null,  // ★ C3: Return from SAME warehouse
-              type: 'ADJUSTMENT',
-              qty: item.qty,
-              note: `Pembatalan pembelian ${purchase.transNo}`,
+              warehouseId: mut.warehouseId,  // ★ C3: Deduct from SAME warehouse
+              type: 'OUT',
+              qty: mut.qty,
+              note: `Pembatalan pembelian ${purchase.transNo} (reversal IN ${mut.id})`,
               referenceId: purchase.id,
-              previousStock: stockResult.previousStock,  // C4: audit trail
+              previousStock: stockResult.previousStock,
               newStock: stockResult.newStock,
             },
           })

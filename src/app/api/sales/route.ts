@@ -148,7 +148,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Resolve variants for items and check stock if status is COMPLETED
-    const resolvedItems = []
+    const resolvedItems: Array<{
+      variantId: string
+      productId: string
+      qty: number
+      sellPrice: number
+      buyPrice: number
+      variantStock: number
+      variantName: string
+    }> = []
     for (const item of items) {
       const variant = await resolveVariant(item.variantId, item.productId)
       if (!variant) {
@@ -184,10 +192,6 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Generate transNo: SO-YYYYMMDD-XXXX
-    const saleDate = new Date(date)
-    const transNo = await generateTransCode('SO', saleDate, 'sale')
-
     // Calculate total
     const total = items.reduce(
       (sum: number, item: { qty: number; sellPrice: number }) => sum + item.qty * item.sellPrice,
@@ -195,7 +199,11 @@ export async function POST(request: NextRequest) {
     )
 
     // Create sale + stock updates + mutations in ONE transaction
+    // C2: generateTransCode INSIDE tx so counter rolls back on failure (no gaps)
+    const saleDate = new Date(date)
     const sale = await db.$transaction(async (tx) => {
+      const transNo = await generateTransCode('SO', saleDate, 'sale', tx)
+
       const created = await tx.sale.create({
         data: {
           transNo,
@@ -268,8 +276,8 @@ export async function POST(request: NextRequest) {
       action: 'CREATE',
       entity: 'Sale',
       entityId: sale.id,
-      entityCode: transNo,
-      details: `Penjualan ${transNo} dibuat dengan status ${saleStatus}. Total: Rp ${total.toLocaleString('id-ID')}. ${resolvedItems.length} item.`,
+      entityCode: sale.transNo,
+      details: `Penjualan ${sale.transNo} dibuat dengan status ${saleStatus}. Total: Rp ${total.toLocaleString('id-ID')}. ${resolvedItems.length} item.`,
       newData: JSON.stringify({ customerId, date, total, status: saleStatus, itemCount: resolvedItems.length }),
     })
 

@@ -147,10 +147,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Generate transNo: PO-YYYYMMDD-XXXX
-    const purchaseDate = new Date(date)
-    const transNo = await generateTransCode('PO', purchaseDate, 'purchase')
-
     // Calculate total
     const total = items.reduce(
       (sum: number, item: { qty: number; buyPrice: number }) => sum + item.qty * item.buyPrice,
@@ -158,7 +154,12 @@ export async function POST(request: NextRequest) {
     )
 
     // Resolve variants for items
-    const resolvedItems = []
+    const resolvedItems: Array<{
+      variantId: string
+      productId: string
+      qty: number
+      buyPrice: number
+    }> = []
     for (const item of items) {
       const variant = await resolveVariant(item.variantId, item.productId)
       if (!variant) {
@@ -176,7 +177,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Create purchase + stock updates + mutations in ONE transaction
+    // C2: generateTransCode INSIDE tx so counter rolls back on failure (no gaps)
+    const purchaseDate = new Date(date)
     const purchase = await db.$transaction(async (tx) => {
+      const transNo = await generateTransCode('PO', purchaseDate, 'purchase', tx)
+
       const created = await tx.purchase.create({
         data: {
           transNo,
@@ -247,8 +252,8 @@ export async function POST(request: NextRequest) {
       action: 'CREATE',
       entity: 'Purchase',
       entityId: purchase.id,
-      entityCode: transNo,
-      details: `Pembelian ${transNo} dibuat dengan status ${purchaseStatus}. Total: Rp ${total.toLocaleString('id-ID')}. ${resolvedItems.length} item.`,
+      entityCode: purchase.transNo,
+      details: `Pembelian ${purchase.transNo} dibuat dengan status ${purchaseStatus}. Total: Rp ${total.toLocaleString('id-ID')}. ${resolvedItems.length} item.`,
       newData: JSON.stringify({ supplierId, date, total, status: purchaseStatus, itemCount: resolvedItems.length }),
     })
 

@@ -226,6 +226,14 @@ export async function POST(request: NextRequest) {
           )
         }
 
+        // C4: ADJUSTMENT requires a note/reason for audit compliance
+        if (!note || note.trim() === '') {
+          return NextResponse.json(
+            { success: false, message: 'Alasan penyesuaian (note) wajib diisi untuk audit trail' },
+            { status: 400 }
+          )
+        }
+
         const warehouse = await db.warehouse.findUnique({ where: { id: warehouseId } })
         if (!warehouse) {
           return NextResponse.json(
@@ -274,8 +282,8 @@ export async function POST(request: NextRequest) {
           entity: 'StockMutation',
           entityId: mutation.id,
           entityCode: 'ADJUSTMENT',
-          details: `Penyesuaian ${variant.product.name} — ${variant.name}: ${qty > 0 ? '+' : ''}${qty} di ${warehouse.name}`,
-          newData: JSON.stringify({ type: 'ADJUSTMENT', variantId, warehouseId, qty, previousStock: mutation.previousStock, newStock: mutation.newStock }),
+          details: `Penyesuaian ${variant.product.name} — ${variant.name}: ${qty > 0 ? '+' : ''}${qty} di ${warehouse.name}. Alasan: ${note}`,
+          newData: JSON.stringify({ type: 'ADJUSTMENT', variantId, warehouseId, qty, note, previousStock: mutation.previousStock, newStock: mutation.newStock }),
         })
 
         return NextResponse.json({ success: true, data: mutation }, { status: 201 })
