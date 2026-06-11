@@ -1,7 +1,7 @@
 import { db } from '@/lib/db'
 import { Prisma } from '@prisma/client'
 import { NextRequest, NextResponse } from 'next/server'
-import { updateVariantStock, createActivityLog } from '@/lib/stock'
+import { updateVariantStock, createActivityLog, StockInsufficientError } from '@/lib/stock'
 import { generateTransCode } from '@/lib/autoCode'
 
 // Helper: resolve the target variant for an item (prefer variantId, fallback to first variant of product)
@@ -211,19 +211,29 @@ export async function POST(request: NextRequest) {
 
       // ONLY update stock and create IN mutations if status is "RECEIVED"
       if (purchaseStatus === 'RECEIVED') {
-        for (const item of resolvedItems) {
-          // Update variant stock AND warehouse stock (inside same transaction)
-          await updateVariantStock(item.variantId, item.qty, undefined, tx)
+        // Determine default warehouse
+        const defaultWarehouse = await tx.warehouse.findFirst({
+          where: { isActive: true },
+          orderBy: { createdAt: 'asc' },
+        })
+        const warehouseId = defaultWarehouse?.id
 
-          // Create stock mutation (inside same transaction)
+        for (const item of resolvedItems) {
+          // C1: Atomic stock update, C4: audit trail
+          const stockResult = await updateVariantStock(item.variantId, item.qty, warehouseId, tx)
+
+          // C3: Store warehouseId in mutation for correct reversal
           await tx.stockMutation.create({
             data: {
               variantId: item.variantId,
               productId: item.productId,
+              warehouseId,  // ★ C3: Store for reversal
               type: 'IN',
               qty: item.qty,
               note: `Pembelian ${transNo}`,
               referenceId: created.id,
+              previousStock: stockResult.previousStock,  // C4: audit trail
+              newStock: stockResult.newStock,
             },
           })
         }
@@ -244,6 +254,14 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, data: purchase }, { status: 201 })
   } catch (error) {
+    // C1: Handle StockInsufficientError
+    if (error instanceof StockInsufficientError) {
+      return NextResponse.json(
+        { success: false, message: error.message },
+        { status: 400 }
+      )
+    }
+
     console.error('Create purchase error:', error)
     return NextResponse.json(
       { success: false, message: 'Gagal membuat pembelian' },

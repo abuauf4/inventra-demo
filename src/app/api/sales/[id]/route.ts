@@ -1,17 +1,6 @@
 import { db } from '@/lib/db'
 import { NextRequest, NextResponse } from 'next/server'
-import { updateVariantStock, createActivityLog } from '@/lib/stock'
-
-// Helper: resolve variant from item (prefer variantId, fallback to first variant of product)
-async function resolveVariant(variantId: string | null | undefined, productId: string | null | undefined) {
-  if (variantId) {
-    return await db.productVariant.findUnique({ where: { id: variantId } })
-  }
-  if (productId) {
-    return await db.productVariant.findFirst({ where: { productId, isActive: true } })
-  }
-  return null
-}
+import { updateVariantStock, createActivityLog, StockInsufficientError } from '@/lib/stock'
 
 // Valid sale status transitions
 const VALID_SALE_TRANSITIONS: Record<string, string[]> = {
@@ -110,7 +99,6 @@ export async function PUT(
     const allowedTransitions = VALID_SALE_TRANSITIONS[currentStatus] || []
     if (!allowedTransitions.includes(newStatus)) {
       if (currentStatus === newStatus) {
-        // No state change needed
         return NextResponse.json({ success: true, data: sale })
       }
       return NextResponse.json(
@@ -122,48 +110,46 @@ export async function PUT(
       )
     }
 
-    // Resolve variants for stock operations BEFORE the transaction
-    const resolvedVariants = []
-    for (const item of sale.items) {
-      const variant = await resolveVariant(item.variantId, item.productId)
-      if (!variant && (newStatus === 'COMPLETED' || (newStatus === 'CANCELLED' && currentStatus === 'COMPLETED'))) {
-        return NextResponse.json(
-          { success: false, message: `Variant tidak ditemukan untuk item penjualan` },
-          { status: 404 }
-        )
-      }
-      if (variant) {
-        // Check stock availability before COMPLETED
-        if (newStatus === 'COMPLETED' && item.qty > variant.stock) {
-          return NextResponse.json(
-            {
-              success: false,
-              message: `Stok tidak cukup untuk variant ${variant.name}. Stok tersedia: ${variant.stock}, diminta: ${item.qty}`,
-            },
-            { status: 400 }
-          )
-        }
-        resolvedVariants.push({ item, variant })
-      }
-    }
+    // ─── C3: Multi-Warehouse Reversal ───
+    // When COMPLETING: Store the warehouseId in the OUT mutation
+    // When CANCELLING: Look up the original OUT mutations to find which warehouse to return stock to
 
     // Wrap status update + stock changes + mutations in ONE transaction
     const updatedSale = await db.$transaction(async (tx) => {
       // When status changes to "COMPLETED", update stock and create OUT mutations
       if (newStatus === 'COMPLETED') {
-        for (const { item, variant } of resolvedVariants) {
-          // Update variant stock AND warehouse stock (inside same transaction)
-          await updateVariantStock(variant.id, -item.qty, undefined, tx)
+        // Determine the default warehouse once
+        const defaultWarehouse = await tx.warehouse.findFirst({
+          where: { isActive: true },
+          orderBy: { createdAt: 'asc' },
+        })
+        const warehouseId = defaultWarehouse?.id
 
-          // Create stock mutation (inside same transaction)
+        for (const item of sale.items) {
+          // Resolve variant inside transaction
+          const variant = item.variantId
+            ? await tx.productVariant.findUnique({ where: { id: item.variantId } })
+            : await tx.productVariant.findFirst({ where: { productId: item.productId!, isActive: true } })
+
+          if (!variant) {
+            throw new Error(`Variant tidak ditemukan untuk item penjualan`)
+          }
+
+          // Update variant stock AND warehouse stock (C1: atomic with negative guard)
+          const stockResult = await updateVariantStock(variant.id, -item.qty, warehouseId, tx)
+
+          // Create stock mutation WITH warehouseId (C3: store for reversal)
           await tx.stockMutation.create({
             data: {
               variantId: variant.id,
               productId: variant.productId,
+              warehouseId,  // ★ C3: Store warehouse so we know where to return stock on cancel
               type: 'OUT',
               qty: item.qty,
               note: `Penjualan ${sale.transNo} - Status COMPLETED`,
               referenceId: sale.id,
+              previousStock: stockResult.previousStock,  // C4: audit trail
+              newStock: stockResult.newStock,
             },
           })
         }
@@ -171,19 +157,48 @@ export async function PUT(
 
       // When status changes to "CANCELLED" from "COMPLETED", reverse stock
       if (newStatus === 'CANCELLED' && currentStatus === 'COMPLETED') {
-        for (const { item, variant } of resolvedVariants) {
-          // Add qty back to variant stock AND warehouse stock (inside same transaction)
-          await updateVariantStock(variant.id, item.qty, undefined, tx)
+        // ★ C3: Look up original OUT mutations to find the correct warehouse for each item
+        const originalOutMutations = await tx.stockMutation.findMany({
+          where: {
+            referenceId: sale.id,
+            type: 'OUT',
+          },
+        })
 
-          // Create stock mutation for reversal (inside same transaction)
+        // Build a map: variantId → warehouseId from original mutations
+        const variantWarehouseMap = new Map<string, string | null>()
+        for (const mut of originalOutMutations) {
+          variantWarehouseMap.set(mut.variantId!, mut.warehouseId)
+        }
+
+        for (const item of sale.items) {
+          // Resolve variant inside transaction
+          const variant = item.variantId
+            ? await tx.productVariant.findUnique({ where: { id: item.variantId } })
+            : await tx.productVariant.findFirst({ where: { productId: item.productId!, isActive: true } })
+
+          if (!variant) {
+            throw new Error(`Variant tidak ditemukan untuk item penjualan`)
+          }
+
+          // ★ C3: Use the SAME warehouse that stock was taken from originally
+          const originalWarehouseId = variantWarehouseMap.get(item.variantId!) || undefined
+
+          // Return stock to the original warehouse
+          const stockResult = await updateVariantStock(variant.id, item.qty, originalWarehouseId, tx)
+
+          // Create stock mutation for reversal with the original warehouseId
           await tx.stockMutation.create({
             data: {
               variantId: variant.id,
               productId: variant.productId,
+              warehouseId: originalWarehouseId || null,  // ★ C3: Return to SAME warehouse
               type: 'ADJUSTMENT',
               qty: item.qty,
               note: `Pembatalan penjualan ${sale.transNo}`,
               referenceId: sale.id,
+              previousStock: stockResult.previousStock,  // C4: audit trail
+              newStock: stockResult.newStock,
             },
           })
         }
@@ -222,6 +237,17 @@ export async function PUT(
 
     return NextResponse.json({ success: true, data: updatedSale })
   } catch (error) {
+    // C1: Handle StockInsufficientError
+    if (error instanceof StockInsufficientError) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: error.message,
+        },
+        { status: 400 }
+      )
+    }
+
     console.error('Update sale error:', error)
     return NextResponse.json(
       { success: false, message: 'Gagal memperbarui penjualan' },
@@ -238,7 +264,6 @@ export async function DELETE(
   try {
     const { id } = await params
 
-    // Check if sale exists with items
     const sale = await db.sale.findUnique({
       where: { id },
       include: {
@@ -253,7 +278,6 @@ export async function DELETE(
       )
     }
 
-    // Only allow deletion if status is DRAFT
     if (sale.status !== 'DRAFT') {
       return NextResponse.json(
         { success: false, message: 'Hanya penjualan dengan status DRAFT yang dapat dihapus' },
@@ -261,12 +285,10 @@ export async function DELETE(
       )
     }
 
-    // Delete the sale (cascade will delete items)
     await db.sale.delete({
       where: { id },
     })
 
-    // Activity log
     await createActivityLog({
       action: 'DELETE',
       entity: 'Sale',

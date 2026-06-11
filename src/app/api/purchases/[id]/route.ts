@@ -1,17 +1,6 @@
 import { db } from '@/lib/db'
 import { NextRequest, NextResponse } from 'next/server'
-import { updateVariantStock, createActivityLog } from '@/lib/stock'
-
-// Helper: resolve variant from item (prefer variantId, fallback to first variant of product)
-async function resolveVariant(variantId: string | null | undefined, productId: string | null | undefined) {
-  if (variantId) {
-    return await db.productVariant.findUnique({ where: { id: variantId } })
-  }
-  if (productId) {
-    return await db.productVariant.findFirst({ where: { productId, isActive: true } })
-  }
-  return null
-}
+import { updateVariantStock, createActivityLog, StockInsufficientError } from '@/lib/stock'
 
 // Valid purchase status transitions
 const VALID_PURCHASE_TRANSITIONS: Record<string, string[]> = {
@@ -88,7 +77,6 @@ export async function PUT(
       )
     }
 
-    // Check if purchase exists with items
     const purchase = await db.purchase.findUnique({
       where: { id },
       include: {
@@ -106,11 +94,9 @@ export async function PUT(
     const currentStatus = purchase.status
     const newStatus = status
 
-    // Validate status transition is allowed
     const allowedTransitions = VALID_PURCHASE_TRANSITIONS[currentStatus] || []
     if (!allowedTransitions.includes(newStatus)) {
       if (currentStatus === newStatus) {
-        // No state change needed
         return NextResponse.json({ success: true, data: purchase })
       }
       return NextResponse.json(
@@ -122,38 +108,40 @@ export async function PUT(
       )
     }
 
-    // Resolve variants for stock operations BEFORE the transaction
-    const resolvedVariants = []
-    for (const item of purchase.items) {
-      const variant = await resolveVariant(item.variantId, item.productId)
-      if (!variant && (newStatus === 'RECEIVED' || (newStatus === 'CANCELLED' && currentStatus === 'RECEIVED'))) {
-        return NextResponse.json(
-          { success: false, message: `Variant tidak ditemukan untuk item pembelian` },
-          { status: 404 }
-        )
-      }
-      if (variant) {
-        resolvedVariants.push({ item, variant })
-      }
-    }
-
-    // Wrap status update + stock changes + mutations in ONE transaction
     const updatedPurchase = await db.$transaction(async (tx) => {
+      // Determine the default warehouse once
+      const defaultWarehouse = await tx.warehouse.findFirst({
+        where: { isActive: true },
+        orderBy: { createdAt: 'asc' },
+      })
+      const warehouseId = defaultWarehouse?.id
+
       // When status changes to "RECEIVED", update stock and create IN mutations
       if (newStatus === 'RECEIVED') {
-        for (const { item, variant } of resolvedVariants) {
-          // Update variant stock AND warehouse stock (inside same transaction)
-          await updateVariantStock(variant.id, item.qty, undefined, tx)
+        for (const item of purchase.items) {
+          const variant = item.variantId
+            ? await tx.productVariant.findUnique({ where: { id: item.variantId } })
+            : await tx.productVariant.findFirst({ where: { productId: item.productId!, isActive: true } })
 
-          // Create stock mutation (inside same transaction)
+          if (!variant) {
+            throw new Error(`Variant tidak ditemukan untuk item pembelian`)
+          }
+
+          // C1: atomic stock update, C4: returns previousStock/newStock
+          const stockResult = await updateVariantStock(variant.id, item.qty, warehouseId, tx)
+
+          // C3: Store warehouseId in mutation for reversal tracking
           await tx.stockMutation.create({
             data: {
               variantId: variant.id,
               productId: variant.productId,
+              warehouseId,  // ★ C3: Store warehouse for reversal
               type: 'IN',
               qty: item.qty,
               note: `Pembelian ${purchase.transNo} - Status RECEIVED`,
               referenceId: purchase.id,
+              previousStock: stockResult.previousStock,  // C4: audit trail
+              newStock: stockResult.newStock,
             },
           })
         }
@@ -161,25 +149,51 @@ export async function PUT(
 
       // When status changes to "CANCELLED" from "RECEIVED", reverse stock
       if (newStatus === 'CANCELLED' && currentStatus === 'RECEIVED') {
-        for (const { item, variant } of resolvedVariants) {
-          // Reverse variant stock AND warehouse stock (inside same transaction)
-          await updateVariantStock(variant.id, -item.qty, undefined, tx)
+        // ★ C3: Look up original IN mutations to find correct warehouse
+        const originalInMutations = await tx.stockMutation.findMany({
+          where: {
+            referenceId: purchase.id,
+            type: 'IN',
+          },
+        })
 
-          // Create stock mutation for reversal (inside same transaction)
+        // Build map: variantId → warehouseId from original mutations
+        const variantWarehouseMap = new Map<string, string | null>()
+        for (const mut of originalInMutations) {
+          variantWarehouseMap.set(mut.variantId!, mut.warehouseId)
+        }
+
+        for (const item of purchase.items) {
+          const variant = item.variantId
+            ? await tx.productVariant.findUnique({ where: { id: item.variantId } })
+            : await tx.productVariant.findFirst({ where: { productId: item.productId!, isActive: true } })
+
+          if (!variant) {
+            throw new Error(`Variant tidak ditemukan untuk item pembelian`)
+          }
+
+          // ★ C3: Use the SAME warehouse that stock was added to originally
+          const originalWarehouseId = variantWarehouseMap.get(item.variantId!) || undefined
+
+          // C1: atomic stock update (deducting, so WHERE stock >= qty guard applies)
+          const stockResult = await updateVariantStock(variant.id, -item.qty, originalWarehouseId, tx)
+
           await tx.stockMutation.create({
             data: {
               variantId: variant.id,
               productId: variant.productId,
+              warehouseId: originalWarehouseId || null,  // ★ C3: Return from SAME warehouse
               type: 'ADJUSTMENT',
               qty: item.qty,
               note: `Pembatalan pembelian ${purchase.transNo}`,
               referenceId: purchase.id,
+              previousStock: stockResult.previousStock,  // C4: audit trail
+              newStock: stockResult.newStock,
             },
           })
         }
       }
 
-      // Update the purchase status
       return await tx.purchase.update({
         where: { id },
         data: { status: newStatus },
@@ -199,7 +213,6 @@ export async function PUT(
       })
     })
 
-    // Activity log with enhanced data
     await createActivityLog({
       action: 'STATUS_CHANGE',
       entity: 'Purchase',
@@ -212,6 +225,17 @@ export async function PUT(
 
     return NextResponse.json({ success: true, data: updatedPurchase })
   } catch (error) {
+    // C1: Handle StockInsufficientError
+    if (error instanceof StockInsufficientError) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: error.message,
+        },
+        { status: 400 }
+      )
+    }
+
     console.error('Update purchase error:', error)
     return NextResponse.json(
       { success: false, message: 'Gagal memperbarui pembelian' },
@@ -228,7 +252,6 @@ export async function DELETE(
   try {
     const { id } = await params
 
-    // Check if purchase exists with items
     const purchase = await db.purchase.findUnique({
       where: { id },
       include: {
@@ -243,7 +266,6 @@ export async function DELETE(
       )
     }
 
-    // Only allow deletion if status is DRAFT
     if (purchase.status !== 'DRAFT') {
       return NextResponse.json(
         { success: false, message: 'Hanya pembelian dengan status DRAFT yang dapat dihapus' },
@@ -251,12 +273,10 @@ export async function DELETE(
       )
     }
 
-    // Delete the purchase (cascade will delete items)
     await db.purchase.delete({
       where: { id },
     })
 
-    // Activity log
     await createActivityLog({
       action: 'DELETE',
       entity: 'Purchase',

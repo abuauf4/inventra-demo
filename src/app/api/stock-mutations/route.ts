@@ -1,7 +1,7 @@
 import { db } from '@/lib/db'
 import { Prisma } from '@prisma/client'
 import { NextRequest, NextResponse } from 'next/server'
-import { updateVariantStock, createActivityLog } from '@/lib/stock'
+import { updateVariantStock, createActivityLog, StockInsufficientError } from '@/lib/stock'
 
 // GET /api/stock-mutations - List stock mutations
 export async function GET(request: NextRequest) {
@@ -132,7 +132,6 @@ export async function POST(request: NextRequest) {
           )
         }
 
-        // Check warehouses exist
         const [fromWh, toWh] = await Promise.all([
           db.warehouse.findUnique({ where: { id: fromWarehouseId } }),
           db.warehouse.findUnique({ where: { id: toWarehouseId } }),
@@ -151,7 +150,6 @@ export async function POST(request: NextRequest) {
           )
         }
 
-        // Check source warehouse has enough stock
         const fromStock = await getWarehouseStock(fromWarehouseId, variantId)
         if (!fromStock || fromStock.stock < qty) {
           return NextResponse.json(
@@ -160,8 +158,11 @@ export async function POST(request: NextRequest) {
           )
         }
 
-        // Create mutations + update stock in ONE transaction
+        // C4: Create mutations + update stock in ONE transaction with audit trail
         const [outMutation, inMutation] = await db.$transaction(async (tx) => {
+          // C1: atomic stock deduct from source warehouse
+          const outStockResult = await updateVariantStock(variantId, -qty, fromWarehouseId, tx)
+
           const out = await tx.stockMutation.create({
             data: {
               variantId,
@@ -170,12 +171,17 @@ export async function POST(request: NextRequest) {
               type: 'OUT',
               qty,
               note: note || `Transfer ke ${toWh.name}`,
+              previousStock: outStockResult.previousStock,  // C4: audit trail
+              newStock: outStockResult.newStock,
             },
             include: {
               variant: { select: { id: true, name: true, sku: true, product: { select: { id: true, name: true } } } },
               warehouse: { select: { id: true, name: true, code: true } },
             },
           })
+
+          // C1: atomic stock add to destination warehouse
+          const inStockResult = await updateVariantStock(variantId, qty, toWarehouseId, tx)
 
           const inn = await tx.stockMutation.create({
             data: {
@@ -185,6 +191,8 @@ export async function POST(request: NextRequest) {
               type: 'IN',
               qty,
               note: note || `Transfer dari ${fromWh.name}`,
+              previousStock: inStockResult.previousStock,  // C4: audit trail
+              newStock: inStockResult.newStock,
             },
             include: {
               variant: { select: { id: true, name: true, sku: true, product: { select: { id: true, name: true } } } },
@@ -192,14 +200,9 @@ export async function POST(request: NextRequest) {
             },
           })
 
-          // Update stock (inside same transaction)
-          await updateVariantStock(variantId, -qty, fromWarehouseId, tx)
-          await updateVariantStock(variantId, qty, toWarehouseId, tx)
-
           return [out, inn]
         })
 
-        // Activity log
         await createActivityLog({
           action: 'CREATE',
           entity: 'StockMutation',
@@ -223,7 +226,6 @@ export async function POST(request: NextRequest) {
           )
         }
 
-        // Check warehouse exists
         const warehouse = await db.warehouse.findUnique({ where: { id: warehouseId } })
         if (!warehouse) {
           return NextResponse.json(
@@ -232,7 +234,6 @@ export async function POST(request: NextRequest) {
           )
         }
 
-        // If deducting, check warehouse has enough stock
         if (qty < 0) {
           const whStock = await getWarehouseStock(warehouseId, variantId)
           if (!whStock || whStock.stock < Math.abs(qty)) {
@@ -243,8 +244,11 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        // Create mutation + update stock in ONE transaction
+        // C4: Create mutation + update stock with audit trail
         const mutation = await db.$transaction(async (tx) => {
+          // C1: atomic stock update
+          const stockResult = await updateVariantStock(variantId, qty, warehouseId, tx)
+
           const created = await tx.stockMutation.create({
             data: {
               variantId,
@@ -253,6 +257,8 @@ export async function POST(request: NextRequest) {
               type: 'ADJUSTMENT',
               qty,
               note: note || null,
+              previousStock: stockResult.previousStock,  // C4: audit trail
+              newStock: stockResult.newStock,
             },
             include: {
               variant: { select: { id: true, name: true, sku: true, product: { select: { id: true, name: true } } } },
@@ -260,20 +266,16 @@ export async function POST(request: NextRequest) {
             },
           })
 
-          // Update stock (inside same transaction)
-          await updateVariantStock(variantId, qty, warehouseId, tx)
-
           return created
         })
 
-        // Activity log
         await createActivityLog({
           action: 'CREATE',
           entity: 'StockMutation',
           entityId: mutation.id,
           entityCode: 'ADJUSTMENT',
           details: `Penyesuaian ${variant.product.name} — ${variant.name}: ${qty > 0 ? '+' : ''}${qty} di ${warehouse.name}`,
-          newData: JSON.stringify({ type: 'ADJUSTMENT', variantId, warehouseId, qty }),
+          newData: JSON.stringify({ type: 'ADJUSTMENT', variantId, warehouseId, qty, previousStock: mutation.previousStock, newStock: mutation.newStock }),
         })
 
         return NextResponse.json({ success: true, data: mutation }, { status: 201 })
@@ -294,7 +296,6 @@ export async function POST(request: NextRequest) {
           )
         }
 
-        // Check warehouse exists
         const warehouse = await db.warehouse.findUnique({ where: { id: warehouseId } })
         if (!warehouse) {
           return NextResponse.json(
@@ -303,8 +304,9 @@ export async function POST(request: NextRequest) {
           )
         }
 
-        // Create mutation + update stock in ONE transaction
         const mutation = await db.$transaction(async (tx) => {
+          const stockResult = await updateVariantStock(variantId, qty, warehouseId, tx)
+
           const created = await tx.stockMutation.create({
             data: {
               variantId,
@@ -313,6 +315,8 @@ export async function POST(request: NextRequest) {
               type: 'IN',
               qty,
               note: note || null,
+              previousStock: stockResult.previousStock,  // C4: audit trail
+              newStock: stockResult.newStock,
             },
             include: {
               variant: { select: { id: true, name: true, sku: true, product: { select: { id: true, name: true } } } },
@@ -320,13 +324,9 @@ export async function POST(request: NextRequest) {
             },
           })
 
-          // Update stock (inside same transaction)
-          await updateVariantStock(variantId, qty, warehouseId, tx)
-
           return created
         })
 
-        // Activity log
         await createActivityLog({
           action: 'CREATE',
           entity: 'StockMutation',
@@ -354,7 +354,6 @@ export async function POST(request: NextRequest) {
           )
         }
 
-        // Check warehouse exists
         const warehouse = await db.warehouse.findUnique({ where: { id: warehouseId } })
         if (!warehouse) {
           return NextResponse.json(
@@ -363,7 +362,6 @@ export async function POST(request: NextRequest) {
           )
         }
 
-        // Check warehouse has enough stock
         const whStock = await getWarehouseStock(warehouseId, variantId)
         if (!whStock || whStock.stock < qty) {
           return NextResponse.json(
@@ -372,8 +370,10 @@ export async function POST(request: NextRequest) {
           )
         }
 
-        // Create mutation + update stock in ONE transaction
         const mutation = await db.$transaction(async (tx) => {
+          // C1: atomic stock deduct with negative guard
+          const stockResult = await updateVariantStock(variantId, -qty, warehouseId, tx)
+
           const created = await tx.stockMutation.create({
             data: {
               variantId,
@@ -382,6 +382,8 @@ export async function POST(request: NextRequest) {
               type: 'OUT',
               qty,
               note: note || null,
+              previousStock: stockResult.previousStock,  // C4: audit trail
+              newStock: stockResult.newStock,
             },
             include: {
               variant: { select: { id: true, name: true, sku: true, product: { select: { id: true, name: true } } } },
@@ -389,13 +391,9 @@ export async function POST(request: NextRequest) {
             },
           })
 
-          // Update stock (inside same transaction)
-          await updateVariantStock(variantId, -qty, warehouseId, tx)
-
           return created
         })
 
-        // Activity log
         await createActivityLog({
           action: 'CREATE',
           entity: 'StockMutation',
@@ -415,6 +413,17 @@ export async function POST(request: NextRequest) {
         )
     }
   } catch (error) {
+    // C1: Handle StockInsufficientError
+    if (error instanceof StockInsufficientError) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: error.message,
+        },
+        { status: 400 }
+      )
+    }
+
     console.error('Create stock mutation error:', error)
     return NextResponse.json(
       { success: false, message: 'Gagal membuat mutasi stok' },

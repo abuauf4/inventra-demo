@@ -205,18 +205,20 @@ model SaleItem {
 // ===================== STOCK MUTATION =====================
 
 model StockMutation {
-  id          String         @id @default(cuid())
-  variantId   String?        // prefer variant
-  productId   String?        // fallback
-  warehouseId String?
-  type        String         // IN, OUT, ADJUSTMENT
-  qty         Int
-  note        String?
-  referenceId String?        // purchase or sale id
-  variant     ProductVariant? @relation(fields: [variantId], references: [id])
-  product     Product?       @relation(fields: [productId], references: [id])
-  warehouse   Warehouse?     @relation(fields: [warehouseId], references: [id])
-  createdAt   DateTime       @default(now())
+  id              String         @id @default(cuid())
+  variantId       String?        // prefer variant
+  productId       String?        // fallback
+  warehouseId     String?
+  type            String         // IN, OUT, ADJUSTMENT, TRANSFER
+  qty             Int
+  note            String?
+  referenceId     String?        // purchase or sale id
+  previousStock   Int?           // stock before mutation (C4: audit trail)
+  newStock        Int?           // stock after mutation (C4: audit trail)
+  variant         ProductVariant? @relation(fields: [variantId], references: [id])
+  product         Product?       @relation(fields: [productId], references: [id])
+  warehouse       Warehouse?     @relation(fields: [warehouseId], references: [id])
+  createdAt       DateTime       @default(now())
 }
 
 // ===================== ACTIVITY LOG =====================
@@ -249,6 +251,13 @@ model Inbox {
   isRead     Boolean  @default(false)
   priority   String   @default("info") // urgent, warning, info
   createdAt  DateTime @default(now())
+}
+
+// ===================== COUNTER (Atomic Code Generation) =====================
+
+model Counter {
+  id    String @id   // e.g. "SO-20260610", "CUS"
+  seq   Int    @default(0)
 }
 
 // ===================== ATTACHMENT =====================

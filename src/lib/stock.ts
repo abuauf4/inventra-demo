@@ -1,14 +1,66 @@
 import { db } from './db'
+import { Prisma } from '@prisma/client'
 
 type TransactionClient = Parameters<Parameters<typeof db.$transaction>[0]>[0]
+
+// ─── Custom Error for Insufficient Stock ───
+
+export class StockInsufficientError extends Error {
+  variantId: string
+  variantName: string
+  requested: number
+  available: number
+
+  constructor(variantId: string, variantName: string, requested: number, available: number) {
+    super(`Stok tidak cukup untuk ${variantName}. Tersedia: ${available}, diminta: ${requested}`)
+    this.name = 'StockInsufficientError'
+    this.variantId = variantId
+    this.variantName = variantName
+    this.requested = requested
+    this.available = available
+  }
+}
+
+// ─── Helper: get stock before/after for audit trail ───
+
+async function getVariantStockSnapshot(
+  variantId: string,
+  client: TransactionClient
+): Promise<{ stock: number; name: string }> {
+  const variant = await client.productVariant.findUnique({
+    where: { id: variantId },
+    select: { stock: true, name: true },
+  })
+  if (!variant) throw new Error(`Variant ${variantId} not found`)
+  return variant
+}
+
+async function getWarehouseStockSnapshot(
+  warehouseId: string,
+  variantId: string,
+  client: TransactionClient
+): Promise<number> {
+  const ws = await client.warehouseStock.findUnique({
+    where: {
+      warehouseId_productVariantId: { warehouseId, productVariantId: variantId },
+    },
+    select: { stock: true },
+  })
+  return ws?.stock ?? 0
+}
 
 /**
  * Update variant stock AND sync warehouse stock atomically.
  * This is the ONLY way stock should be modified to ensure consistency.
- * 
+ *
+ * C1: Uses atomic conditional UPDATE with `WHERE stock >= qty` for decrements.
+ *     Throws StockInsufficientError if stock would go negative.
+ *
+ * C4: Returns { previousStock, newStock } for audit trail recording.
+ *
  * If `tx` is provided, the operations run inside the caller's transaction.
  * If `tx` is NOT provided, the operations are wrapped in their own $transaction.
- * 
+ *
  * @param variantId - The product variant ID
  * @param qty - The quantity change (positive = add, negative = subtract)
  * @param warehouseId - Optional warehouse ID. If not provided, updates the first active warehouse.
@@ -19,20 +71,66 @@ export async function updateVariantStock(
   qty: number,
   warehouseId?: string,
   tx?: TransactionClient
-) {
+): Promise<{ previousStock: number; newStock: number; warehousePreviousStock: number; warehouseNewStock: number }> {
   const execute = async (client: TransactionClient) => {
-    // 1. Update variant total stock
-    const updatedVariant = await client.productVariant.update({
-      where: { id: variantId },
-      data: {
-        stock: qty > 0 ? { increment: qty } : { decrement: Math.abs(qty) },
-      },
-    })
+    // ─── C1: Atomic stock update with negative guard ───
+    // For decrements (qty < 0), use raw SQL with WHERE stock >= abs(qty) to prevent negative stock
+    // For increments (qty > 0), use normal Prisma increment (can't go negative)
 
-    // 2. Determine warehouse
+    const absQty = Math.abs(qty)
+    let previousStock: number
+    let newStock: number
+
+    if (qty < 0) {
+      // Atomic decrement with stock >= absQty guard
+      const result = await client.$executeRaw`
+        UPDATE "ProductVariant" 
+        SET stock = stock - ${absQty}, "updatedAt" = ${new Date()}
+        WHERE id = ${variantId} AND stock >= ${absQty}
+      `
+
+      if (result === 0) {
+        // Stock insufficient — fetch current stock for error message
+        const variant = await client.productVariant.findUnique({
+          where: { id: variantId },
+          select: { stock: true, name: true },
+        })
+        throw new StockInsufficientError(
+          variantId,
+          variant?.name || variantId,
+          absQty,
+          variant?.stock ?? 0
+        )
+      }
+
+      // Fetch the updated stock for audit trail
+      const updated = await client.productVariant.findUnique({
+        where: { id: variantId },
+        select: { stock: true },
+      })
+      previousStock = (updated?.stock ?? 0) + absQty
+      newStock = updated?.stock ?? 0
+    } else {
+      // Normal increment — get before value first
+      const before = await client.productVariant.findUnique({
+        where: { id: variantId },
+        select: { stock: true },
+      })
+      previousStock = before?.stock ?? 0
+
+      await client.productVariant.update({
+        where: { id: variantId },
+        data: {
+          stock: { increment: qty },
+        },
+      })
+
+      newStock = previousStock + qty
+    }
+
+    // ─── Determine warehouse ───
     let whId = warehouseId
     if (!whId) {
-      // Default to the first active warehouse
       const defaultWarehouse = await client.warehouse.findFirst({
         where: { isActive: true },
         orderBy: { createdAt: 'asc' },
@@ -40,7 +138,10 @@ export async function updateVariantStock(
       whId = defaultWarehouse?.id
     }
 
-    // 3. Update warehouse stock
+    // ─── Update warehouse stock ───
+    let warehousePreviousStock = 0
+    let warehouseNewStock = 0
+
     if (whId) {
       const existingStock = await client.warehouseStock.findUnique({
         where: {
@@ -52,22 +153,43 @@ export async function updateVariantStock(
       })
 
       if (existingStock) {
-        await client.warehouseStock.update({
-          where: { id: existingStock.id },
-          data: {
-            stock: qty > 0 ? { increment: qty } : { decrement: Math.abs(qty) },
-          },
-        })
+        warehousePreviousStock = existingStock.stock
+
+        if (qty < 0) {
+          // Atomic decrement for warehouse stock too
+          const wsResult = await client.$executeRaw`
+            UPDATE "WarehouseStock" 
+            SET stock = stock - ${absQty}, "updatedAt" = ${new Date()}
+            WHERE id = ${existingStock.id} AND stock >= ${absQty}
+          `
+
+          if (wsResult === 0) {
+            // Warehouse stock insufficient — but variant stock already decremented above!
+            // We need to rollback. Since we're inside a transaction, the error will cause rollback.
+            throw new StockInsufficientError(
+              variantId,
+              'WarehouseStock',
+              absQty,
+              existingStock.stock
+            )
+          }
+
+          warehouseNewStock = warehousePreviousStock - absQty
+        } else {
+          await client.warehouseStock.update({
+            where: { id: existingStock.id },
+            data: {
+              stock: { increment: qty },
+            },
+          })
+          warehouseNewStock = warehousePreviousStock + qty
+        }
       } else {
-        // Create warehouse stock entry if it doesn't exist
-        // BUGFIX: If qty is negative and no existing stock row, this means we're
-        // trying to deduct from a non-existent warehouse stock. We create with 0
-        // but log a warning because this indicates a data inconsistency.
+        // No warehouse stock entry yet
         const initialStock = qty > 0 ? qty : 0
         if (qty < 0) {
           console.warn(
-            `[STOCK WARNING] Attempting negative stock update (${qty}) for variant ${variantId} with no warehouse stock entry. ` +
-            `Creating warehouse stock with 0 instead. This may indicate a data inconsistency.`
+            `[STOCK WARNING] Attempting negative stock update (${qty}) for variant ${variantId} with no warehouse stock entry. Creating with 0.`
           )
         }
         await client.warehouseStock.create({
@@ -77,18 +199,18 @@ export async function updateVariantStock(
             stock: initialStock,
           },
         })
+        warehousePreviousStock = 0
+        warehouseNewStock = initialStock
       }
     }
 
-    return updatedVariant
+    return { previousStock, newStock, warehousePreviousStock, warehouseNewStock }
   }
 
-  // If tx provided, we're already in a transaction — use it directly
   if (tx) {
     return execute(tx)
   }
 
-  // Otherwise, wrap in our own transaction
   return db.$transaction(async (innerTx) => execute(innerTx))
 }
 
@@ -106,7 +228,6 @@ export async function createActivityLog(params: {
   newData?: string // JSON string of new values
 }) {
   try {
-    // If no userId provided, try to find the owner
     let userId = params.userId
     if (!userId) {
       const owner = await db.user.findFirst({ where: { role: 'owner' } })
@@ -126,7 +247,6 @@ export async function createActivityLog(params: {
       },
     })
   } catch (error) {
-    // Don't let activity log failures break the main operation
     console.error('Failed to create activity log:', error)
   }
 }

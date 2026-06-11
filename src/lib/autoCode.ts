@@ -2,62 +2,83 @@ import { db } from './db'
 
 /**
  * Generate a sequential code for any entity type.
- * Uses a simple count-based approach (count existing + 1).
- * This is NOT atomic but good enough for SQLite single-user.
+ * C2: Uses atomic Counter upsert to prevent race conditions.
+ *
+ * The Counter table stores the last used sequence number for each prefix.
+ * `upsert` with `increment: 1` is atomic — two concurrent requests
+ * will get different sequence numbers.
  */
 export async function generateCode(prefix: string, model: string, padLength: number = 6): Promise<string> {
-  let count = 0
+  const counterKey = prefix
 
-  switch (model) {
-    case 'customer':
-      count = await db.customer.count()
-      break
-    case 'supplier':
-      count = await db.supplier.count()
-      break
-    case 'product':
-      count = await db.product.count()
-      break
-    case 'warehouse':
-      count = await db.warehouse.count()
-      break
-    default:
-      count = 0
-  }
+  // Atomic increment — upsert ensures no race condition
+  const counter = await db.counter.upsert({
+    where: { id: counterKey },
+    create: { id: counterKey, seq: 1 },
+    update: { seq: { increment: 1 } },
+  })
 
-  // Find next available number (in case of gaps from deletions)
-  let seq = count + 1
-  let code = `${prefix}${String(seq).padStart(padLength, '0')}`
+  const code = `${prefix}${String(counter.seq).padStart(padLength, '0')}`
 
-  // Verify uniqueness and increment if needed
-  let exists = true
-  while (exists) {
-    exists = await checkExists(model, code)
-    if (exists) {
+  // Verify uniqueness (safety net for edge cases like manual DB edits)
+  const exists = await checkExists(model, code)
+  if (exists) {
+    // Rare edge case — increment until we find a unique code
+    let seq = counter.seq + 1
+    let candidate = `${prefix}${String(seq).padStart(padLength, '0')}`
+    while (await checkExists(model, candidate)) {
       seq++
-      code = `${prefix}${String(seq).padStart(padLength, '0')}`
+      candidate = `${prefix}${String(seq).padStart(padLength, '0')}`
     }
+    // Update counter to the new high-water mark
+    await db.counter.update({
+      where: { id: counterKey },
+      data: { seq },
+    })
+    return candidate
   }
 
   return code
 }
 
+/**
+ * Generate a transaction code with date-based prefix.
+ * C2: Uses atomic Counter upsert to prevent duplicate transNo.
+ *
+ * Format: PREFIX-YYYYMMDD-XXXX (e.g., SO-20260610-0001)
+ * Counter key is "SO-20260610" — each day gets its own sequence.
+ */
 export async function generateTransCode(prefix: string, date: Date, model: 'purchase' | 'sale'): Promise<string> {
   const dateStr = date.toISOString().slice(0, 10).replace(/-/g, '')
-  const todayStart = new Date(date)
-  todayStart.setHours(0, 0, 0, 0)
-  const todayEnd = new Date(date)
-  todayEnd.setHours(23, 59, 59, 999)
+  const counterKey = `${prefix}-${dateStr}`
 
-  let count = 0
-  if (model === 'purchase') {
-    count = await db.purchase.count({ where: { date: { gte: todayStart, lte: todayEnd } } })
-  } else {
-    count = await db.sale.count({ where: { date: { gte: todayStart, lte: todayEnd } } })
+  // Atomic increment
+  const counter = await db.counter.upsert({
+    where: { id: counterKey },
+    create: { id: counterKey, seq: 1 },
+    update: { seq: { increment: 1 } },
+  })
+
+  const seq = String(counter.seq).padStart(4, '0')
+  const code = `${prefix}-${dateStr}-${seq}`
+
+  // Verify uniqueness (safety net)
+  const exists = await checkTransExists(model, code)
+  if (exists) {
+    let nextSeq = counter.seq + 1
+    let candidate = `${prefix}-${dateStr}-${String(nextSeq).padStart(4, '0')}`
+    while (await checkTransExists(model, candidate)) {
+      nextSeq++
+      candidate = `${prefix}-${dateStr}-${String(nextSeq).padStart(4, '0')}`
+    }
+    await db.counter.update({
+      where: { id: counterKey },
+      data: { seq: nextSeq },
+    })
+    return candidate
   }
 
-  const seq = String(count + 1).padStart(4, '0')
-  return `${prefix}-${dateStr}-${seq}`
+  return code
 }
 
 async function checkExists(model: string, code: string): Promise<boolean> {
@@ -73,4 +94,11 @@ async function checkExists(model: string, code: string): Promise<boolean> {
     default:
       return false
   }
+}
+
+async function checkTransExists(model: 'purchase' | 'sale', code: string): Promise<boolean> {
+  if (model === 'purchase') {
+    return !!(await db.purchase.findUnique({ where: { transNo: code } }))
+  }
+  return !!(await db.sale.findUnique({ where: { transNo: code } }))
 }
