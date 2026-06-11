@@ -25,6 +25,7 @@ import PurchasesModule from '@/components/inventra/purchases/purchases-module'
 import SalesModule from '@/components/inventra/sales/sales-module'
 import ReportsModule from '@/components/inventra/reports/reports-module'
 import UserManagementModule from '@/components/inventra/user-management/user-management-module'
+import TrashModule from '@/components/inventra/trash/trash-module'
 
 // ===================== COMING SOON PLACEHOLDER =====================
 function ComingSoonPage({ title }: { title: string }) {
@@ -176,6 +177,8 @@ export default function InventraApp() {
         return <ComingSoonPage title="Report Supplier" />
 
       // Pengaturan
+      case 'trash':
+        return <TrashModule />
       case 'user-management':
         return currentUser.role === 'owner' ? <UserManagementModule /> : <ComingSoonPage title="User Management" />
       case 'branch':

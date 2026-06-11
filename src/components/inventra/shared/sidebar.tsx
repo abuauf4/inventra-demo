@@ -17,6 +17,7 @@ import {
   BarChart3, UserCircle, Truck as TruckReport,
   Building2, Palette, FileText,
   Lock, Circle, PanelLeftClose, PanelLeft,
+  Trash2,
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -126,6 +127,7 @@ const menuSections: MenuSection[] = [
     label: 'Pengaturan',
     catIcon: <Sliders className="w-[18px] h-[18px]" />,
     items: [
+      { key: 'trash' as AppPage, label: 'Tempat Sampah', icon: <Trash2 className="w-[18px] h-[18px]" /> },
       { key: 'user-management' as AppPage, label: 'User', icon: <UserCog className="w-[18px] h-[18px]" /> },
       { key: 'branch' as AppPage, label: 'Cabang', icon: <Building2 className="w-[18px] h-[18px]" />, soon: true },
       { key: 'branding' as AppPage, label: 'Branding', icon: <Palette className="w-[18px] h-[18px]" />, soon: true },

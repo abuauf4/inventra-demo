@@ -38,6 +38,8 @@ export type AppPage =
   | 'report-stock'
   | 'report-customer'
   | 'report-supplier'
+  // Trash
+  | 'trash'
   // Pengaturan
   | 'user-management'
   | 'branch'
