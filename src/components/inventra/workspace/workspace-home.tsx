@@ -115,7 +115,7 @@ function OwnerHome({ data }: { data: DashboardData }) {
       <div className="shrink-0 flex flex-wrap items-center gap-2 mb-5">
         {lowStockCount > 0 && (
           <button
-            onClick={() => setLowStockOpen(true)}
+            onClick={() => setActivePage('stock-alerts')}
             className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-amber-50/80 dark:bg-amber-900/15 text-amber-700 dark:text-amber-300 text-xs font-medium border border-amber-200/40 dark:border-amber-800/20 hover:shadow-md hover:shadow-amber-200/20 transition-all duration-300"
           >
             <AlertTriangle className="w-3.5 h-3.5 badge-breathe" />
@@ -176,8 +176,70 @@ function OwnerHome({ data }: { data: DashboardData }) {
         </div>
       </div>
 
-      {/* Bottom: Top Products + Top Customers + Recent Transactions */}
+      {/* Bottom: Low Stock Widget + Top Products + Recent Transactions */}
       <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5">
+        {/* Low Stock Widget */}
+        <div className="flex flex-col min-h-0">
+          <div className="flex items-center justify-between shrink-0 mb-2">
+            <p className="text-xs font-semibold text-stone-400 uppercase tracking-wider flex items-center gap-1.5">
+              <AlertTriangle className={`w-3 h-3 ${lowStockCount > 0 ? 'text-amber-500 badge-breathe' : 'text-stone-300'}`} />
+              Stok Rendah
+            </p>
+            {lowStockCount > 0 && (
+              <button
+                onClick={() => setActivePage('stock-alerts')}
+                className="text-[11px] text-stone-400 hover:text-stone-600 flex items-center gap-0.5"
+              >
+                Lihat Semua <ArrowRight className="w-2.5 h-2.5" />
+              </button>
+            )}
+          </div>
+          <div className="bg-white/60 dark:bg-[#1a1f2e]/60 rounded-xl border border-stone-200/40 dark:border-white/[0.04] overflow-hidden flex-1 min-h-0 overflow-y-auto">
+            {lowStockCount === 0 ? (
+              <div className="p-4 text-center">
+                <Package className="w-5 h-5 text-emerald-400 mx-auto mb-1.5" />
+                <p className="text-xs text-stone-400">Semua stok aman</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-stone-100/50 dark:divide-white/[0.03]">
+                {(data.lowStockProducts ?? []).slice(0, 5).map((p) => (
+                  <button
+                    key={p.variantId}
+                    onClick={() => setActivePage('stock-alerts')}
+                    className="w-full flex items-center gap-2.5 px-3 py-2.5 hover:bg-stone-50/40 dark:hover:bg-white/[0.02] transition-colors text-left"
+                  >
+                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-white text-[10px] font-bold shrink-0 ${
+                      p.stock <= 0 ? 'bg-red-500' : 'bg-amber-500'
+                    }`}>
+                      {p.stock}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium text-stone-800 dark:text-stone-200 truncate">{p.productName}</p>
+                      <p className="text-[10px] text-stone-400 truncate">{p.variantName} · min {p.minStock}</p>
+                    </div>
+                    <div className="shrink-0">
+                      <div className={`h-1.5 w-12 rounded-full overflow-hidden ${p.stock <= 0 ? 'bg-red-100 dark:bg-red-900/30' : 'bg-amber-100 dark:bg-amber-900/30'}`}>
+                        <div
+                          className={`h-full rounded-full ${p.stock <= 0 ? 'bg-red-500' : 'bg-amber-500'}`}
+                          style={{ width: `${Math.min((p.stock / p.minStock) * 100, 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                  </button>
+                ))}
+                {lowStockCount > 5 && (
+                  <button
+                    onClick={() => setActivePage('stock-alerts')}
+                    className="w-full px-3 py-2 text-[10px] text-stone-400 hover:text-stone-600 hover:bg-stone-50/40 dark:hover:bg-white/[0.02] transition-colors text-center"
+                  >
+                    + {lowStockCount - 5} varian lainnya
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Top Products — link to Reports */}
         <div className="flex flex-col min-h-0">
           <div className="flex items-center justify-between shrink-0 mb-2">
@@ -195,28 +257,6 @@ function OwnerHome({ data }: { data: DashboardData }) {
           <div className="bg-white/60 dark:bg-[#1a1f2e]/60 rounded-xl border border-stone-200/40 dark:border-white/[0.04] flex-1 min-h-0 flex items-center justify-center">
             <div className="text-center py-8">
               <Trophy className="w-6 h-6 text-stone-200 mx-auto mb-2" />
-              <p className="text-xs text-muted-foreground">Lihat di Laporan Penjualan</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Top Customers — link to Reports */}
-        <div className="flex flex-col min-h-0">
-          <div className="flex items-center justify-between shrink-0 mb-2">
-            <p className="text-xs font-semibold text-stone-400 uppercase tracking-wider flex items-center gap-1.5">
-              <Users className="w-3 h-3 text-purple-500" />
-              Customer Teratas
-            </p>
-            <button
-              onClick={() => setActivePage('report-sales')}
-              className="text-[11px] text-stone-400 hover:text-stone-600 flex items-center gap-0.5"
-            >
-              Lihat di Laporan <ArrowRight className="w-2.5 h-2.5" />
-            </button>
-          </div>
-          <div className="bg-white/60 dark:bg-[#1a1f2e]/60 rounded-xl border border-stone-200/40 dark:border-white/[0.04] flex-1 min-h-0 flex items-center justify-center">
-            <div className="text-center py-8">
-              <Users className="w-6 h-6 text-stone-200 mx-auto mb-2" />
               <p className="text-xs text-muted-foreground">Lihat di Laporan Penjualan</p>
             </div>
           </div>
@@ -271,7 +311,7 @@ function OwnerHome({ data }: { data: DashboardData }) {
 
 // ─── Admin Home: Workflow Focus ───────────────────────────────────
 function AdminHome({ data }: { data: DashboardData }) {
-  const { navigateToModule, setSearchOpen, setOpenSalesForm } = useAppStore()
+  const { setActivePage, navigateToModule, setSearchOpen, setOpenSalesForm } = useAppStore()
   const [lowStockOpen, setLowStockOpen] = useState(false)
   const lowStockCount = data.lowStockProducts?.length ?? 0
   const userName = useAppStore().currentUser?.name || 'Admin'
@@ -350,7 +390,7 @@ function AdminHome({ data }: { data: DashboardData }) {
         </button>
         {lowStockCount > 0 && (
           <button
-            onClick={() => setLowStockOpen(true)}
+            onClick={() => setActivePage('stock-alerts')}
             className="bg-white dark:bg-[#1a1f2e]/60 rounded-xl border border-amber-200/40 dark:border-amber-800/20 p-3 text-left transition-colors"
           >
             <div className="flex items-center gap-2 mb-2">
@@ -412,7 +452,7 @@ function AdminHome({ data }: { data: DashboardData }) {
 
 // ─── Staff/Warehouse Home ─────────────────────────────────────────
 function StaffWarehouseHome({ data }: { data: DashboardData }) {
-  const { navigateToModule, setSearchOpen, setOpenSalesForm, currentUser } = useAppStore()
+  const { setActivePage, navigateToModule, setSearchOpen, setOpenSalesForm, currentUser } = useAppStore()
   const [lowStockOpen, setLowStockOpen] = useState(false)
   const role = currentUser?.role || 'staff'
   const lowStockCount = data.lowStockProducts?.length ?? 0
@@ -449,7 +489,7 @@ function StaffWarehouseHome({ data }: { data: DashboardData }) {
       <div className="shrink-0 flex flex-wrap items-center gap-2 mb-5">
         {lowStockCount > 0 && (
           <button
-            onClick={() => setLowStockOpen(true)}
+            onClick={() => setActivePage('stock-alerts')}
             className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-amber-50/80 dark:bg-amber-900/15 text-amber-700 dark:text-amber-300 text-xs font-medium border border-amber-200/40 dark:border-amber-800/20 transition-all duration-300"
           >
             <AlertTriangle className="w-3.5 h-3.5 badge-breathe" />

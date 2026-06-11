@@ -1,6 +1,7 @@
 import { db } from '@/lib/db'
 import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
+import { sanitizeObject } from '@/lib/sanitize'
 
 const VALID_ROLES = ['owner', 'admin', 'staff', 'warehouse']
 
@@ -19,7 +20,8 @@ export async function PUT(
   try {
     const { id } = await params
     const { userId: currentUserId, userRole: currentUserRole } = getCurrentUser(request)
-    const body = await request.json()
+    const rawBody = await request.json()
+    const body = sanitizeObject(rawBody)
     const { name, username, email, password, role, isActive } = body
 
     // Check if user exists

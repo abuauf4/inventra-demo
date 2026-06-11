@@ -38,6 +38,8 @@ export type AppPage =
   | 'report-stock'
   | 'report-customer'
   | 'report-supplier'
+  // Inventory Alert
+  | 'stock-alerts'
   // Trash
   | 'trash'
   // Pengaturan

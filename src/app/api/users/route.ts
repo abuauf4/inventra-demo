@@ -1,6 +1,7 @@
 import { db } from '@/lib/db'
 import { NextRequest, NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
+import { sanitizeObject } from '@/lib/sanitize'
 
 const VALID_ROLES = ['owner', 'admin', 'staff', 'warehouse']
 
@@ -58,7 +59,8 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const { userId, userRole } = getCurrentUser(request)
-    const body = await request.json()
+    const rawBody = await request.json()
+    const body = sanitizeObject(rawBody)
     const { name, username, email, password, role } = body
 
     // Validation

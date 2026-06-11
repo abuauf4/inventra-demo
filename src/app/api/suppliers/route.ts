@@ -2,13 +2,16 @@ import { db } from '@/lib/db'
 import { NextRequest, NextResponse } from 'next/server'
 import { generateCode } from '@/lib/autoCode'
 import { createActivityLog } from '@/lib/stock'
+import { sanitizeObject } from '@/lib/sanitize'
 
-// GET /api/suppliers - List suppliers with purchase count
+// GET /api/suppliers - List suppliers with purchase count (paginated)
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
     const search = searchParams.get('search') || ''
-    const limit = parseInt(searchParams.get('limit') || '0')
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10))
+    const limit = Math.min(200, Math.max(1, parseInt(searchParams.get('limit') || '20', 10)))
+    const skip = (page - 1) * limit
 
     // D2: Filter out soft-deleted records
     const softDeleteFilter = { deletedAt: null }
@@ -25,20 +28,28 @@ export async function GET(request: NextRequest) {
         }
       : softDeleteFilter
 
-    const suppliers = await db.supplier.findMany({
-      where,
-      ...(limit > 0 && { take: limit }),
-      include: {
-        _count: {
-          select: { purchases: true, products: true },
+    const [suppliers, total] = await Promise.all([
+      db.supplier.findMany({
+        where,
+        skip,
+        take: limit,
+        include: {
+          _count: {
+            select: { purchases: true, products: true },
+          },
         },
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    })
+        orderBy: {
+          createdAt: 'desc',
+        },
+      }),
+      db.supplier.count({ where }),
+    ])
 
-    return NextResponse.json({ success: true, data: suppliers })
+    return NextResponse.json({
+      success: true,
+      data: suppliers,
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+    })
   } catch (error) {
     console.error('Get suppliers error:', error)
     return NextResponse.json(
@@ -51,7 +62,8 @@ export async function GET(request: NextRequest) {
 // POST /api/suppliers - Create supplier with auto-generated code
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
+    const rawBody = await request.json()
+    const body = sanitizeObject(rawBody, { allowHtmlFields: ['notes'] })
     const { name, pic, phone, email, address, notes } = body
 
     // Validation

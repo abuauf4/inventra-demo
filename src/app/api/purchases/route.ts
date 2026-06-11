@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client'
 import { NextRequest, NextResponse } from 'next/server'
 import { updateVariantStock, createActivityLog, StockInsufficientError } from '@/lib/stock'
 import { generateTransCode } from '@/lib/autoCode'
+import { sanitizeObject, sanitizeNumber } from '@/lib/sanitize'
 
 // Helper: resolve the target variant for an item (prefer variantId, fallback to first variant of product)
 async function resolveVariant(variantId: string | null | undefined, productId: string | null | undefined) {
@@ -120,8 +121,17 @@ export async function GET(request: NextRequest) {
 // POST /api/purchases - Create purchase with status handling, PO- prefix
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
+    const rawBody = await request.json()
+    const body = sanitizeObject(rawBody, { allowHtmlFields: ['notes'] })
     const { supplierId, date, notes, status, items, idempotencyKey } = body
+
+    // Sanitize numeric fields in items
+    if (Array.isArray(items)) {
+      for (const item of items) {
+        item.qty = sanitizeNumber(item.qty, 0)
+        item.buyPrice = sanitizeNumber(item.buyPrice, 0)
+      }
+    }
 
     // D1: Idempotency — if same key was used before, return existing record
     if (idempotencyKey) {

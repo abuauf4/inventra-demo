@@ -9,17 +9,23 @@ async function fetchJson<T>(url: string): Promise<{ success: boolean; data: T; p
   return res.json()
 }
 
-// ─── Products ───────────────────────────────────────────────────
-export function useProducts(params?: { search?: string; categoryId?: string; lowStock?: boolean; mode?: 'list' | 'full'; enabled?: boolean }) {
+// ─── Products (with pagination) ──────────────────────────────────
+export function useProducts(params?: { search?: string; categoryId?: string; supplierId?: string; lowStock?: boolean; mode?: 'list' | 'full'; page?: number; limit?: number; enabled?: boolean }) {
   const qs = new URLSearchParams()
   if (params?.search) qs.set('search', params.search)
   if (params?.categoryId && params.categoryId !== 'all') qs.set('categoryId', params.categoryId)
+  if (params?.supplierId) qs.set('supplierId', params.supplierId)
   if (params?.lowStock) qs.set('lowStock', 'true')
   if (params?.mode) qs.set('mode', params.mode)
+  if (params?.page) qs.set('page', String(params.page))
+  if (params?.limit) qs.set('limit', String(params.limit))
 
   return useQuery({
-    queryKey: ['products', params?.search || '', params?.categoryId || 'all', params?.lowStock || false, params?.mode || 'full'],
-    queryFn: () => fetchJson<Product[]>(`/api/products?${qs}`).then(r => r.data),
+    queryKey: ['products', params?.search || '', params?.categoryId || 'all', params?.supplierId || '', params?.lowStock || false, params?.mode || 'full', params?.page || 1, params?.limit || 20],
+    queryFn: async () => {
+      const res = await fetchJson<Product[]>(`/api/products?${qs}`)
+      return { data: res.data, pagination: res.pagination }
+    },
     enabled: params?.enabled !== false,
   })
 }
@@ -32,25 +38,37 @@ export function useCategories() {
   })
 }
 
-// ─── Suppliers ──────────────────────────────────────────────────
-export function useSuppliers(search?: string) {
+// ─── Suppliers (with pagination) ────────────────────────────────
+export function useSuppliers(params?: { search?: string; page?: number; limit?: number; enabled?: boolean }) {
   const qs = new URLSearchParams()
-  if (search) qs.set('search', search)
+  if (params?.search) qs.set('search', params.search)
+  if (params?.page) qs.set('page', String(params.page))
+  if (params?.limit) qs.set('limit', String(params.limit))
 
   return useQuery({
-    queryKey: ['suppliers', search || ''],
-    queryFn: () => fetchJson<Supplier[]>(`/api/suppliers?${qs}`).then(r => r.data),
+    queryKey: ['suppliers', params?.search || '', params?.page || 1, params?.limit || 20],
+    queryFn: async () => {
+      const res = await fetchJson<Supplier[]>(`/api/suppliers?${qs}`)
+      return { data: res.data, pagination: res.pagination }
+    },
+    enabled: params?.enabled !== false,
   })
 }
 
-// ─── Customers ──────────────────────────────────────────────────
-export function useCustomers(search?: string) {
+// ─── Customers (with pagination) ────────────────────────────────
+export function useCustomers(params?: { search?: string; page?: number; limit?: number; enabled?: boolean }) {
   const qs = new URLSearchParams()
-  if (search) qs.set('search', search)
+  if (params?.search) qs.set('search', params.search)
+  if (params?.page) qs.set('page', String(params.page))
+  if (params?.limit) qs.set('limit', String(params.limit))
 
   return useQuery({
-    queryKey: ['customers', search || ''],
-    queryFn: () => fetchJson<Customer[]>(`/api/customers?${qs}`).then(r => r.data),
+    queryKey: ['customers', params?.search || '', params?.page || 1, params?.limit || 20],
+    queryFn: async () => {
+      const res = await fetchJson<Customer[]>(`/api/customers?${qs}`)
+      return { data: res.data, pagination: res.pagination }
+    },
+    enabled: params?.enabled !== false,
   })
 }
 
@@ -106,17 +124,22 @@ export function usePurchases(params?: { search?: string; status?: string; page?:
   })
 }
 
-// ─── Stock Mutations ────────────────────────────────────────────
-export function useStockMutations(params?: { type?: string; dateFrom?: string; dateTo?: string; limit?: number; enabled?: boolean }) {
+// ─── Stock Mutations (with pagination) ──────────────────────────
+export function useStockMutations(params?: { search?: string; type?: string; dateFrom?: string; dateTo?: string; page?: number; limit?: number; enabled?: boolean }) {
   const qs = new URLSearchParams()
+  if (params?.search) qs.set('search', params.search)
   if (params?.type && params.type !== 'all') qs.set('type', params.type)
   if (params?.dateFrom) qs.set('dateFrom', params.dateFrom)
   if (params?.dateTo) qs.set('dateTo', params.dateTo)
+  if (params?.page) qs.set('page', String(params.page))
   if (params?.limit) qs.set('limit', String(params.limit))
 
   return useQuery({
-    queryKey: ['stock-mutations', params?.type || 'all', params?.dateFrom || '', params?.dateTo || '', params?.limit || 100],
-    queryFn: () => fetchJson<StockMutation[]>(`/api/stock-mutations?${qs}`).then(r => r.data),
+    queryKey: ['stock-mutations', params?.search || '', params?.type || 'all', params?.dateFrom || '', params?.dateTo || '', params?.page || 1, params?.limit || 20],
+    queryFn: async () => {
+      const res = await fetchJson<StockMutation[]>(`/api/stock-mutations?${qs}`)
+      return { data: res.data, pagination: res.pagination }
+    },
     enabled: params?.enabled !== false,
   })
 }

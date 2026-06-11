@@ -1,6 +1,7 @@
 import { db } from '@/lib/db'
 import { NextRequest, NextResponse } from 'next/server'
 import { createActivityLog } from '@/lib/stock'
+import { sanitizeObject } from '@/lib/sanitize'
 
 // Entity types that support soft delete
 const SOFT_DELETE_ENTITIES = ['Sale', 'Purchase', 'Product', 'Supplier', 'Customer', 'StockOpname'] as const
@@ -120,7 +121,8 @@ export async function GET(request: NextRequest) {
 // POST /api/trash - Restore a soft-deleted record
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
+    const rawBody = await request.json()
+    const body = sanitizeObject(rawBody)
     const { entity, id } = body
 
     if (!entity || !id) {
@@ -189,7 +191,8 @@ export async function POST(request: NextRequest) {
 // DELETE /api/trash - Permanently delete a soft-deleted record (purge)
 export async function DELETE(request: NextRequest) {
   try {
-    const body = await request.json()
+    const rawBody = await request.json()
+    const body = sanitizeObject(rawBody)
     const { entity, id } = body
 
     if (!entity || !id) {

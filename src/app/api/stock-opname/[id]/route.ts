@@ -1,6 +1,7 @@
 import { db } from '@/lib/db'
 import { NextRequest, NextResponse } from 'next/server'
 import { updateVariantStock, createActivityLog, StockInsufficientError } from '@/lib/stock'
+import { sanitizeObject } from '@/lib/sanitize'
 
 // GET /api/stock-opname/[id] - Get single stock opname
 export async function GET(
@@ -48,7 +49,8 @@ export async function PUT(
 ) {
   try {
     const { id } = await params
-    const body = await request.json()
+    const rawBody = await request.json()
+    const body = sanitizeObject(rawBody, { allowHtmlFields: ['notes'] })
     const { status } = body
 
     if (!status || !['CONFIRMED', 'CANCELLED'].includes(status)) {

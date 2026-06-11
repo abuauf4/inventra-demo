@@ -1,5 +1,6 @@
 import { db } from '@/lib/db'
 import { NextRequest, NextResponse } from 'next/server'
+import { sanitizeObject } from '@/lib/sanitize'
 
 // GET /api/customers/[id] - Get customer detail with sale history
 export async function GET(
@@ -57,7 +58,8 @@ export async function PUT(
 ) {
   try {
     const { id } = await params
-    const body = await request.json()
+    const rawBody = await request.json()
+    const body = sanitizeObject(rawBody, { allowHtmlFields: ['notes'] })
     const { name, phone, email, address, notes, companyName, npwp, contactPerson, paymentTerms, customerType, version } = body
 
     // Check if customer exists

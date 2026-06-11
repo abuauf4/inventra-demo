@@ -1,6 +1,7 @@
 import { db } from '@/lib/db'
 import { NextRequest, NextResponse } from 'next/server'
 import { updateVariantStock, createActivityLog, StockInsufficientError } from '@/lib/stock'
+import { sanitizeObject } from '@/lib/sanitize'
 
 // Valid purchase status transitions
 const VALID_PURCHASE_TRANSITIONS: Record<string, string[]> = {
@@ -59,7 +60,8 @@ export async function PUT(
 ) {
   try {
     const { id } = await params
-    const body = await request.json()
+    const rawBody = await request.json()
+    const body = sanitizeObject(rawBody, { allowHtmlFields: ['notes'] })
     const { status } = body
 
     if (!status) {

@@ -1,5 +1,6 @@
 import { db } from '@/lib/db'
 import { NextRequest, NextResponse } from 'next/server'
+import { sanitizeObject } from '@/lib/sanitize'
 
 // PUT /api/warehouses/[id] - Update warehouse
 export async function PUT(
@@ -8,7 +9,8 @@ export async function PUT(
 ) {
   try {
     const { id } = await params
-    const body = await request.json()
+    const rawBody = await request.json()
+    const body = sanitizeObject(rawBody)
     const { name, code, address, isActive } = body
 
     // Check if warehouse exists

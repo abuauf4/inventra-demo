@@ -74,22 +74,26 @@ function StockMutationsModule() {
   // History filter state
   const [filterType, setFilterType] = useState('all')
   const [page, setPage] = useState(1)
-  const PAGE_LIMIT = 50
+  const PAGE_LIMIT = 20
 
   // Sub-tab for create form
   const [activeTab, setActiveTab] = useState('transfer')
 
   // React Query: master data for Input tab
-  const { data: products = [] } = useProducts()
+  const { data: productsResult } = useProducts({ limit: 200 })
+  const products = productsResult?.data ?? []
   const { data: warehouses = [] } = useWarehouses()
 
   // React Query: stock mutations for History tab (lazy)
   const shouldFetchMutations = activeMainTab === 'history'
-  const { data: mutations = [], isLoading: mutationsLoading, isFetching: mutationsFetching } = useStockMutations({
+  const { data: mutationsData, isLoading: mutationsLoading, isFetching: mutationsFetching } = useStockMutations({
     type: filterType !== 'all' ? filterType : undefined,
+    page,
     limit: PAGE_LIMIT,
     enabled: shouldFetchMutations,
   })
+  const mutations = mutationsData?.data ?? []
+  const pagination = mutationsData?.pagination
 
   // Variant typeahead
   const [variantSearch, setVariantSearch] = useState('')
@@ -535,7 +539,7 @@ function StockMutationsModule() {
           {/* Filter */}
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-start sm:items-center justify-between shrink-0">
             <div className="flex gap-3 items-center">
-              <Select value={filterType} onValueChange={v => { setFilterType(v); }}>
+              <Select value={filterType} onValueChange={v => { setFilterType(v); setPage(1); }}>
                 <SelectTrigger className="w-44">
                   <SelectValue />
                 </SelectTrigger>
@@ -600,6 +604,24 @@ function StockMutationsModule() {
             </Card>
           )}
           </div>
+
+          {/* Pagination Controls */}
+          {pagination && pagination.totalPages > 1 && (
+            <div className="flex items-center justify-between py-3 px-1 border-t shrink-0">
+              <span className="text-sm text-muted-foreground">
+                {mutationsFetching && <RefreshCw className="w-3 h-3 animate-spin inline mr-1" />}
+                Halaman {pagination.page} dari {pagination.totalPages} ({pagination.total} total)
+              </span>
+              <div className="flex gap-1">
+                <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>
+                  <ChevronLeft className="w-4 h-4 mr-1" />Sebelumnya
+                </Button>
+                <Button variant="outline" size="sm" disabled={page >= pagination.totalPages} onClick={() => setPage(p => p + 1)}>
+                  Selanjutnya<ChevronRight className="w-4 h-4 ml-1" />
+                </Button>
+              </div>
+            </div>
+          )}
         </TabsContent>
       </Tabs>
     </div>

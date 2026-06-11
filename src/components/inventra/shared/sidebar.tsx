@@ -87,9 +87,9 @@ const menuSections: MenuSection[] = [
     catIcon: <Package className="w-[18px] h-[18px]" />,
     items: [
       { key: 'stock-mutations' as AppPage, label: 'Mutasi Stok', icon: <ArrowLeftRight className="w-[18px] h-[18px]" /> },
-      { key: 'warehouse-transfer' as AppPage, label: 'Transfer Gudang', icon: <ArrowRightLeft className="w-[18px] h-[18px]" />, soon: true },
+      { key: 'warehouse-transfer' as AppPage, label: 'Transfer Gudang', icon: <ArrowRightLeft className="w-[18px] h-[18px]" /> },
       { key: 'stock-opname' as AppPage, label: 'Stock Opname', icon: <ClipboardCheck className="w-[18px] h-[18px]" />, soon: true },
-      { key: 'stock-adjustment' as AppPage, label: 'Penyesuaian Stok', icon: <Sliders className="w-[18px] h-[18px]" />, soon: true },
+      { key: 'stock-adjustment' as AppPage, label: 'Penyesuaian Stok', icon: <Sliders className="w-[18px] h-[18px]" /> },
     ],
   },
   {

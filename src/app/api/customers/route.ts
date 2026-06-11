@@ -2,13 +2,16 @@ import { db } from '@/lib/db'
 import { NextRequest, NextResponse } from 'next/server'
 import { generateCode } from '@/lib/autoCode'
 import { createActivityLog } from '@/lib/stock'
+import { sanitizeObject } from '@/lib/sanitize'
 
-// GET /api/customers - List customers with sale count
+// GET /api/customers - List customers with sale count (paginated)
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
     const search = searchParams.get('search') || ''
-    const limit = parseInt(searchParams.get('limit') || '0')
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10))
+    const limit = Math.min(200, Math.max(1, parseInt(searchParams.get('limit') || '20', 10)))
+    const skip = (page - 1) * limit
 
     // D2: Filter out soft-deleted records
     const softDeleteFilter = { deletedAt: null }
@@ -28,20 +31,28 @@ export async function GET(request: NextRequest) {
         }
       : softDeleteFilter
 
-    const customers = await db.customer.findMany({
-      where,
-      ...(limit > 0 && { take: limit }),
-      include: {
-        _count: {
-          select: { sales: true },
+    const [customers, total] = await Promise.all([
+      db.customer.findMany({
+        where,
+        skip,
+        take: limit,
+        include: {
+          _count: {
+            select: { sales: true },
+          },
         },
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    })
+        orderBy: {
+          createdAt: 'desc',
+        },
+      }),
+      db.customer.count({ where }),
+    ])
 
-    return NextResponse.json({ success: true, data: customers })
+    return NextResponse.json({
+      success: true,
+      data: customers,
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+    })
   } catch (error) {
     console.error('Get customers error:', error)
     return NextResponse.json(
@@ -54,7 +65,8 @@ export async function GET(request: NextRequest) {
 // POST /api/customers - Create customer with auto-generated code
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
+    const rawBody = await request.json()
+    const body = sanitizeObject(rawBody, { allowHtmlFields: ['notes'] })
     const { name, phone, email, address, notes, companyName, npwp, contactPerson, paymentTerms, customerType } = body
 
     // Validation

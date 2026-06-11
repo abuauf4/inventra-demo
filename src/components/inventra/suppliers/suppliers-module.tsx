@@ -29,15 +29,19 @@ import { Separator } from '@/components/ui/separator'
 import { Textarea } from '@/components/ui/textarea'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
-  Search, Plus, Edit, Trash2, Eye, RefreshCw, Package,
+  Search, Plus, Edit, Trash2, Eye, RefreshCw, Package, ChevronLeft, ChevronRight,
 } from 'lucide-react'
 
 function SuppliersModule() {
   const queryClient = useQueryClient()
   const [search, setSearch] = useState('')
+  const [page, setPage] = useState(1)
+  const PAGE_LIMIT = 20
 
   // React Query — cached across navigation!
-  const { data: suppliers = [], isLoading: loading } = useSuppliers(search)
+  const { data: suppliersData, isLoading: loading, isFetching: fetching } = useSuppliers({ search, page, limit: PAGE_LIMIT })
+  const suppliers = suppliersData?.data ?? []
+  const pagination = suppliersData?.pagination
   const [dialogOpen, setDialogOpen] = useState(false)
   const [detailOpen, setDetailOpen] = useState(false)
   const [editing, setEditing] = useState<Supplier | null>(null)
@@ -68,7 +72,7 @@ function SuppliersModule() {
       // Fetch products for this supplier
       setLoadingProducts(true)
       try {
-        const pRes = await fetch(`/api/products?supplierId=${id}&limit=100`)
+        const pRes = await fetch(`/api/products?supplierId=${id}&limit=200`)
         setSupplierProducts((await pRes.json()).data ?? [])
       } catch { setSupplierProducts([]) }
       finally { setLoadingProducts(false) }
@@ -92,7 +96,7 @@ function SuppliersModule() {
   return (
     <div className="flex flex-col h-full">
       <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 shrink-0">
-        <div className="relative flex-1"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" /><Input placeholder="Cari..." value={search} onChange={e => setSearch(e.target.value)} className="pl-10" /></div>
+        <div className="relative flex-1"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" /><Input placeholder="Cari..." value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} className="pl-10" /></div>
         <Button onClick={() => { setEditing(null); setForm({ name: '', pic: '', phone: '', email: '', address: '', notes: '' }); setDialogOpen(true) }} className="bg-primary text-primary-foreground text-white"><Plus className="w-4 h-4 mr-2" />Tambah</Button>
       </div>
       <div className="flex-1 min-h-0 overflow-y-auto mt-5">
@@ -104,6 +108,24 @@ function SuppliersModule() {
           ))}</TableBody></Table></div></CardContent></Card>
       )}
       </div>
+
+      {/* Pagination Controls */}
+      {pagination && pagination.totalPages > 1 && (
+        <div className="flex items-center justify-between py-3 px-1 border-t shrink-0">
+          <span className="text-sm text-muted-foreground">
+            {fetching && <RefreshCw className="w-3 h-3 animate-spin inline mr-1" />}
+            Halaman {pagination.page} dari {pagination.totalPages} ({pagination.total} total)
+          </span>
+          <div className="flex gap-1">
+            <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>
+              <ChevronLeft className="w-4 h-4 mr-1" />Sebelumnya
+            </Button>
+            <Button variant="outline" size="sm" disabled={page >= pagination.totalPages} onClick={() => setPage(p => p + 1)}>
+              Selanjutnya<ChevronRight className="w-4 h-4 ml-1" />
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Detail Dialog with Tabs */}
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}><DialogContent className="max-w-2xl"><DialogHeader><DialogTitle>Detail Supplier</DialogTitle></DialogHeader>

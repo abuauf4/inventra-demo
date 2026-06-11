@@ -204,6 +204,43 @@ export async function updateVariantStock(
       }
     }
 
+    // ─── Auto-create Inbox notification if stock drops below minStock ───
+    if ((previousStock > 0 && newStock <= 0) || (newStock > 0 && newStock < previousStock)) {
+      // Fetch variant details for notification
+      const variant = await client.productVariant.findUnique({
+        where: { id: variantId },
+        include: { product: { select: { name: true } } },
+      })
+
+      if (variant && variant.minStock > 0 && newStock <= variant.minStock) {
+        // Avoid duplicate notifications: check for existing unread notification within last 24h
+        const existingNotification = await client.inbox.findFirst({
+          where: {
+            type: 'stock_low',
+            entityId: variant.id,
+            isRead: false,
+            createdAt: {
+              gte: new Date(Date.now() - 24 * 60 * 60 * 1000),
+            },
+          },
+        })
+
+        if (!existingNotification) {
+          await client.inbox.create({
+            data: {
+              type: 'stock_low',
+              title: 'Stok Rendah',
+              message: `${variant.product.name} — ${variant.name} stok tinggal ${newStock} (minimum: ${variant.minStock})`,
+              entity: 'ProductVariant',
+              entityId: variant.id,
+              entityCode: variant.sku,
+              priority: newStock === 0 ? 'urgent' : 'warning',
+            },
+          })
+        }
+      }
+    }
+
     return { previousStock, newStock, warehousePreviousStock, warehouseNewStock }
   }
 

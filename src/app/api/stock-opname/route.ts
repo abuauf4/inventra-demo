@@ -2,38 +2,59 @@ import { db } from '@/lib/db'
 import { NextRequest, NextResponse } from 'next/server'
 import { updateVariantStock, createActivityLog } from '@/lib/stock'
 import { generateCode } from '@/lib/autoCode'
+import { sanitizeObject, sanitizeNumber } from '@/lib/sanitize'
 
-// GET /api/stock-opname - List stock opnames
+// GET /api/stock-opname - List stock opnames (paginated)
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
+    const search = searchParams.get('search') || ''
     const warehouseId = searchParams.get('warehouseId') || ''
     const status = searchParams.get('status') || ''
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10))
+    const limit = Math.min(200, Math.max(1, parseInt(searchParams.get('limit') || '20', 10)))
+    const skip = (page - 1) * limit
 
     const where: Record<string, unknown> = {}
 
     // D2: Filter out soft-deleted records by default
     where.deletedAt = null
 
+    if (search) {
+      (where as Record<string, any>).OR = [
+        { transNo: { contains: search, mode: 'insensitive' } },
+        { notes: { contains: search, mode: 'insensitive' } },
+      ]
+    }
+
     if (warehouseId) where.warehouseId = warehouseId
     if (status) where.status = status
 
-    const opnames = await db.stockOpname.findMany({
-      where,
-      include: {
-        warehouse: { select: { id: true, name: true, code: true } },
-        items: {
-          include: {
-            variant: {
-              select: { id: true, name: true, sku: true, product: { select: { id: true, name: true } } },
+    const [opnames, total] = await Promise.all([
+      db.stockOpname.findMany({
+        where,
+        skip,
+        take: limit,
+        include: {
+          warehouse: { select: { id: true, name: true, code: true } },
+          items: {
+            include: {
+              variant: {
+                select: { id: true, name: true, sku: true, product: { select: { id: true, name: true } } },
+              },
             },
           },
         },
-      },
-      orderBy: { date: 'desc' },
-    })
+        orderBy: { date: 'desc' },
+      }),
+      db.stockOpname.count({ where }),
+    ])
 
-    return NextResponse.json({ success: true, data: opnames })
+    return NextResponse.json({
+      success: true,
+      data: opnames,
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+    })
   } catch (error) {
     console.error('Get stock opnames error:', error)
     return NextResponse.json(
@@ -47,8 +68,16 @@ export async function GET(request: NextRequest) {
 // C2: generateCode INSIDE tx so counter rolls back on failure (no gaps)
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
+    const rawBody = await request.json()
+    const body = sanitizeObject(rawBody, { allowHtmlFields: ['notes'] })
     const { warehouseId, date, notes, items } = body
+
+    // Sanitize numeric fields in items
+    if (Array.isArray(items)) {
+      for (const item of items) {
+        item.physicalStock = sanitizeNumber(item.physicalStock, 0)
+      }
+    }
 
     // Validation
     if (!warehouseId || !date || !items || !Array.isArray(items) || items.length === 0) {

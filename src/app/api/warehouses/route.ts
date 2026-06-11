@@ -2,6 +2,7 @@ import { db } from '@/lib/db'
 import { Prisma } from '@prisma/client'
 import { NextRequest, NextResponse } from 'next/server'
 import { generateCode } from '@/lib/autoCode'
+import { sanitizeObject } from '@/lib/sanitize'
 
 // GET /api/warehouses - List warehouses with total stock count
 export async function GET(request: NextRequest) {
@@ -46,7 +47,8 @@ export async function GET(request: NextRequest) {
 // POST /api/warehouses - Create warehouse, auto-generate code if not provided
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
+    const rawBody = await request.json()
+    const body = sanitizeObject(rawBody)
     let { name, code, address, isActive } = body
 
     // Validation

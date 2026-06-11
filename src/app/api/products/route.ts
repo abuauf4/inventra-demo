@@ -2,6 +2,7 @@ import { db } from '@/lib/db'
 import { NextRequest, NextResponse } from 'next/server'
 import { generateCode } from '@/lib/autoCode'
 import { createActivityLog } from '@/lib/stock'
+import { sanitizeObject, sanitizeNumber } from '@/lib/sanitize'
 
 // GET /api/products - Optimized list mode
 // Returns flat fields for list/cards: id, sku, name, categoryName, supplierName,
@@ -14,8 +15,10 @@ export async function GET(request: NextRequest) {
     const categoryId = searchParams.get('categoryId') || ''
     const supplierId = searchParams.get('supplierId') || ''
     const lowStock = searchParams.get('lowStock') === 'true'
-    const limit = parseInt(searchParams.get('limit') || '100')
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10))
+    const limit = Math.min(200, Math.max(1, parseInt(searchParams.get('limit') || '20', 10)))
     const mode = searchParams.get('mode') || 'full'
+    const skip = (page - 1) * limit
 
     // Build where clause
     const where: Record<string, any> = {}
@@ -38,10 +41,9 @@ export async function GET(request: NextRequest) {
       where.supplierId = supplierId
     }
 
-    // For low stock filter: use raw SQL subquery approach via $queryRaw
-    // Prisma ORM doesn't support comparing two columns (stock <= minStock)
-    // So we fetch all with the basic filters, then filter in JS
-    // This is acceptable since product counts are typically small (<1000)
+    // For low stock filter: we need to fetch variants and filter in JS
+    // because Prisma can't compare two columns (stock <= minStock).
+    // When lowStock is requested, we fetch without skip/take first, filter, then slice.
     if (lowStock) {
       // We'll filter after fetch
     }
@@ -90,17 +92,64 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const products = await db.product.findMany({
-      where,
-      take: limit,
-      select: productSelect,
-      orderBy: {
-        createdAt: 'desc',
-      },
-    })
+    // When lowStock filter is active, we can't use DB-level pagination because
+    // the filter depends on variant data (stock <= minStock). So we fetch all
+    // matching products, filter in JS, then manually paginate.
+    if (lowStock) {
+      const allProducts = await db.product.findMany({
+        where,
+        select: productSelect,
+        orderBy: { createdAt: 'desc' },
+      })
+
+      let data = allProducts.map((p: any) => {
+        const activeVariants = (p.variants || []).filter((v: any) => v.isActive)
+        const totalStock = activeVariants.reduce((sum: number, v: any) => sum + v.stock, 0)
+        const lowStockVariantCount = activeVariants.filter((v: any) => v.stock <= v.minStock).length
+
+        const result: Record<string, any> = {
+          ...p,
+          totalStock,
+          lowStockVariantCount,
+          variantCount: activeVariants.length,
+          categoryName: p.category?.name || null,
+          supplierName: p.supplier?.name || null,
+        }
+
+        if (isListMode) {
+          delete result.variants
+        }
+
+        return result
+      })
+
+      // Filter low stock in JS
+      data = data.filter((p) => p.lowStockVariantCount > 0)
+
+      const total = data.length
+      const paginatedData = data.slice(skip, skip + limit)
+
+      return NextResponse.json({
+        success: true,
+        data: paginatedData,
+        pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+      })
+    }
+
+    // Normal (non-lowStock) path: use DB-level pagination
+    const [products, total] = await Promise.all([
+      db.product.findMany({
+        where,
+        select: productSelect,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      db.product.count({ where }),
+    ])
 
     // Compute stock summary per product
-    let data = products.map((p: any) => {
+    const data = products.map((p: any) => {
       const activeVariants = (p.variants || []).filter((v: any) => v.isActive)
       const totalStock = activeVariants.reduce((sum: number, v: any) => sum + v.stock, 0)
       const lowStockVariantCount = activeVariants.filter((v: any) => v.stock <= v.minStock).length
@@ -122,12 +171,11 @@ export async function GET(request: NextRequest) {
       return result
     })
 
-    // Filter low stock in JS if requested (Prisma can't compare stock <= minStock)
-    if (lowStock) {
-      data = data.filter((p) => p.lowStockVariantCount > 0)
-    }
-
-    return NextResponse.json({ success: true, data })
+    return NextResponse.json({
+      success: true,
+      data,
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+    })
   } catch (error) {
     console.error('Get products error:', error)
     return NextResponse.json(
@@ -140,7 +188,8 @@ export async function GET(request: NextRequest) {
 // POST /api/products - Create product with optional variants, auto-generate SKU if not provided
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
+    const rawBody = await request.json()
+    const body = sanitizeObject(rawBody, { allowHtmlFields: ['description', 'notes'] })
     const {
       name,
       sku,
@@ -154,6 +203,11 @@ export async function POST(request: NextRequest) {
       isActive,
       variants,
     } = body
+
+    // Sanitize numeric fields
+    body.buyPrice = sanitizeNumber(body.buyPrice, 0)
+    body.sellPrice = sanitizeNumber(body.sellPrice, 0)
+    body.minStock = sanitizeNumber(body.minStock, 0)
 
     // Auto-generate SKU if not provided
     let productSku = sku

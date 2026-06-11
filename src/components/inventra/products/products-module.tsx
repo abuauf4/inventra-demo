@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { useProducts, useCategories, useSuppliers } from '@/components/inventra/hooks/use-query-hooks'
@@ -30,7 +30,7 @@ import {
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import {
-  Search, Plus, Edit, Trash2, RefreshCw, ChevronRight, AlertTriangle, Package, X,
+  Search, Plus, Edit, Trash2, RefreshCw, ChevronRight, ChevronLeft, AlertTriangle, Package, X,
 } from 'lucide-react'
 
 // Common attribute keys for fashion/apparel
@@ -64,11 +64,17 @@ function ProductsModule() {
   const [search, setSearch] = useState('')
   const [filterCategory, setFilterCategory] = useState('all')
   const [filterLowStock, setFilterLowStock] = useState(false)
+  const [page, setPage] = useState(1)
+  const PAGE_LIMIT = 20
 
   // React Query — cached across navigation! Use mode=list for main list view
-  const { data: products = [], isLoading: loading } = useProducts({ search, categoryId: filterCategory, lowStock: filterLowStock, mode: 'list' })
+  const { data: productsData, isLoading: loading, isFetching: fetching } = useProducts({ search, categoryId: filterCategory, lowStock: filterLowStock, mode: 'list', page, limit: PAGE_LIMIT })
+  const products = productsData?.data ?? []
+  const pagination = productsData?.pagination
+
   const { data: categories = [] } = useCategories()
-  const { data: suppliers = [] } = useSuppliers()
+  const { data: suppliersResult } = useSuppliers({ limit: 200 })
+  const suppliers = suppliersResult?.data ?? []
   const [dialogOpen, setDialogOpen] = useState(false)
   const [variantDialogOpen, setVariantDialogOpen] = useState(false)
   const [editingVariant, setEditingVariant] = useState<ProductVariant | null>(null)
@@ -152,9 +158,9 @@ function ProductsModule() {
   return (
     <div className="flex flex-col h-full">
       <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 shrink-0">
-        <div className="relative flex-1"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" /><Input placeholder="Cari produk..." value={search} onChange={e => setSearch(e.target.value)} className="pl-10" /></div>
-        <Select value={filterCategory} onValueChange={setFilterCategory}><SelectTrigger className="w-44"><SelectValue placeholder="Kategori" /></SelectTrigger><SelectContent><SelectItem value="all">Semua Kategori</SelectItem>{categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select>
-        <Button variant={filterLowStock ? 'default' : 'outline'} onClick={() => setFilterLowStock(!filterLowStock)} className={filterLowStock ? 'bg-amber-500 hover:bg-amber-600' : ''}><AlertTriangle className="w-4 h-4 mr-2" />Stok Menipis</Button>
+        <div className="relative flex-1"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" /><Input placeholder="Cari produk..." value={search} onChange={e => { setSearch(e.target.value); setPage(1) }} className="pl-10" /></div>
+        <Select value={filterCategory} onValueChange={v => { setFilterCategory(v); setPage(1); }}><SelectTrigger className="w-44"><SelectValue placeholder="Kategori" /></SelectTrigger><SelectContent><SelectItem value="all">Semua Kategori</SelectItem>{categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select>
+        <Button variant={filterLowStock ? 'default' : 'outline'} onClick={() => { setFilterLowStock(!filterLowStock); setPage(1); }} className={filterLowStock ? 'bg-amber-500 hover:bg-amber-600' : ''}><AlertTriangle className="w-4 h-4 mr-2" />Stok Menipis</Button>
         <Button onClick={() => { setEditing(null); setForm({ name: '', sku: '', categoryId: '', supplierId: '', description: '', buyPrice: '', sellPrice: '', minStock: '0', isActive: true }); setDialogOpen(true) }} className="bg-primary text-primary-foreground text-white"><Plus className="w-4 h-4 mr-2" />Tambah</Button>
       </div>
 
@@ -210,6 +216,24 @@ function ProductsModule() {
         </div>
       )}
       </div>
+
+      {/* Pagination Controls */}
+      {pagination && pagination.totalPages > 1 && (
+        <div className="flex items-center justify-between py-3 px-1 border-t shrink-0">
+          <span className="text-sm text-muted-foreground">
+            {fetching && <RefreshCw className="w-3 h-3 animate-spin inline mr-1" />}
+            Halaman {pagination.page} dari {pagination.totalPages} ({pagination.total} total)
+          </span>
+          <div className="flex gap-1">
+            <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>
+              <ChevronLeft className="w-4 h-4 mr-1" />Sebelumnya
+            </Button>
+            <Button variant="outline" size="sm" disabled={page >= pagination.totalPages} onClick={() => setPage(p => p + 1)}>
+              Selanjutnya<ChevronRight className="w-4 h-4 ml-1" />
+            </Button>
+          </div>
+        </div>
+      )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}><DialogContent className="max-w-lg"><DialogHeader><DialogTitle>{editing ? 'Edit' : 'Tambah'} Produk</DialogTitle></DialogHeader>
         <div className="space-y-3">

@@ -83,8 +83,10 @@ function PurchasesModule() {
   const { data: draftCountData } = usePurchases({ status: 'DRAFT', limit: 1, mode: 'list' as const, enabled: true })
   const draftCount = draftCountData?.pagination?.total ?? (activeTab === 'drafts' ? (pagination?.total ?? 0) : 0)
 
-  const { data: suppliers = [] } = useSuppliers()
-  const { data: products = [] } = useProducts()
+  const { data: suppliersResult } = useSuppliers({ limit: 200 })
+  const suppliers = suppliersResult?.data ?? []
+  const { data: productsResult } = useProducts({ limit: 200 })
+  const products = productsResult?.data ?? []
 
   const purchases = purchasesData?.data ?? []
   const pagination = purchasesData?.pagination

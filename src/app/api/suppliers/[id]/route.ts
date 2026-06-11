@@ -1,5 +1,6 @@
 import { db } from '@/lib/db'
 import { NextRequest, NextResponse } from 'next/server'
+import { sanitizeObject } from '@/lib/sanitize'
 
 // GET /api/suppliers/[id] - Get supplier detail with purchase history
 export async function GET(
@@ -60,7 +61,8 @@ export async function PUT(
 ) {
   try {
     const { id } = await params
-    const body = await request.json()
+    const rawBody = await request.json()
+    const body = sanitizeObject(rawBody, { allowHtmlFields: ['notes'] })
     const { name, pic, phone, email, address, notes, version } = body
 
     // Check if supplier exists

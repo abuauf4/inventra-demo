@@ -85,8 +85,10 @@ function SalesModule() {
   const { data: draftCountData } = useSales({ status: 'DRAFT', limit: 1, mode: 'list' as const, enabled: true })
   const draftCount = draftCountData?.pagination?.total ?? (activeTab === 'drafts' ? (pagination?.total ?? 0) : 0)
 
-  const { data: customers = [] } = useCustomers()
-  const { data: products = [] } = useProducts()
+  const { data: customersResult } = useCustomers({ limit: 200 })
+  const customers = customersResult?.data ?? []
+  const { data: productsResult } = useProducts({ limit: 200 })
+  const products = productsResult?.data ?? []
 
   const sales = salesData?.data ?? []
   const pagination = salesData?.pagination

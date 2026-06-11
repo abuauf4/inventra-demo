@@ -1,5 +1,6 @@
 import { db } from '@/lib/db'
 import { NextRequest, NextResponse } from 'next/server'
+import { sanitizeObject, sanitizeNumber } from '@/lib/sanitize'
 
 // PUT /api/products/[id] - Update product with variant handling
 export async function PUT(
@@ -8,7 +9,8 @@ export async function PUT(
 ) {
   try {
     const { id } = await params
-    const body = await request.json()
+    const rawBody = await request.json()
+    const body = sanitizeObject(rawBody, { allowHtmlFields: ['description', 'notes'] })
     const {
       name,
       sku,
@@ -23,6 +25,11 @@ export async function PUT(
       variants,
       version, // D4: optimistic locking — client must send current version
     } = body
+
+    // Sanitize numeric fields
+    body.buyPrice = sanitizeNumber(body.buyPrice, 0)
+    body.sellPrice = sanitizeNumber(body.sellPrice, 0)
+    body.minStock = sanitizeNumber(body.minStock, 0)
 
     // Check if product exists
     const existingProduct = await db.product.findUnique({

@@ -2,18 +2,32 @@ import { db } from '@/lib/db'
 import { Prisma } from '@prisma/client'
 import { NextRequest, NextResponse } from 'next/server'
 import { updateVariantStock, createActivityLog, StockInsufficientError } from '@/lib/stock'
+import { sanitizeObject, sanitizeNumber } from '@/lib/sanitize'
 
-// GET /api/stock-mutations - List stock mutations
+// GET /api/stock-mutations - List stock mutations (paginated)
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
+    const search = searchParams.get('search') || ''
     const productId = searchParams.get('productId') || ''
     const type = searchParams.get('type') || ''
     const dateFrom = searchParams.get('dateFrom') || ''
     const dateTo = searchParams.get('dateTo') || ''
-    const limit = parseInt(searchParams.get('limit') || '100')
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10))
+    const limit = Math.min(200, Math.max(1, parseInt(searchParams.get('limit') || '20', 10)))
+    const skip = (page - 1) * limit
 
     const where: Prisma.StockMutationWhereInput = {}
+
+    if (search) {
+      where.OR = [
+        { note: { contains: search, mode: 'insensitive' } },
+        { product: { name: { contains: search, mode: 'insensitive' } } },
+        { product: { sku: { contains: search, mode: 'insensitive' } } },
+        { variant: { name: { contains: search, mode: 'insensitive' } } },
+        { variant: { sku: { contains: search, mode: 'insensitive' } } },
+      ]
+    }
 
     if (productId) {
       where.productId = productId
@@ -29,26 +43,34 @@ export async function GET(request: NextRequest) {
       if (dateTo) where.createdAt.lte = new Date(dateTo)
     }
 
-    const mutations = await db.stockMutation.findMany({
-      where,
-      take: limit,
-      include: {
-        product: {
-          select: { id: true, name: true, sku: true },
+    const [mutations, total] = await Promise.all([
+      db.stockMutation.findMany({
+        where,
+        skip,
+        take: limit,
+        include: {
+          product: {
+            select: { id: true, name: true, sku: true },
+          },
+          variant: {
+            select: { id: true, name: true, sku: true, product: { select: { id: true, name: true } } },
+          },
+          warehouse: {
+            select: { id: true, name: true, code: true },
+          },
         },
-        variant: {
-          select: { id: true, name: true, sku: true, product: { select: { id: true, name: true } } },
+        orderBy: {
+          createdAt: 'desc',
         },
-        warehouse: {
-          select: { id: true, name: true, code: true },
-        },
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    })
+      }),
+      db.stockMutation.count({ where }),
+    ])
 
-    return NextResponse.json({ success: true, data: mutations })
+    return NextResponse.json({
+      success: true,
+      data: mutations,
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+    })
   } catch (error) {
     console.error('Get stock mutations error:', error)
     return NextResponse.json(
@@ -61,8 +83,12 @@ export async function GET(request: NextRequest) {
 // POST /api/stock-mutations - Create stock mutation
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
+    const rawBody = await request.json()
+    const body = sanitizeObject(rawBody, { allowHtmlFields: ['note'] })
     const { type, variantId, warehouseId, fromWarehouseId, toWarehouseId, qty, note } = body
+
+    // Sanitize numeric fields
+    body.qty = sanitizeNumber(body.qty)
 
     // Common validation
     if (!type || !['TRANSFER', 'ADJUSTMENT', 'IN', 'OUT'].includes(type)) {

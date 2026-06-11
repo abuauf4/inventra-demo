@@ -35,7 +35,7 @@ function QuickSaleDialog() {
 
   useEffect(() => {
     if (quickActionOpen) {
-      Promise.all([fetch('/api/customers').then(r => r.json()), fetch('/api/products').then(r => r.json())])
+      Promise.all([fetch('/api/customers?limit=200').then(r => r.json()), fetch('/api/products?limit=200').then(r => r.json())])
         .then(([c, p]) => { setCustomers(c.data ?? []); setProducts(p.data ?? []) })
       setCustomerId(''); setVariantId(''); setQty('1'); setCustomerSearch(''); setVariantSearch('')
     }

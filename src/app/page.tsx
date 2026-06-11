@@ -26,6 +26,9 @@ import SalesModule from '@/components/inventra/sales/sales-module'
 import ReportsModule from '@/components/inventra/reports/reports-module'
 import UserManagementModule from '@/components/inventra/user-management/user-management-module'
 import TrashModule from '@/components/inventra/trash/trash-module'
+import StockAlertsModule from '@/components/inventra/stock-alerts/stock-alerts-module'
+import StockTransferModule from '@/components/inventra/stock-transfer/stock-transfer-module'
+import StockAdjustmentModule from '@/components/inventra/stock-adjustment/stock-adjustment-module'
 
 // ===================== COMING SOON PLACEHOLDER =====================
 function ComingSoonPage({ title }: { title: string }) {
@@ -138,11 +141,13 @@ export default function InventraApp() {
       case 'stock-mutations':
         return <StockMutationsModule />
       case 'warehouse-transfer':
-        return <ComingSoonPage title="Transfer Gudang" />
+        return <StockTransferModule />
       case 'stock-opname':
         return <ComingSoonPage title="Stock Opname" />
       case 'stock-adjustment':
-        return <ComingSoonPage title="Penyesuaian Stok" />
+        return <StockAdjustmentModule />
+      case 'stock-alerts':
+        return <StockAlertsModule />
 
       // Finance
       case 'invoice':
